@@ -1,0 +1,1078 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mavolux 5032B – Lux Anzeige</title>
+  <style>
+    :root{
+      /* Schaeffler-like, light + compact + crisp */
+      --sf-blue:#005aa7;
+      --sf-green:#6bb100;
+      --sf-text:#0f172a;
+      --sf-muted:#64748b;
+      --sf-border:#e5e7eb;
+      --sf-bg:#f6f8fb;
+      --sf-card:#ffffff;
+
+      --shadow: 0 14px 32px rgba(16,24,40,.10);
+      --radius: 16px;
+
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+
+      /* compact controls */
+      --ctl-h: 34px;
+      --ctl-r: 12px;
+      --ctl-f: 13px;
+      --ctl-fs: 11px;
+
+      /* 8px rhythm */
+      --s1: 4px;
+      --s2: 8px;
+      --s3: 12px;
+      --s4: 16px;
+    }
+
+    html{
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    body{
+      margin:0;
+      font-family: var(--font);
+      color:var(--sf-text);
+      background:
+        radial-gradient(1100px 520px at 10% 0%, rgba(0,90,167,.11), transparent 60%),
+        radial-gradient(820px 460px at 92% 10%, rgba(107,177,0,.10), transparent 55%),
+        linear-gradient(180deg, #f8fafc, var(--sf-bg));
+    }
+
+    header{
+      position: sticky;
+      top:0;
+      z-index:20;
+      background: rgba(246,248,251,.86);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(229,231,235,.95);
+    }
+
+    .wrap{ max-width: 1100px; margin: 0 auto; padding: 12px 14px 16px; }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width: 240px;
+    }
+    .logo{
+      width: 34px; height:34px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--sf-blue), #2b7bbb);
+      box-shadow: 0 12px 20px rgba(0,90,167,.18);
+      position:relative;
+      overflow:hidden;
+      flex: 0 0 auto;
+    }
+    .logo:before{
+      content:"";
+      position:absolute;
+      inset:-45%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.78), transparent 58%);
+      transform: rotate(14deg);
+    }
+    .title{ display:flex; flex-direction:column; gap:2px; }
+    .title h1{ margin:0; font-size: 14px; font-weight: 850; letter-spacing:.2px; line-height:1.1; }
+    .title .sub{ font-size: 11px; color: var(--sf-muted); }
+
+    .toolbar{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .btn{
+      height: var(--ctl-h);
+      padding: 0 12px;
+      border-radius: var(--ctl-r);
+      border: 1px solid rgba(229,231,235,.95);
+      background: linear-gradient(180deg, #ffffff, #fbfcff);
+      cursor:pointer;
+      font-weight: 780;
+      font-size: var(--ctl-f);
+      color: var(--sf-text);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      white-space: nowrap;
+
+      /* crisp */
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.95),
+        0 1px 2px rgba(15,23,42,.06);
+    }
+    .btn:hover{
+      border-color: rgba(0,90,167,.18);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.95),
+        0 6px 14px rgba(0,90,167,.10);
+    }
+    .btn:active{
+      transform: translateY(0.5px);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.90),
+        0 2px 8px rgba(15,23,42,.08);
+    }
+    .btn.primary{
+      border-color: rgba(0,90,167,.24);
+      background: linear-gradient(180deg, rgba(0,90,167,.12), rgba(0,90,167,.06));
+      color:#05345a;
+    }
+    .btn.ghost{
+      background: rgba(255,255,255,.78);
+    }
+    .btn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+      transform:none;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.90),
+        0 1px 2px rgba(15,23,42,.04);
+    }
+
+    .status-pill{
+      height: var(--ctl-h);
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(229,231,235,.95);
+      background: rgba(255,255,255,.78);
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      font-size: 12px;
+      color: var(--sf-muted);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.92);
+    }
+    .dot{
+      width:10px;height:10px;border-radius:50%;
+      background:#94a3b8;
+      box-shadow: 0 0 0 4px rgba(148,163,184,.16);
+    }
+    .dot.ok{
+      background: var(--sf-green);
+      box-shadow: 0 0 0 4px rgba(107,177,0,.16);
+    }
+
+    .badge-live{
+      display:none;
+      height: var(--ctl-h);
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(107,177,0,.25);
+      background: linear-gradient(180deg, rgba(107,177,0,.14), rgba(107,177,0,.07));
+      color:#274b00;
+      font-weight: 860;
+      font-size: 12px;
+      align-items:center;
+      gap:8px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.80);
+    }
+    .badge-live.on{ display:inline-flex; }
+    .pulse{
+      width:10px;height:10px;border-radius:50%;
+      background: rgba(107,177,0,.95);
+      box-shadow: 0 0 0 0 rgba(107,177,0,.40);
+      animation: pulse 1.4s infinite;
+    }
+    @keyframes pulse{
+      0%{ box-shadow: 0 0 0 0 rgba(107,177,0,.35); }
+      70%{ box-shadow: 0 0 0 10px rgba(107,177,0,0); }
+      100%{ box-shadow: 0 0 0 0 rgba(107,177,0,0); }
+    }
+
+    .card{
+      background: var(--sf-card);
+      border: 1px solid rgba(229,231,235,.95);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      /* subtle inner highlight for "hi-res" look */
+      position: relative;
+    }
+    .card:before{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      border-radius: var(--radius);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.88);
+    }
+
+    .card-h{
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(229,231,235,.95);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .card-h strong{ font-size: 13px; letter-spacing:.2px; }
+    .card-b{ padding: 12px; }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(229,231,235,.95);
+      background: rgba(255,255,255,.72);
+      font-size: 12px;
+      color: var(--sf-muted);
+      white-space: nowrap;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.90);
+    }
+    .kbd{
+      font-family: var(--mono);
+      font-size: 12px;
+      padding: 1px 6px;
+      border-radius: 9px;
+      border: 1px solid rgba(229,231,235,.95);
+      background: #fff;
+      color:#111827;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+    }
+
+    .stack{ display:flex; flex-direction:column; gap: 12px; margin-top: 12px; }
+
+    .display-tile{
+      border-radius: 16px;
+      border: 1px solid rgba(0,90,167,.16);
+      background:
+        radial-gradient(980px 240px at 35% -40%, rgba(255,255,255,.80), transparent 56%),
+        linear-gradient(135deg, rgba(0,90,167,.10), rgba(107,177,0,.08)),
+        linear-gradient(180deg, #ffffff, #fbfdff);
+      box-shadow:
+        0 14px 30px rgba(0,90,167,.10),
+        inset 0 1px 0 rgba(255,255,255,.82);
+      padding: 12px;
+      overflow:hidden;
+      position: relative;
+    }
+
+    .display-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .display-row .left{ display:flex; flex-direction:column; gap:2px; }
+    .display-row .left .t{ font-size: 11px; color: var(--sf-muted); }
+    .display-row .left .m{ font-size: 12px; font-weight: 820; color:#0b2540; }
+
+    .value-row{
+      display:flex;
+      align-items:baseline;
+      justify-content:center;
+      gap:10px;
+      padding: 10px 8px 2px;
+    }
+    .value{
+      font-family: var(--mono);
+      font-size: 46px; /* compact */
+      font-weight: 920;
+      letter-spacing: -0.9px;
+      color:#071a2d;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+      text-shadow: 0 1px 0 rgba(255,255,255,.65);
+    }
+    .unit{
+      font-size: 16px;
+      font-weight: 860;
+      color: var(--sf-blue);
+    }
+    .hint{
+      text-align:center;
+      font-size: 12px;
+      color: var(--sf-muted);
+      padding-bottom: 8px;
+    }
+
+    .kpis{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .kpi{
+      border: 1px solid rgba(229,231,235,.95);
+      border-radius: 12px;
+      background: rgba(255,255,255,.80);
+      padding: 8px 10px;
+      min-height: 56px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.90);
+    }
+    .kpi .k{ font-size: 11px; color: var(--sf-muted); }
+    .kpi .v{
+      margin-top: 4px;
+      font-weight: 860;
+      font-family: var(--mono);
+      font-size: 13px;
+      color:#0b2540;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+    }
+
+    /* Chart container is CSS-sized; canvas is DPI-scaled in JS */
+    .chart-wrap{
+      width:100%;
+      height: 260px;
+      border: 1px solid rgba(229,231,235,.95);
+      border-radius: 14px;
+      overflow:hidden;
+      background: linear-gradient(180deg, rgba(0,90,167,.06), rgba(107,177,0,.04));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.90);
+    }
+    canvas{ width:100%; height:100%; display:block; }
+
+    .foot{
+      margin-top:10px;
+      font-size: 11px;
+      color: var(--sf-muted);
+    }
+
+    /* Modal */
+    .modal-backdrop{
+      position:fixed;
+      inset:0;
+      background: rgba(15,23,42,.46);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding: 16px;
+      z-index: 50;
+    }
+    .modal-backdrop.open{ display:flex; }
+
+    .modal{
+      width: min(720px, 100%);
+      border-radius: 16px;
+      border: 1px solid rgba(229,231,235,.95);
+      background: #fff;
+      box-shadow: 0 24px 60px rgba(16,24,40,.22);
+      overflow:hidden;
+    }
+    .modal-h{
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(229,231,235,.95);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+    }
+    .modal-h strong{ font-size: 13px; }
+    .modal-b{ padding: 12px; }
+
+    .form-grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+    @media (max-width: 720px){
+      .form-grid{ grid-template-columns: 1fr; }
+    }
+    label{
+      display:block;
+      font-size: var(--ctl-fs);
+      color: var(--sf-muted);
+      margin-bottom: 4px;
+    }
+    select, input{
+      width:100%;
+      height: var(--ctl-h);
+      padding: 0 10px;
+      border-radius: var(--ctl-r);
+      border: 1px solid rgba(229,231,235,.95);
+      background: #fff;
+      font-size: var(--ctl-f);
+      outline:none;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.92);
+    }
+    select:focus, input:focus{
+      border-color: rgba(0,90,167,.30);
+      box-shadow: 0 0 0 4px rgba(0,90,167,.12), inset 0 1px 0 rgba(255,255,255,.92);
+    }
+    .row{
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div class="title">
+          <h1>Anzeige &amp; Diagramm</h1>
+          <div class="sub">Mavolux 5032B · USB (CDC) · Lux</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <span id="liveBadge" class="badge-live"><span class="pulse"></span> LIVE</span>
+        <span class="status-pill">
+          <span id="dot" class="dot"></span>
+          <span id="connText">Nicht verbunden</span>
+        </span>
+
+        <button id="btnConnect" class="btn primary">Connect</button>
+        <button id="btnStartStop" class="btn primary" disabled>Start</button>
+        <button id="btnExport" class="btn" disabled>Export</button>
+        <button id="btnParams" class="btn ghost">Parameter</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="stack">
+    <section class="card">
+      <div class="card-h">
+        <strong>🔎 Beleuchtungsstärke</strong>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+          <span class="pill">Parser: <span class="kbd">… lx</span></span>
+          <span class="pill">CDC: <span class="kbd" id="cdcInfo">9600 8N1</span></span>
+        </div>
+      </div>
+      <div class="card-b">
+        <div class="display-tile">
+          <div class="display-row">
+            <div class="left">
+              <div class="t">Messgröße</div>
+              <div class="m">Beleuchtungsstärke</div>
+            </div>
+            <div class="pill">Letzter Wert: <span class="kbd" id="lastAge">–</span></div>
+          </div>
+
+          <div class="value-row" aria-live="polite">
+            <div id="luxValue" class="value">—</div>
+            <div class="unit">lx</div>
+          </div>
+
+          <div id="hint" class="hint">Verbinde das Gerät und starte die Messung.</div>
+
+          <div class="kpis">
+            <div class="kpi">
+              <div class="k">Min</div>
+              <div id="minLux" class="v">—</div>
+            </div>
+            <div class="kpi">
+              <div class="k">Max</div>
+              <div id="maxLux" class="v">—</div>
+            </div>
+            <div class="kpi">
+              <div class="k">Ø</div>
+              <div id="avgLux" class="v">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-h">
+        <strong>📈 Diagramm</strong>
+        <span class="pill"><span id="pointsInfo">0 Punkte im Fenster</span></span>
+      </div>
+      <div class="card-b">
+        <div class="chart-wrap">
+          <canvas id="chart"></canvas>
+        </div>
+        <div class="foot">Diagramm zeigt „letzte X Zeit“. Export enthält alle gespeicherten Punkte.</div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- Parameters modal -->
+<div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <div class="modal-h">
+      <strong id="modalTitle">Parameter</strong>
+      <button id="btnCloseModal" class="btn">Schließen</button>
+    </div>
+    <div class="modal-b">
+      <div class="form-grid">
+        <div>
+          <label>Baudrate</label>
+          <select id="baud">
+            <option value="9600" selected>9600</option>
+            <option value="4800">4800</option>
+            <option value="19200">19200</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Mess-Command</label>
+          <select id="cmd">
+            <option value="measure?" selected>measure?</option>
+            <option value="mea?">mea?</option>
+            <option value="?">?</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Terminator</label>
+          <select id="term">
+            <option value="\\r" selected>CR</option>
+            <option value="\\n">LF</option>
+            <option value="\\r\\n">CRLF</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Polling Intervall</label>
+          <select id="interval">
+            <option value="200">200 ms</option>
+            <option value="500">500 ms</option>
+            <option value="1000" selected>1 s</option>
+            <option value="2000">2 s</option>
+            <option value="5000">5 s</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Diagramm-Zeitraum (letzte …)</label>
+          <select id="window">
+            <option value="30">30 Sekunden</option>
+            <option value="60" selected>60 Sekunden</option>
+            <option value="300">5 Minuten</option>
+            <option value="600">10 Minuten</option>
+            <option value="1800">30 Minuten</option>
+            <option value="3600">60 Minuten</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Manuell (Sekunden, optional)</label>
+          <input id="windowCustom" type="number" min="5" step="1" placeholder="z.B. 120" />
+        </div>
+      </div>
+
+      <div class="row">
+        <button id="btnClearData" class="btn">Daten löschen</button>
+        <button id="btnApply" class="btn primary">Übernehmen</button>
+      </div>
+
+      <div class="foot">
+        Hinweis: Wenn du während laufender Messung Baudrate änderst, bitte neu verbinden (Connect → Disconnect → Connect).
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const el = {
+    dot: $("dot"),
+    connText: $("connText"),
+    liveBadge: $("liveBadge"),
+    cdcInfo: $("cdcInfo"),
+    btnConnect: $("btnConnect"),
+    btnStartStop: $("btnStartStop"),
+    btnExport: $("btnExport"),
+    btnParams: $("btnParams"),
+
+    luxValue: $("luxValue"),
+    hint: $("hint"),
+    lastAge: $("lastAge"),
+
+    minLux: $("minLux"),
+    maxLux: $("maxLux"),
+    avgLux: $("avgLux"),
+
+    pointsInfo: $("pointsInfo"),
+    chart: $("chart"),
+
+    modalBackdrop: $("modalBackdrop"),
+    btnCloseModal: $("btnCloseModal"),
+    btnApply: $("btnApply"),
+    btnClearData: $("btnClearData"),
+
+    baud: $("baud"),
+    cmd: $("cmd"),
+    term: $("term"),
+    interval: $("interval"),
+    window: $("window"),
+    windowCustom: $("windowCustom"),
+  };
+
+  // Serial state
+  let port = null;
+  let reader = null;
+  let writer = null;
+  let readLoopRunning = false;
+
+  // Polling
+  let pollTimer = null;
+  let polling = false;
+
+  // Samples for export
+  const samplesAll = []; // {t:number(ms), lux:number}
+  let lastSampleTs = null;
+
+  // ---- HiDPI Canvas Setup ----
+  let dpr = Math.max(1, window.devicePixelRatio || 1);
+  let canvasCssW = 0, canvasCssH = 0;
+
+  function resizeCanvasHiDPI() {
+    // measure CSS pixels via parent
+    const wrap = el.chart.parentElement;
+    const rect = wrap.getBoundingClientRect();
+    const cssW = Math.max(10, Math.round(rect.width));
+    const cssH = Math.max(10, Math.round(rect.height));
+
+    const newDpr = Math.max(1, window.devicePixelRatio || 1);
+
+    // only resize when needed
+    if (cssW === canvasCssW && cssH === canvasCssH && newDpr === dpr && el.chart.width && el.chart.height) return;
+
+    canvasCssW = cssW; canvasCssH = cssH; dpr = newDpr;
+
+    el.chart.width  = Math.round(cssW * dpr);
+    el.chart.height = Math.round(cssH * dpr);
+
+    // Ensure drawing uses CSS-px coords
+    const ctx = el.chart.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    drawChart();
+  }
+
+  // Use ResizeObserver for crisp resizing
+  const ro = new ResizeObserver(() => resizeCanvasHiDPI());
+  ro.observe(el.chart.parentElement);
+
+  // ---- UI state ----
+  function setConnected(yes){
+    el.dot.classList.toggle("ok", !!yes);
+    el.connText.textContent = yes ? "Verbunden" : "Nicht verbunden";
+    el.btnConnect.textContent = yes ? "Disconnect" : "Connect";
+    el.btnStartStop.disabled = !yes;
+    if(!yes) stopPolling();
+  }
+
+  function setLive(on){
+    polling = !!on;
+    el.liveBadge.classList.toggle("on", polling);
+    el.btnStartStop.textContent = polling ? "Stop" : "Start";
+  }
+
+  function updateExportState(){
+    el.btnExport.disabled = (samplesAll.length === 0);
+  }
+
+  function getTerminator(){
+    const v = el.term.value;
+    if(v === "\\r\\n") return "\r\n";
+    if(v === "\\n") return "\n";
+    return "\r";
+  }
+
+  function getWindowSeconds(){
+    const custom = Number(el.windowCustom.value);
+    if(Number.isFinite(custom) && custom >= 5) return custom;
+    return Number(el.window.value);
+  }
+
+  function parseLuxFromLine(line){
+    const normalized = line.replace(",", ".");
+    let m = normalized.match(/(-?\d+(?:\.\d+)?)\s*(?:lx|Lx|LX)\b/);
+    if(m) return Number(m[1]);
+    m = normalized.match(/(-?\d+(?:\.\d+)?)/);
+    if(m) return Number(m[1]);
+    return null;
+  }
+
+  function fmtLux(v){
+    if(!Number.isFinite(v)) return "—";
+    const digits = (Math.abs(v) >= 1000) ? 1 : 2;
+    return v.toLocaleString("de-DE", { maximumFractionDigits: digits });
+  }
+
+  function setLuxValue(v){
+    el.luxValue.textContent = Number.isFinite(v) ? fmtLux(v) : "—";
+  }
+
+  function calcStats(){
+    if(samplesAll.length === 0){
+      el.minLux.textContent = "—";
+      el.maxLux.textContent = "—";
+      el.avgLux.textContent = "—";
+      return;
+    }
+    let min = Infinity, max = -Infinity, sum = 0;
+    for(const s of samplesAll){
+      min = Math.min(min, s.lux);
+      max = Math.max(max, s.lux);
+      sum += s.lux;
+    }
+    el.minLux.textContent = fmtLux(min);
+    el.maxLux.textContent = fmtLux(max);
+    el.avgLux.textContent = fmtLux(sum / samplesAll.length);
+  }
+
+  function updateLastAge(){
+    if(!lastSampleTs){
+      el.lastAge.textContent = "–";
+      return;
+    }
+    const sec = Math.max(0, Math.round((Date.now() - lastSampleTs)/1000));
+    el.lastAge.textContent = `${sec}s`;
+  }
+
+  async function writeLine(str){
+    const enc = new TextEncoder();
+    await writer.write(enc.encode(str));
+  }
+
+  async function startReadLoop(){
+    if(!port || readLoopRunning) return;
+    readLoopRunning = true;
+
+    const dec = new TextDecoder();
+    let buf = "";
+
+    try{
+      while(port && port.readable){
+        reader = port.readable.getReader();
+        try{
+          while(true){
+            const { value, done } = await reader.read();
+            if(done) break;
+
+            buf += dec.decode(value, {stream:true});
+            const lines = buf.split(/\r\n|\n|\r/);
+            buf = lines.pop();
+
+            for(const raw of lines){
+              const line = raw.trim();
+              if(!line) continue;
+
+              const lux = parseLuxFromLine(line);
+              if(Number.isFinite(lux)){
+                lastSampleTs = Date.now();
+                samplesAll.push({ t: lastSampleTs, lux });
+
+                setLuxValue(lux);
+                el.hint.textContent = polling ? "Messung aktiv." : "Wert empfangen.";
+                calcStats();
+                updateExportState();
+                drawChart();
+              }
+            }
+          }
+        } finally {
+          try{ reader.releaseLock(); } catch {}
+          reader = null;
+        }
+      }
+    } catch(e){
+      el.hint.textContent = "Lesefehler – ggf. neu verbinden.";
+    } finally {
+      readLoopRunning = false;
+    }
+  }
+
+  function startPolling(){
+    stopPolling();
+    const ms = Number(el.interval.value);
+    const cmd = el.cmd.value + getTerminator();
+
+    pollTimer = setInterval(async () => {
+      try{
+        await writeLine(cmd);
+      } catch(e){
+        el.hint.textContent = "Schreibfehler – ggf. neu verbinden.";
+      }
+    }, ms);
+
+    setLive(true);
+    el.hint.textContent = "Messung aktiv.";
+  }
+
+  function stopPolling(){
+    if(pollTimer){
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+    setLive(false);
+  }
+
+  function exportCSV(){
+    if(samplesAll.length === 0) return;
+
+    const header = "timestamp_iso,lux\n";
+    const rows = samplesAll.map(s => `${new Date(s.t).toISOString()},${String(s.lux)}`).join("\n");
+    const blob = new Blob([header + rows + "\n"], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    const d = new Date();
+    const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}_${String(d.getHours()).padStart(2,"0")}${String(d.getMinutes()).padStart(2,"0")}${String(d.getSeconds()).padStart(2,"0")}`;
+    const filename = `mavolux_${stamp}.csv`;
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function safeClose(){
+    stopPolling();
+    try{
+      if(writer){
+        try{ writer.releaseLock(); } catch {}
+        writer = null;
+      }
+      if(reader){
+        try{ await reader.cancel(); } catch {}
+        try{ reader.releaseLock(); } catch {}
+        reader = null;
+      }
+      if(port){
+        try{ await port.close(); } catch {}
+      }
+    } finally {
+      port = null;
+      setConnected(false);
+      el.hint.textContent = "Getrennt.";
+    }
+  }
+
+  function openModal(){ el.modalBackdrop.classList.add("open"); }
+  function closeModal(){ el.modalBackdrop.classList.remove("open"); }
+
+  // ---- Chart drawing (HiDPI, crisp lines) ----
+  function drawChart(){
+    const ctx = el.chart.getContext("2d");
+
+    // All coords in CSS px due to setTransform(dpr,...)
+    const w = canvasCssW || Math.round(el.chart.getBoundingClientRect().width);
+    const h = canvasCssH || Math.round(el.chart.getBoundingClientRect().height);
+
+    // clear
+    ctx.clearRect(0,0,w,h);
+
+    const padL = 56, padR = 16, padT = 14, padB = 30;
+    const x0 = padL, y0 = padT, x1 = w - padR, y1 = h - padB;
+
+    // background inside plot
+    const grad = ctx.createLinearGradient(0, y0, 0, y1);
+    grad.addColorStop(0, "rgba(0,90,167,.10)");
+    grad.addColorStop(1, "rgba(107,177,0,.08)");
+    ctx.fillStyle = grad;
+    ctx.fillRect(x0, y0, x1-x0, y1-y0);
+
+    const now = Date.now();
+    const winMs = getWindowSeconds() * 1000;
+    const minT = now - winMs;
+    const windowSamples = samplesAll.filter(s => s.t >= minT);
+    el.pointsInfo.textContent = `${windowSamples.length} Punkte im Fenster`;
+
+    let minY = Infinity, maxY = -Infinity;
+    for(const s of windowSamples){
+      minY = Math.min(minY, s.lux);
+      maxY = Math.max(maxY, s.lux);
+    }
+
+    if(!Number.isFinite(minY) || !Number.isFinite(maxY)){
+      ctx.fillStyle = "rgba(100,116,139,.95)";
+      ctx.font = "13px " + getComputedStyle(document.body).fontFamily;
+      ctx.fillText("Keine Daten – starte die Messung.", x0+10, y0+20);
+      return;
+    }
+    if(minY === maxY){ minY -= 1; maxY += 1; }
+    const padY = (maxY - minY) * 0.08;
+    minY -= padY; maxY += padY;
+
+    // crisp 1px lines helper: align to half-pixel
+    const hair = (v) => Math.round(v) + 0.5;
+
+    // grid
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(15,23,42,.10)";
+    const gridY = 5;
+    for(let i=0;i<=gridY;i++){
+      const y = y0 + (y1-y0) * (i/gridY);
+      ctx.beginPath();
+      ctx.moveTo(hair(x0), hair(y));
+      ctx.lineTo(hair(x1), hair(y));
+      ctx.stroke();
+    }
+
+    // y labels
+    ctx.fillStyle = "rgba(100,116,139,.95)";
+    ctx.font = "12px " + getComputedStyle(document.body).fontFamily;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    for(let i=0;i<=gridY;i++){
+      const t = 1 - (i/gridY);
+      const val = minY + (maxY-minY)*t;
+      const y = y0 + (y1-y0) * (i/gridY);
+      ctx.fillText(val.toLocaleString("de-DE",{maximumFractionDigits:1}), x0-10, y);
+    }
+
+    // x labels
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    const gridX = 4;
+    for(let i=0;i<=gridX;i++){
+      const x = x0 + (x1-x0) * (i/gridX);
+      const tMs = minT + winMs * (i/gridX);
+      const d = new Date(tMs);
+      const label = d.toLocaleTimeString("de-DE",{hour:"2-digit", minute:"2-digit", second:"2-digit"});
+      ctx.fillText(label, x, y1+8);
+    }
+
+    const xFromT = (t) => x0 + (x1-x0) * ((t - minT)/winMs);
+    const yFromV = (v) => y1 - (y1-y0) * ((v - minY)/(maxY-minY));
+
+    // line
+    ctx.strokeStyle = "rgba(0,90,167,.95)";
+    ctx.lineWidth = 2;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+
+    ctx.beginPath();
+    let started = false;
+    for(const s of windowSamples){
+      const x = xFromT(s.t);
+      const y = yFromV(s.lux);
+      if(!started){ ctx.moveTo(x,y); started = true; }
+      else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+
+    // last point highlight
+    const last = windowSamples[windowSamples.length-1];
+    if(last){
+      const x = xFromT(last.t), y = yFromV(last.lux);
+      ctx.fillStyle = "rgba(107,177,0,.95)";
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(255,255,255,.92)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  }
+
+  // --- Events ---
+  el.btnParams.addEventListener("click", openModal);
+  el.btnCloseModal.addEventListener("click", closeModal);
+  el.modalBackdrop.addEventListener("click", (e) => { if(e.target === el.modalBackdrop) closeModal(); });
+  document.addEventListener("keydown", (e) => {
+    if(e.key === "Escape" && el.modalBackdrop.classList.contains("open")) closeModal();
+  });
+
+  el.btnApply.addEventListener("click", () => {
+    el.cdcInfo.textContent = `${el.baud.value} 8N1`;
+
+    // restart polling with new interval/command if currently running
+    const wasPolling = polling;
+    if(wasPolling) stopPolling();
+    drawChart();
+    closeModal();
+    if(wasPolling) startPolling();
+
+    el.hint.textContent = "Parameter übernommen.";
+  });
+
+  el.btnClearData.addEventListener("click", () => {
+    samplesAll.length = 0;
+    lastSampleTs = null;
+    setLuxValue(null);
+    calcStats();
+    updateExportState();
+    drawChart();
+    el.hint.textContent = port ? (polling ? "Messung aktiv. Daten gelöscht." : "Daten gelöscht.") : "Daten gelöscht.";
+  });
+
+  el.btnExport.addEventListener("click", exportCSV);
+
+  el.btnConnect.addEventListener("click", async () => {
+    if(port){
+      await safeClose();
+      return;
+    }
+    try{
+      if(!("serial" in navigator)){
+        alert("WebSerial nicht verfügbar. Bitte Chrome/Edge verwenden (nicht Firefox).");
+        return;
+      }
+      port = await navigator.serial.requestPort();
+      const baudRate = Number(el.baud.value);
+
+      await port.open({
+        baudRate,
+        dataBits: 8,
+        stopBits: 1,
+        parity: "none",
+        flowControl: "none"
+      });
+
+      writer = port.writable.getWriter();
+      setConnected(true);
+      el.cdcInfo.textContent = `${baudRate} 8N1`;
+      el.hint.textContent = "Verbunden. Start drücken, um Messung zu starten.";
+      startReadLoop();
+    } catch(e){
+      el.hint.textContent = "Verbindung fehlgeschlagen.";
+      try{ await safeClose(); } catch {}
+    }
+  });
+
+  el.btnStartStop.addEventListener("click", () => {
+    if(!port) return;
+    if(polling) stopPolling();
+    else startPolling();
+  });
+
+  // timers
+  setInterval(updateLastAge, 500);
+
+  // init
+  setConnected(false);
+  setLive(false);
+  updateExportState();
+  calcStats();
+  // Initial HiDPI sizing after first layout
+  requestAnimationFrame(() => resizeCanvasHiDPI());
+})();
+</script>
+</body>
+</html>

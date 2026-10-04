@@ -175,16 +175,13 @@
   .pstep p.fix{color:var(--red);font-weight:500;}
   .pstep.cur{background:linear-gradient(90deg,var(--cyan-glow),transparent 70%);margin:0 -6px;padding-left:6px;padding-right:6px;border-radius:8px;}
 </style>
-<script src="/shared/zfp-context.js"></script>
-<script id="zfp-offline">
-/* Offline-Fallback: läuft die App ohne Server (file://), fehlt /shared/zfp-context.js – dann wird der Theme-Kontext lokal bereitgestellt. */
-(function(){
-  if(window.ZfPContext) return;
+<script>
+/* Lokaler Theme-Zustand (Hell/Dunkel), gespeichert in localStorage. */
+var themeCtl=(function(){
   var cbs=[], mode=null, KEY='zfp-theme';
   function store(v){ try{ if(v===undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY,v); }catch(e){} return null; }
   function init(){ if(mode) return; var s=store(); mode=(s==='light'||s==='dark')?s:((document.body&&(document.body.classList.contains('light-mode')||document.body.classList.contains('light')))?'light':'dark'); }
-  window.ZfPContext={
-    get theme(){ init(); return mode; },
+  return {
     onTheme:function(f){ if(typeof f!=='function') return; cbs.push(f); init(); f(mode); },
     toggleTheme:function(){ init(); mode=mode==='light'?'dark':'light'; store(mode); cbs.forEach(function(f){ try{ f(mode); }catch(e){} }); }
   };
@@ -447,11 +444,10 @@ const fmt=(n,d=1)=>Number(n).toFixed(d).replace('.',',');
 const rad=d=>d*Math.PI/180;
 let light=false, ready=false;
 
-/* ── Theme: global über ZfPContext, lokaler Fallback ─────────── */
+/* ── Theme ── */
 function setTheme(mode){ light=mode==='light'; document.body.classList.toggle('light-mode',light); $('themeBtn').textContent=light?'☾':'☀'; if(ready) dirty=true; }
-const ctxTheme=window.ZfPContext||(()=>{ let cb=()=>{}, m='dark'; return {onTheme(f){cb=f;f(m);},toggleTheme(){m=m==='light'?'dark':'light';cb(m);}}; })();
-ctxTheme.onTheme(setTheme);
-$('themeBtn').addEventListener('click',()=>ctxTheme.toggleTheme());
+themeCtl.onTheme(setTheme);
+$('themeBtn').addEventListener('click',()=>themeCtl.toggleTheme());
 function pal(){ return light?{bg1:'#eef3f8',bg2:'#d9e2ec',text:'#415667',label:'#0c1620',grid:'rgba(40,70,90,.16)',cyan:'#0a7d6e',amber:'#a45f00',red:'#b0241a',green:'#187a32',steel1:'#b7c1ca',steel2:'#8895a2',steel3:'#6f7d8b',metal:'#c9d1d9',dev:'#5b6b7b',cu:'#b8733a'}
   :{bg1:'#0a1016',bg2:'#151e28',text:'#9fb0bd',label:'#e0e7ee',grid:'rgba(120,150,170,.18)',cyan:'#4de9d4',amber:'#ffc94d',red:'#ff6f66',green:'#5fe072',steel1:'#7f8b96',steel2:'#58636e',steel3:'#3e4852',metal:'#8f9aa5',dev:'#4b5967',cu:'#c98245'}; }
 

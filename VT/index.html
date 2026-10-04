@@ -184,16 +184,13 @@
   .step p.fix{color:var(--red);font-weight:500;}
   .step.cur{background:linear-gradient(90deg,var(--cyan-glow),transparent 70%);margin:0 -6px;padding-left:6px;padding-right:6px;border-radius:8px;}
 </style>
-<script src="/shared/zfp-context.js"></script>
-<script id="zfp-offline">
-/* Offline-Fallback: läuft die App ohne Server (file://), fehlt /shared/zfp-context.js – dann wird der Theme-Kontext lokal bereitgestellt. */
-(function(){
-  if(window.ZfPContext) return;
+<script>
+/* Lokaler Theme-Zustand (Hell/Dunkel), gespeichert in localStorage. */
+var themeCtl=(function(){
   var cbs=[], mode=null, KEY='zfp-theme';
   function store(v){ try{ if(v===undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY,v); }catch(e){} return null; }
   function init(){ if(mode) return; var s=store(); mode=(s==='light'||s==='dark')?s:((document.body&&(document.body.classList.contains('light-mode')||document.body.classList.contains('light')))?'light':'dark'); }
-  window.ZfPContext={
-    get theme(){ init(); return mode; },
+  return {
     onTheme:function(f){ if(typeof f!=='function') return; cbs.push(f); init(); f(mode); },
     toggleTheme:function(){ init(); mode=mode==='light'?'dark':'light'; store(mode); cbs.forEach(function(f){ try{ f(mode); }catch(e){} }); }
   };
@@ -444,13 +441,8 @@ function setTheme(mode){
     : '<span class="icon">☀️</span><span class="icon" style="opacity:0.35">🌙</span>';
   if(ready) render();
 }
-// Fallback, falls /shared/zfp-context.js nicht geladen werden kann (Standalone-Betrieb)
-const ctx = window.ZfPContext || (()=>{
-  let cb = ()=>{}, mode = 'light';
-  return { onTheme(f){ cb=f; f(mode); }, toggleTheme(){ mode = mode==='light'?'dark':'light'; cb(mode); } };
-})();
-ctx.onTheme(setTheme);
-themeToggle.addEventListener('click', ()=>{ ctx.toggleTheme(); if(ready) render(); });
+themeCtl.onTheme(setTheme);
+themeToggle.addEventListener('click', ()=>{ themeCtl.toggleTheme(); if(ready) render(); });
 
 const DEFECT_Z = 120; // Lage des Defekts in der Bohrung (mm ab Einlauf)
 const state = {

@@ -615,16 +615,13 @@
   .side-col table.skiptbl td{font-size:10px; padding:3px 2px;}
 }
 </style>
-<script src="/shared/zfp-context.js"></script>
-<script id="zfp-offline">
-/* Offline-Fallback: läuft die App ohne Server (file://), fehlt /shared/zfp-context.js – dann wird der Theme-Kontext lokal bereitgestellt. */
-(function(){
-  if(window.ZfPContext) return;
+<script>
+/* Lokaler Theme-Zustand (Hell/Dunkel), gespeichert in localStorage. */
+var themeCtl=(function(){
   var cbs=[], mode=null, KEY='zfp-theme';
   function store(v){ try{ if(v===undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY,v); }catch(e){} return null; }
   function init(){ if(mode) return; var s=store(); mode=(s==='light'||s==='dark')?s:((document.body&&(document.body.classList.contains('light-mode')||document.body.classList.contains('light')))?'light':'dark'); }
-  window.ZfPContext={
-    get theme(){ init(); return mode; },
+  return {
     onTheme:function(f){ if(typeof f!=='function') return; cbs.push(f); init(); f(mode); },
     toggleTheme:function(){ init(); mode=mode==='light'?'dark':'light'; store(mode); cbs.forEach(function(f){ try{ f(mode); }catch(e){} }); }
   };
@@ -1036,9 +1033,9 @@
       ? '<span class="icon">🌙</span><span class="icon" style="opacity:0.35">☀️</span>'
       : '<span class="icon">☀️</span><span class="icon" style="opacity:0.35">🌙</span>';
   }
-  ZfPContext.onTheme(setTheme);
+  themeCtl.onTheme(setTheme);
   el.themeToggle.addEventListener('click', ()=>{
-    ZfPContext.toggleTheme();
+    themeCtl.toggleTheme();
     render();
   });
 

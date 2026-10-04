@@ -365,7 +365,7 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
 
   <header class="top">
     <div>
-      <p class="eyebrow" id="eyebrow">ZfP · Wirbelstromprüfung</p>
+      <p class="eyebrow" id="eyebrow">Wirbelstromprüfung</p>
       <h1>Wirbelstrom-Simulator
         <small id="h1sub">Impedanzebene, C-Bild und Streifenschreiber · Absolut- und Differenzsonde</small>
       </h1>
@@ -3962,34 +3962,34 @@ segPick('segMat','mat', v => { S.material = v; resetScan(); render(); });
 segPick('segWin','win', v => { S.win = parseInt(v,10); rejudge(); render(); });
 /* ══════════ Prüfaufgaben: Texte, Standardwerte, Panels ══════════ */
 const MODEDEF = {
-  riss: {eyebrow:'ZfP · Wirbelstromprüfung', sub:'Impedanzebene, C-Bild und Streifenschreiber · Absolut- und Differenzsonde',
+  riss: {eyebrow:'Wirbelstromprüfung', sub:'Impedanzebene, C-Bild und Streifenschreiber · Absolut- und Differenzsonde',
          hint:'Oberflächenrisse an einem Lagerring aus gehärtetem 100Cr6 suchen (Härte-, Schleif- und Materialrisse): Sonde abscannen, Rissanzeige von der Abhebung trennen.', head:'Rissprüfung',
          mat:'100cr6', freqS:55, probe:'diff', gain:24, thresh:0.05},
-  corr: {eyebrow:'ZfP · Wirbelstrom-Korrosionsprüfung', sub:'Korrosion an der Fügefläche zweier Platten · Eindringtiefe und Phasenbewertung',
+  corr: {eyebrow:'Wirbelstrom-Korrosionsprüfung', sub:'Korrosion an der Fügefläche zweier Platten · Eindringtiefe und Phasenbewertung',
          hint:'Passungsrost und Korrosion zwischen zwei Lagerstahlplatten (z. B. Ring und Hülse) finden: Die Frequenz so wählen, dass die Wirbelströme die Fügefläche erreichen, und die Phase zur Tiefenbewertung nutzen.',
          mat:'100cr6', freqS:30, probe:'abs', gain:30, thresh:0.05},
-  weld: {eyebrow:'ZfP · Wirbelstrom-Schweißnahtprüfung', sub:'Schweißnaht mit Poren und Riss · Differenzsonde gegen Nahtuntergrund',
+  weld: {eyebrow:'Wirbelstrom-Schweißnahtprüfung', sub:'Schweißnaht mit Poren und Riss · Differenzsonde gegen Nahtuntergrund',
          hint:'Fehler in der Schweißnaht an einem Großlagerring (42CrMo4) finden: Die Naht selbst erzeugt ein starkes Signal – Nullabgleich entlang der Naht, Phasendrehung und Schwelle so einstellen, dass Poren und Riss sichtbar bleiben.',
          mat:'q42', freqS:43, probe:'abs', gain:24, thresh:0.12, along:true},
-  tube: {eyebrow:'ZfP · Wirbelstrom-Rohrprüfung', sub:'Wälzlagerrohr · Referenzrohr mit Bohrungen und Kerben, Prüfrohr aus dem Los',
+  tube: {eyebrow:'Wirbelstrom-Rohrprüfung', sub:'Wälzlagerrohr · Referenzrohr mit Bohrungen und Kerben, Prüfrohr aus dem Los',
          hint:'Wälzlagerrohr (100Cr6 weichgeglüht) prüfen: erst am Referenzrohr justieren (Auto-Einstellung, Vormagnetisierung), dann ein Prüfrohr aus dem Los durchziehen und entscheiden: i. O. oder n. i. O.?',
          mat:'gl100', freqS:58, probe:'diff', gain:24, thresh:0.12, coil:'through', sat:0},
-  mix:  {eyebrow:'ZfP · Wirbelstrom-Verwechslungsprüfung', sub:'Werkstoffverwechslung erkennen · Vierfrequenz-Sortierdisplay',
+  mix:  {eyebrow:'Wirbelstrom-Verwechslungsprüfung', sub:'Werkstoffverwechslung erkennen · Vierfrequenz-Sortierdisplay',
          hint:'Verwechslung von Wälzlagerstählen erkennen (z. B. 100Cr6 gegen 20MnCr5, 42CrMo4 oder X47Cr14): Soll- und Verwechslungswerkstoff wählen, dann die Frequenz suchen, bei der beide Toleranzfelder getrennt liegen.'},
-  cond: {eyebrow:'ZfP · Wirbelstrom-Leitfähigkeitsprüfung', sub:'Wärmebehandlungszustand und Schleifbrand an Lagerstahl · MS/m, Kalibrierung, Abhebungskompensation',
+  cond: {eyebrow:'Wirbelstrom-Leitfähigkeitsprüfung', sub:'Wärmebehandlungszustand und Schleifbrand an Lagerstahl · MS/m, Kalibrierung, Abhebungskompensation',
          hint:'Leitfähigkeit von Wälzlagerteilen messen und Zustand beurteilen (gehärtet, angelassen, Schleifbrand): Gerät mit zwei Normalen kalibrieren, Abhebung kompensieren und Einflussgrößen beachten.'},
-  coat: {eyebrow:'ZfP · Wirbelstrom-Schichtdickenmessung', sub:'Schichten auf Wälzlagerteilen · Phosphat, Brünierung, DLC, Zink, Hartchrom',
+  coat: {eyebrow:'Wirbelstrom-Schichtdickenmessung', sub:'Schichten auf Wälzlagerteilen · Phosphat, Brünierung, DLC, Zink, Hartchrom',
          hint:'Schichtdicke auf Lagerringen und Käfigen messen: Abhebeverfahren für nichtleitende Schichten, Phasenverfahren für leitende. Auf dem blanken Teil auf Null setzen, mit Normalen kalibrieren und Einflüsse von Rauheit, Krümmung und Charge beachten.'},
-  hole: {eyebrow:'ZfP · Wirbelstrom-Bohrungsprüfung', sub:'Eckrisse in Bolzenlöchern · rotierende Sonde, abgewickeltes C-Bild',
+  hole: {eyebrow:'Wirbelstrom-Bohrungsprüfung', sub:'Eckrisse in Bolzenlöchern · rotierende Sonde, abgewickeltes C-Bild',
          hint:'Schmier- und Befestigungsbohrungen in Lagerringen (100Cr6) mit rotierender Sonde auf Eckrisse prüfen: kleine Spule, passende Schwelle, auch der kürzeste Riss (0,5 mm) muss anzeigen.',
          mat:'100cr6', freqS:70, probe:'diff', gain:30, thresh:0.15, coilDia:3},
-  mfm:  {eyebrow:'ZfP · Wirbelstrom-Mehrfrequenzprüfung', sub:'Lagerhülse mit Stützring · Mischtechnik',
+  mfm:  {eyebrow:'Wirbelstrom-Mehrfrequenzprüfung', sub:'Lagerhülse mit Stützring · Mischtechnik',
          hint:'Fehler im Bereich eines Stützrings an einer Lagerhülse finden: Zwei Frequenzen aufnehmen, Kanal 1 skaliert und gedreht von Kanal 2 abziehen, bis das Ringsignal verschwindet.'},
-  chd:  {eyebrow:'ZfP · Wirbelstrom-Randschichtprüfung', sub:'Einsatzhärtetiefe (CHD) · Frequenzwahl und Kalibrierung',
+  chd:  {eyebrow:'Wirbelstrom-Randschichtprüfung', sub:'Einsatzhärtetiefe (CHD) · Frequenzwahl und Kalibrierung',
          hint:'Die Einsatzhärtetiefe bestimmen: Normale wählen, die die Tiefe einschließen, und die Frequenz so legen, dass der Kern das Ergebnis kaum verfälscht.'},
-  pec:  {eyebrow:'ZfP · Gepulster Wirbelstrom', sub:'Wandstärke großer Lagerringe unter Beschichtung · Abklingzeit, Kalibrierung, Profil',
+  pec:  {eyebrow:'Gepulster Wirbelstrom', sub:'Wandstärke großer Lagerringe unter Beschichtung · Abklingzeit, Kalibrierung, Profil',
          hint:'Wandstärke und Anfressungen an einem Großlagerring unter der Beschichtung finden: an einer intakten Stelle kalibrieren, dann das Profil entlang des Rings scannen. Der Abstand verkleinert die Amplitude, nicht die Abklingzeit.'},
-  gef:  {eyebrow:'ZfP · Wirbelstrom-Gefügeprüfung', sub:'Gefügezustand beurteilen · Vierfrequenz-Sortierdisplay',
+  gef:  {eyebrow:'Wirbelstrom-Gefügeprüfung', sub:'Gefügezustand beurteilen · Vierfrequenz-Sortierdisplay',
          hint:'Das Gefüge eines Prüfteils bestimmen: Wärmebehandlung einstellen (oder ein Rätselteil ziehen), Frequenz wählen und anhand von Gefügebild, Landkarte und Atlas das Gefüge erkennen.'}
 };
 function setRange(id, v){ const e = $(id); if(e) e.value = v; }

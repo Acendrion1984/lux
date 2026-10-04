@@ -2,9 +2,9 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<title>ZfP Portal</title>
+<title>ZfP Simulator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="ZfP Portal – Prüfverfahren, Simulatoren, Qualifikation">
+<meta name="description" content="ZfP Simulator – Prüfverfahren, Simulatoren, Qualifikation">
 <meta name="theme-color" content="#f4f5f8" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#12151b" media="(prefers-color-scheme: dark)">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -79,12 +79,11 @@ footer{max-width:1180px;width:calc(100% - 40px);margin:0 auto;padding:0 0 36px;c
 <body>
 <header>
   <div class="wrap">
-    <h1>ZfP Portal</h1>
+    <h1>ZfP Simulator</h1>
     <p class="tag" id="tag" data-de="Prüfverfahren · Simulation · Qualifikation" data-en="Test methods · Simulation · Qualification">Prüfverfahren · Simulation · Qualifikation</p>
     <div class="tools">
       <button class="chip" id="theme" type="button" aria-label="Darstellung umschalten" title="Hell / Dunkel">🌓</button>
       <button class="chip lang" id="lang" type="button" aria-label="Sprache wechseln" title="Deutsch / English">🌐<small id="langCode">EN</small></button>
-      <span class="brand">SCHAEFFLER</span>
     </div>
   </div>
 </header>
@@ -205,7 +204,7 @@ footer{max-width:1180px;width:calc(100% - 40px);margin:0 auto;padding:0 0 36px;c
     lang=l; root.lang=l;
     document.querySelectorAll('[data-de]').forEach(function(el){ el.textContent=el.getAttribute('data-'+l); });
     document.getElementById('langCode').textContent=l==='de'?'EN':'DE';
-    document.title='ZfP Portal';
+    document.title='ZfP Simulator';
   }
   applyLang(lang);
   document.getElementById('lang').addEventListener('click',function(){

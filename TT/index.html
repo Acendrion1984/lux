@@ -1,0 +1,1390 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thermografie-Simulator · Impuls-Thermografie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media=\'all\'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"></noscript>
+<style>
+  :root{
+    --bg:#16191c; --bg-2:#1f2327; --panel:#262b30; --panel-2:#2b3137;
+    --border:#454d57; --border-soft:#363d45;
+    --text:#eef1f4; --text-dim:#b2bac2; --text-faint:#78828d;
+    --amber:#ffc94d; --amber-dim:#7d5b1c; --amber-glow:rgba(255,201,77,.22);
+    --cyan:#4de9d4; --cyan-glow:rgba(77,233,212,.16);
+    --blue:#6cc0ec; --red:#ff6f66; --green:#5fe072; --violet:#b48cf2;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+    --disp:'Space Grotesk',sans-serif; --body:'Inter',system-ui,sans-serif;
+    --grid:#3a4048;
+  }
+  body.light{
+    --bg:#e6ebf1; --bg-2:#f2f5f9; --panel:#fbfcfe; --panel-2:#eef2f7;
+    --border:#8098ae; --border-soft:#b3c3d1;
+    --text:#0b1520; --text-dim:#2c3f51; --text-faint:#526a7d;
+    --amber:#8a4d00; --amber-dim:#d9a441; --amber-glow:rgba(138,77,0,.14);
+    --cyan:#06665a; --cyan-glow:rgba(6,102,90,.12);
+    --blue:#0a4a6e; --red:#a8231a; --green:#166b2a; --violet:#5c3a9e;
+    --grid:#a9bccb;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg); color:var(--text); font-family:var(--body);
+    min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+  .app{max-width:1580px; margin:0 auto; padding:14px 12px 40px;}
+  @media(min-width:820px){ .app{padding:18px 20px 44px;} }
+
+  /* ── Kopf ─────────────────────────────────────────────── */
+  header.top{
+    display:flex; align-items:flex-end; justify-content:space-between; gap:14px;
+    padding-bottom:11px; margin-bottom:15px; border-bottom:1.5px solid var(--border);
+    flex-wrap:wrap;
+  }
+  .eyebrow{
+    font-family:var(--mono); font-size:9.5px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--cyan); margin:0 0 5px; display:flex; align-items:center; gap:7px;
+  }
+  .eyebrow::before{content:''; width:16px; height:1.5px; background:var(--cyan); opacity:.75;}
+  h1{font-family:var(--disp); font-weight:700; font-size:21px; margin:0; letter-spacing:-.2px;}
+  h1 small{display:block; font-family:var(--body); font-weight:400; font-size:11.5px;
+    color:var(--text-dim); margin-top:3px;}
+  @media(min-width:640px){ h1{font-size:25px;} h1 small{font-size:12.5px;} }
+  .hdr-right{display:flex; align-items:center; gap:7px; flex-wrap:wrap;}
+  .badge{font-family:var(--mono); font-size:10px; padding:4px 9px; border-radius:20px;
+    border:1.5px solid var(--border); color:var(--text-dim); background:var(--panel);
+    display:flex; align-items:center; gap:5px; white-space:nowrap;}
+  .badge.ok{border-color:var(--green); color:var(--green);}
+  .badge.bad{border-color:var(--red); color:var(--red);}
+  .badge.acc{border-color:var(--cyan); color:var(--cyan); background:var(--cyan-glow);}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+  .icon-btn{width:34px;height:34px;border-radius:9px;border:1.5px solid var(--border);
+    background:var(--panel-2); color:var(--text-dim); cursor:pointer; font-size:15px;
+    display:flex;align-items:center;justify-content:center;}
+  .icon-btn:hover{border-color:var(--cyan); color:var(--cyan);}
+  .icon-btn:focus-visible{outline:2px solid var(--cyan); outline-offset:2px;}
+
+  /* ── Layout ───────────────────────────────────────────── */
+  .layout{display:grid; grid-template-columns:1fr; gap:15px; align-items:start;}
+  @media(min-width:1000px){ .layout{grid-template-columns:300px 1fr; gap:17px;} }
+  @media(min-width:1400px){ .layout{grid-template-columns:320px 1fr;} }
+  @media(min-width:1000px){
+    .sidebar{position:sticky; top:14px; max-height:calc(100vh - 28px); overflow-y:auto; padding-right:6px;}
+    .sidebar::-webkit-scrollbar{width:7px;}
+    .sidebar::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+  }
+
+  .panel{background:var(--panel); border:1.5px solid var(--border-soft); border-radius:13px;
+    padding:13px 14px; margin-bottom:11px;}
+  .panel h2{font-family:var(--disp); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--amber); margin:0 0 10px; font-weight:700;}
+  .field{margin-bottom:11px;} .field:last-child{margin-bottom:0;}
+  .field label{display:flex; justify-content:space-between; align-items:baseline; gap:8px;
+    font-size:11.5px; color:var(--text); margin-bottom:5px; font-weight:500;}
+  .field label .val{font-family:var(--mono); color:var(--amber); font-size:11.5px; font-weight:700;}
+  .hint{font-size:10.5px; color:var(--text-dim); line-height:1.5; margin-top:5px;}
+
+  input[type=range]{width:100%; height:4px; border-radius:3px; background:var(--border);
+    -webkit-appearance:none; appearance:none; outline:none; cursor:pointer; margin:5px 0;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:16px;height:16px;
+    border-radius:50%; background:var(--amber); border:2px solid var(--bg);
+    box-shadow:0 0 0 2px var(--amber-dim); cursor:pointer;}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;
+    background:var(--amber); border:2px solid var(--bg); cursor:pointer;}
+  input[type=range]:focus-visible{outline:2px solid var(--cyan); outline-offset:3px;}
+  input[type=range]:disabled{opacity:.4; cursor:not-allowed;}
+  select{width:100%; background:var(--bg-2); color:var(--text); border:1.5px solid var(--border);
+    border-radius:8px; padding:8px 9px; font-family:var(--body); font-size:12.5px; cursor:pointer;}
+  select:focus{outline:none; border-color:var(--cyan);}
+
+  .seg{display:flex; gap:4px; flex-wrap:wrap;}
+  .seg button{flex:1 1 auto; min-width:52px; padding:7px 6px; border-radius:8px;
+    border:1.5px solid var(--border); background:var(--bg-2); color:var(--text-dim);
+    font-family:var(--mono); font-size:10.5px; font-weight:600; cursor:pointer;}
+  .seg button:hover{border-color:var(--cyan); color:var(--text);}
+  .seg button:focus-visible{outline:2px solid var(--cyan); outline-offset:2px;}
+  .seg button.on{background:var(--amber); border-color:var(--amber); color:#1c1200; font-weight:700;}
+  body.light .seg button.on{background:var(--amber); color:#fff;}
+
+  .btnrow{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;}
+  .btn{flex:1 1 auto; padding:9px 11px; border-radius:8px; border:1.5px solid var(--border);
+    background:var(--bg-2); color:var(--text); font-family:var(--mono); font-size:10.5px;
+    font-weight:700; cursor:pointer; white-space:nowrap;}
+  .btn:hover{border-color:var(--cyan);}
+  .btn:focus-visible{outline:2px solid var(--cyan); outline-offset:2px;}
+  .btn.primary{background:var(--amber); border-color:var(--amber); color:#1c1200;}
+  body.light .btn.primary{color:#fff;}
+  .btn.primary:hover{filter:brightness(1.08);}
+
+  .kv{background:var(--bg-2); border:1.5px solid var(--border-soft); border-radius:8px;
+    padding:8px 10px; display:grid; grid-template-columns:auto 1fr; gap:4px 10px;
+    font-family:var(--mono); font-size:10.5px; align-items:baseline;}
+  .kv .k{color:var(--text-faint); font-size:10px;}
+  .kv .v{color:var(--amber); font-weight:700; text-align:right;}
+
+  /* ── Bühnen ───────────────────────────────────────────── */
+  .stage{background:var(--panel); border:1.5px solid var(--border-soft); border-radius:13px;
+    padding:13px 14px; margin-bottom:14px;}
+  .stage-head{display:flex; justify-content:space-between; align-items:center; gap:10px;
+    margin-bottom:10px; flex-wrap:wrap;}
+  .stage-title{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--text-dim); font-weight:600;}
+  .legend{display:flex; gap:11px; flex-wrap:wrap;}
+  .legend span{display:flex; align-items:center; gap:5px; font-size:9.5px; color:var(--text-dim);
+    font-family:var(--mono);}
+  .legend i{width:14px;height:3px;border-radius:2px;display:inline-block;}
+  .legend i.dash{background:none!important; border-top:2px dashed var(--text-faint); height:0;}
+
+  .thermal-wrap{display:grid; grid-template-columns:1fr 54px; gap:10px; align-items:stretch;}
+  @media(max-width:520px){ .thermal-wrap{grid-template-columns:1fr 46px; gap:7px;} }
+  #heat{display:block; width:100%; height:auto; border-radius:9px; border:1.5px solid var(--border);
+    background:#08090b; image-rendering:auto;}
+  #cbar{display:block; width:100%; height:100%; border-radius:7px;}
+
+  .time-bar{display:flex; align-items:center; gap:10px; margin-top:11px; flex-wrap:wrap;}
+  .time-bar .sl{flex:1 1 220px; min-width:160px;}
+  .tval{font-family:var(--mono); font-size:12px; color:var(--amber); font-weight:700;
+    min-width:78px; text-align:right;}
+
+  svg.chart{display:block; width:100%; height:auto; border-radius:9px;
+    border:1.5px solid var(--border); background:var(--bg-2);}
+
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); gap:7px; margin-top:11px;}
+  .stat{background:var(--bg-2); border:1.5px solid var(--border-soft); border-radius:8px; padding:7px 10px;}
+  .stat .k{font-size:8.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--text-faint);
+    font-family:var(--mono); margin-bottom:4px; font-weight:600;}
+  .stat .v{font-family:var(--mono); font-size:14.5px; color:var(--cyan); font-weight:700; line-height:1.15;}
+  .stat .v small{font-size:9.5px; color:var(--text-dim); font-weight:500; margin-left:2px;}
+  .stat.hl{border-color:var(--amber-dim);} .stat.hl .v{color:var(--amber);}
+  .stat.ok{border-color:var(--green);} .stat.ok .v{color:var(--green);}
+  .stat.bad{border-color:var(--red);} .stat.bad .v{color:var(--red);}
+
+  table.res{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:10.5px; margin-top:4px;}
+  table.res th{text-align:right; font-size:8.5px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--text-faint); font-weight:600; padding:5px 6px; border-bottom:1.5px solid var(--border);}
+  table.res th:first-child, table.res td:first-child{text-align:left;}
+  table.res td{text-align:right; padding:5px 6px; border-bottom:1px solid var(--border-soft); color:var(--text-dim);}
+  table.res tr.vis td{color:var(--text);}
+  table.res tr.dim td{opacity:.5;}
+  table.res tr.cur td{background:var(--cyan-glow);}
+  table.res td.v-ok{color:var(--green); font-weight:700;}
+  table.res td.v-bad{color:var(--red); font-weight:700;}
+  .tblwrap{overflow-x:auto;}
+
+  details.note{margin-top:2px; padding:9px 13px; background:var(--bg-2);
+    border:1.5px solid var(--border-soft); border-radius:10px;
+    font-size:11px; color:var(--text-dim); line-height:1.6;}
+  details.note summary{cursor:pointer; font-family:var(--mono); font-size:9.5px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--text-faint); list-style:none;}
+  details.note summary::-webkit-details-marker{display:none;}
+  details.note summary::before{content:'▸  Modell & Formeln';}
+  details.note[open] summary::before{content:'▾  Modell & Formeln';}
+  details.note p{margin:9px 0 0;} details.note b{color:var(--text);}
+  details.note code{font-family:var(--mono); font-size:10.5px; color:var(--cyan);}
+
+  .verdict{margin-top:11px; padding:10px 13px; border-radius:9px; font-size:12px; line-height:1.55;
+    border:1.5px solid var(--border-soft); background:var(--bg-2); color:var(--text-dim);}
+  .verdict.ok{border-color:var(--green); background:rgba(95,224,114,.08); color:var(--text);}
+  .verdict.bad{border-color:var(--red); background:rgba(255,111,102,.08); color:var(--text);}
+  .verdict b{color:var(--text);}
+
+  @media(prefers-reduced-motion:reduce){ *{transition:none!important; animation:none!important;} }
+</style>
+<script src="/shared/zfp-context.js"></script>
+<script id="zfp-offline">
+/* Offline-Fallback: läuft die App ohne Server (file://), fehlt /shared/zfp-context.js – dann wird der Theme-Kontext lokal bereitgestellt. */
+(function(){
+  if(window.ZfPContext) return;
+  var cbs=[], mode=null, KEY='zfp-theme';
+  function store(v){ try{ if(v===undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY,v); }catch(e){} return null; }
+  function init(){ if(mode) return; var s=store(); mode=(s==='light'||s==='dark')?s:((document.body&&(document.body.classList.contains('light-mode')||document.body.classList.contains('light')))?'light':'dark'); }
+  window.ZfPContext={
+    get theme(){ init(); return mode; },
+    onTheme:function(f){ if(typeof f!=='function') return; cbs.push(f); init(); f(mode); },
+    toggleTheme:function(){ init(); mode=mode==='light'?'dark':'light'; store(mode); cbs.forEach(function(f){ try{ f(mode); }catch(e){} }); }
+  };
+})();
+</script>
+
+<style id="fit-css">
+/* ═══ Kompakt-Dashboard (wie UT): kleine Schrift, dichte Panels, alles auf einem Bildschirm ═══ */
+html.fit, html.fit body{height:100%; overflow:hidden;}
+html.fit .app{box-sizing:border-box; display:flex; flex-direction:column; padding:5px 12px 8px; gap:6px; max-width:none; width:100%; height:100vh; height:100dvh; overflow:hidden; zoom:1 !important;}
+html.fit .sfl-bar{display:none;}
+html.fit header.top{margin:0; padding:0 0 4px; flex:0 0 auto; align-items:center; gap:12px; flex-wrap:nowrap;}
+html.fit header.top .brand-eyebrow, html.fit .eyebrow{font-size:9px; margin:0 0 1px;}
+html.fit header.top h1{font-size:21px; line-height:1.05; margin:0;}
+html.fit header.top h1 small, html.fit header.top .title-group > small, html.fit header.top .sub{font-size:11.5px; line-height:1.2;}
+html.fit .badge{font-size:10.5px; padding:3px 9px;}
+html.fit .icon-btn{width:30px; height:30px; font-size:14px;}
+html.fit .fitgrid{flex:1 1 0; min-height:0; display:grid; gap:8px; margin:0; align-items:stretch;}
+html.fit .fcol{display:flex; flex-direction:column; gap:8px; min-height:0; min-width:0; overflow-y:auto; overflow-x:hidden; padding:0 2px 4px 0; scrollbar-width:thin;}
+html.fit .fcol > *{flex:0 0 auto; margin:0 !important;}
+html.fit .panel{padding:8px 10px 9px; border-radius:10px;}
+html.fit .panel h2, html.fit .stage-title, html.fit .panel > .stage-title{margin:0 0 5px; font-size:10.5px; letter-spacing:.07em; line-height:1.25;}
+html.fit .stage-head{gap:4px 10px; flex-wrap:wrap; padding:0 0 4px; margin:0 0 2px;}
+html.fit .ctl-row, html.fit .field{margin:0 0 5px;}
+html.fit .ctl-row label, html.fit .field label{font-size:11.5px; margin:0 0 1px; line-height:1.25;}
+html.fit .ctl-row label .val, html.fit .field label .val{font-size:11.5px;}
+html.fit input[type=range]{margin:1px 0; height:18px;}
+html.fit .hint, html.fit .note, html.fit .ctl-row .note, html.fit .sidebar-note, html.fit .panel .hint{font-size:10.5px; line-height:1.32; margin:2px 0 0;}
+html.fit .btnrow{gap:5px; margin:4px 0;}
+html.fit button, html.fit select{font-size:11.5px; padding:5px 9px;}
+html.fit .callout, html.fit .verdict{font-size:11.5px; line-height:1.4; padding:7px 10px; margin-top:5px; max-height:none; overflow:visible;}
+html.fit .stat{padding:5px 8px;} html.fit .stat .k{font-size:9.5px; line-height:1.2;} html.fit .stat .v{font-size:14.5px;}
+html.fit .stats{gap:5px; grid-template-columns:repeat(3,1fr);}
+html.fit .seg{gap:4px;}
+html.fit .seg button, html.fit .toggle button{padding:6px 5px; min-width:0; white-space:normal; line-height:1.2; font-size:11px;}
+html.fit .seg.mini button{padding:3px 8px; font-size:10.5px;}
+html.fit .toggle{flex-wrap:wrap; padding:5px 8px; margin:0 0 4px;}
+html.fit .legend{font-size:10px; margin-top:4px; gap:3px 12px;}
+html.fit table.res td, html.fit table.res th, html.fit table.ht td, html.fit table.ht th{padding:3px 5px; font-size:10.5px;}
+html.fit .pstep, html.fit .step{padding-top:5px; padding-bottom:5px; gap:8px;}
+html.fit .pstep p, html.fit .step p{font-size:10.5px; line-height:1.38; margin-top:2px;}
+html.fit .pstep h4{font-size:12px;}
+html.fit .frow{padding:3px 0; font-size:11.5px;}
+html.fit .frow .nm small{font-size:10px; line-height:1.25;}
+html.fit .live{padding:8px 11px; margin-bottom:6px;}
+html.fit .live-val{font-size:19px;}
+html.fit .pbar{margin:6px 0 4px;}
+html.fit .stage, html.fit .panel > .stage{margin:0;}
+html.fit .foot{font-size:10.5px; padding-top:3px;}
+html.fit .kv{font-size:11px;}
+html.fit canvas, html.fit svg.view{max-width:100%; height:auto;}
+html.fit .step p, html.fit .pstep p{display:none;}
+html.fit .step.cur p, html.fit .pstep.cur p{display:block;}
+/* Slider-reiche Panels: zwei Regler nebeneinander */
+html.fit .panel.fit2{display:grid; grid-template-columns:1fr 1fr; column-gap:12px; align-content:start;}
+html.fit .panel.fit2 > *{grid-column:1/-1;}
+html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{grid-column:auto; min-width:0;}
+
+/* Grafiken: nur Breite begrenzt, Höhe folgt dem Seitenverhältnis → nie verzerrt */
+html.fit .stage canvas, html.fit .stage svg{max-width:100%; height:auto;}
+/* Kompaktstufen (nur Abstände, Schriftgröße bleibt → Browser-Zoom wirkt normal) */
+html.fit.d1 .fitgrid, html.fit.d1 .fcol{gap:6px;}
+html.fit.d1 .panel{padding:6px 8px 7px;}
+html.fit.d1 .panel h2, html.fit.d1 .stage-title{margin-bottom:3px;}
+html.fit.d1 .ctl-row, html.fit.d1 .field{margin-bottom:3px;}
+html.fit.d1 .hint, html.fit.d1 .note, html.fit.d1 .panel .hint{margin-top:1px; line-height:1.25;}
+html.fit.d1 .stat{padding:3px 7px;} html.fit.d1 .stats{gap:4px;}
+html.fit.d1 .toggle{padding:3px 7px; margin-bottom:3px;}
+html.fit.d1 .seg button, html.fit.d1 .toggle button{padding:4px 4px;}
+html.fit.d1 button, html.fit.d1 select{padding:3px 8px;}
+html.fit.d1 .callout, html.fit.d1 .verdict{padding:5px 8px; margin-top:3px; line-height:1.3;}
+html.fit.d1 .pstep, html.fit.d1 .step{padding-top:3px; padding-bottom:3px;}
+html.fit.d1 .legend{margin-top:2px;} html.fit.d1 .btnrow{margin:2px 0;}
+html.fit.d1 header.top{padding-bottom:2px;}
+html.fit.d2 .fitgrid, html.fit.d2 .fcol{gap:4px;}
+html.fit.d2 .panel{padding:4px 7px 5px; border-radius:8px;}
+html.fit.d2 .panel h2, html.fit.d2 .stage-title{margin-bottom:2px; font-size:10px;}
+html.fit.d2 .ctl-row, html.fit.d2 .field{margin-bottom:1px;}
+html.fit.d2 input[type=range]{height:14px; margin:0;}
+html.fit.d2 .hint, html.fit.d2 .note, html.fit.d2 .panel .hint{line-height:1.18; font-size:10px; margin-top:0;}
+html.fit.d2 .stat{padding:2px 6px;} html.fit.d2 .stat .v{font-size:13px;} html.fit.d2 .stats{gap:3px;}
+html.fit.d2 .toggle{padding:2px 6px; margin-bottom:2px;}
+html.fit.d2 .seg button, html.fit.d2 .toggle button{padding:3px 3px;}
+html.fit.d2 button, html.fit.d2 select{padding:2px 7px;}
+html.fit.d2 .callout, html.fit.d2 .verdict{padding:3px 7px; margin-top:2px; line-height:1.25;}
+html.fit.d2 .pstep, html.fit.d2 .step{padding-top:2px; padding-bottom:2px;}
+html.fit.d2 header.top h1{font-size:19px;} html.fit.d2 header.top h1 small{display:none;}
+html.fit.d2 .legend{margin-top:1px;} html.fit.d2 .btnrow{margin:1px 0;} html.fit.d2 .live{padding:5px 9px; margin-bottom:3px;}
+
+html.fit .thermal-wrap{align-items:start;}
+html.fit #heat{height:auto !important; align-self:start;}
+html.fit #cbar{height:100%;}
+/* Tabellen: nie rechts abschneiden */
+html.fit .fcol div:has(> table), html.fit .fcol .tablewrap, html.fit .fcol .skiptbl-wrap{overflow-x:auto; max-width:100%;}
+html.fit .fcol table{font-size:10.5px;}
+html.fit .fcol table th, html.fit .fcol table td{padding:3px 4px; white-space:normal;}
+/* alte max-height-Kappen der Einzel-Apps aufheben: Höhe folgt nur dem Seitenverhältnis (keine Seitenbalken) */
+html.fit svg, html.fit .stage svg, html.fit #setup, html.fit #wave, html.fit #chart, html.fit #view{max-height:none !important;}
+html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{min-width:0; overflow:hidden;}
+html.fit .panel.fit2 select, html.fit .panel.fit2 input[type=range]{width:100%; max-width:100%; min-width:0;}
+/* ET-spezifisch */
+html.fit .fitgrid .stagegrid, html.fit .fitgrid .stagegrid.wide{grid-template-columns:1fr !important;}
+html.fit .fitgrid .impgrid{display:grid; grid-template-columns:1fr; gap:8px; align-items:start;}
+html.fit .fitgrid .impgrid > svg{width:100%; height:auto; max-height:none;}
+html.fit .fitgrid .impside{min-width:0;}
+html.fit .fitgrid #secSvg, html.fit .fitgrid #cvMicro, html.fit .fitgrid #imp, html.fit .fitgrid #cscan, html.fit .fitgrid #strip{width:100%; max-width:100%; height:auto; max-height:none; margin:0 auto; display:block;}
+html.fit .fitgrid #tubeRefBox{display:grid; grid-template-columns:1fr 1fr; gap:4px 6px;}
+html.fit .fitgrid #tubeRefBox .toggle{margin:0; font-size:11px; padding:4px 7px;}
+html.fit .fitgrid #gefInfo{font-size:11px; line-height:1.35;}
+html.fit .fitgrid #statsGef{grid-template-columns:repeat(3,1fr);}
+html.fit .gstates{gap:4px 6px;}
+html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="top">
+    <div>
+      <p class="eyebrow">Schaeffler · ZfP · Schulungssimulator</p>
+      <h1>Thermografie-Simulator
+        <small>Impuls-Thermografie (Blitzanregung) · Wärmediffusion, Kontrastverlauf, Tiefenabschätzung</small>
+      </h1>
+    </div>
+    <div class="hdr-right">
+      <span class="badge"><span class="dot"></span>Simulation</span>
+      <span class="badge" id="bMat">—</span>
+      <span class="badge" id="bTime">t = 0 s</span>
+      <button class="icon-btn" id="themeBtn" aria-label="Hell/Dunkel umschalten" title="Hell/Dunkel">☀</button>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <!-- ══════════ Bedienung ══════════ -->
+    <div class="sidebar">
+
+      <div class="panel">
+        <h2>Prüfaufgabe</h2>
+        <div class="seg" id="segMode">
+          <button data-mode="ref" class="on">Referenzkörper</button>
+          <button data-mode="single">Einzelfehler</button>
+        </div>
+        <div class="hint" id="modeHint">Prüfkörper mit 8 Flachbodenbohrungen: vier Tiefen × zwei Durchmesser. Zeigt direkt, welche Fehler wann sichtbar werden und ab welchem Verhältnis ∅/Tiefe die Anzeige verschwindet.</div>
+      </div>
+
+      <div class="panel">
+        <h2>Werkstoff &amp; Bauteil</h2>
+        <div class="field">
+          <label for="material">Werkstoff</label>
+          <select id="material"></select>
+        </div>
+        <div class="kv">
+          <span class="k">Temperaturleitfähigkeit α</span><span class="v" id="kAlpha">—</span>
+          <span class="k">Wärmeeindringzahl e</span><span class="v" id="kEff">—</span>
+          <span class="k">Wärmeleitfähigkeit λ</span><span class="v" id="kLam">—</span>
+        </div>
+        <div class="field" style="margin-top:11px">
+          <label for="thick">Wanddicke d <span class="val" id="vThick">10,0 mm</span></label>
+          <input type="range" id="thick" min="6" max="24" step="0.5" value="10">
+          <div class="hint">Die Rückwand wirkt selbst wie ein Fehler — sie begrenzt, bis zu welcher Tiefe getrennt ausgewertet werden kann.</div>
+        </div>
+      </div>
+
+      <div class="panel" id="panelSingle">
+        <h2>Fehler</h2>
+        <div class="field">
+          <label for="dtype">Fehlerart</label>
+          <select id="dtype">
+            <option value="delam">Delamination / Luftspalt (R = 1)</option>
+            <option value="kleb">Klebefehler, teilweise angebunden (R = 0,45)</option>
+            <option value="einsch">Metallischer Einschluss (R = −0,4)</option>
+          </select>
+          <div class="hint">Der Reflexionsfaktor R sagt, wie stark die Grenzfläche den Wärmefluss sperrt. Ein Einschluss mit höherer Wärmeeindringzahl leitet die Wärme schneller ab und erscheint <b>kälter</b> als das gesunde Umfeld.</div>
+        </div>
+        <div class="field">
+          <label for="depth">Fehlertiefe L <span class="val" id="vDepth">3,0 mm</span></label>
+          <input type="range" id="depth" min="0.2" max="8" step="0.1" value="3">
+        </div>
+        <div class="field">
+          <label for="dia">Fehlerdurchmesser ∅ <span class="val" id="vDia">8 mm</span></label>
+          <input type="range" id="dia" min="1" max="40" step="0.5" value="8">
+        </div>
+        <div class="kv">
+          <span class="k">Aspektverhältnis ∅/L</span><span class="v" id="kAspect">—</span>
+        </div>
+        <div class="hint">Faustregel der Impuls-Thermografie: unter ∅/L ≈ 1 ist ein Fehler praktisch nicht mehr nachweisbar, unabhängig von der Kameraempfindlichkeit.</div>
+      </div>
+
+      <div class="panel">
+        <h2>Anregung &amp; Kamera</h2>
+        <div class="field">
+          <label for="energy">Eingebrachte Energiedichte Q <span class="val" id="vEnergy">25 kJ/m²</span></label>
+          <input type="range" id="energy" min="3" max="80" step="1" value="25">
+        </div>
+        <div class="field">
+          <label for="netd">Rauschen der Kamera (NETD) <span class="val" id="vNetd">50 mK</span></label>
+          <input type="range" id="netd" min="5" max="150" step="5" value="50">
+          <div class="hint">Legt die Nachweisgrenze fest; als sicher erkannt gilt ein Fehler ab SNR ≥ 3. Ungekühlte Kameras liegen bei 50–80 mK, gekühlte bei etwa 20 mK.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Darstellung</h2>
+        <div class="field">
+          <label>Bildinhalt</label>
+          <div class="seg" id="segView">
+            <button data-view="raw" class="on">Rohbild T</button>
+            <button data-view="delta">Kontrastbild ΔT</button>
+          </div>
+          <div class="hint" id="viewHint">Rohbild: absolute Übertemperatur wie sie die Kamera sieht — der Abfall nach dem Blitz überlagert alles.</div>
+        </div>
+        <div class="field">
+          <label>Farbpalette</label>
+          <div class="seg" id="segPal">
+            <button data-pal="iron" class="on">Eisen</button>
+            <button data-pal="rainbow">Regenbogen</button>
+            <button data-pal="gray">Grau</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Zeitverlauf</h2>
+        <div class="btnrow">
+          <button class="btn primary" id="btnFlash">⚡ Blitz auslösen</button>
+        </div>
+        <div class="btnrow">
+          <button class="btn" id="btnPlay">▶ Abspielen</button>
+          <button class="btn" id="btnPeak">↦ zum Maximum</button>
+        </div>
+        <div class="hint">Die Zeitachse ist logarithmisch: bei Aluminium spielt sich alles in Millisekunden ab, bei CFK in Sekunden.</div>
+      </div>
+
+    </div>
+
+    <!-- ══════════ Anzeige ══════════ -->
+    <div class="main">
+
+      <div class="stage">
+        <div class="stage-head">
+          <span class="stage-title">Wärmebild · Draufsicht auf die angeblitzte Oberfläche</span>
+          <div class="legend">
+            <span><i style="background:var(--cyan)"></i>kühl</span>
+            <span><i style="background:var(--amber)"></i>warm</span>
+            <span><i style="background:var(--red)"></i>heiß</span>
+          </div>
+        </div>
+        <div class="thermal-wrap">
+          <canvas id="heat" width="900" height="500"></canvas>
+          <canvas id="cbar" width="60" height="500"></canvas>
+        </div>
+        <div class="time-bar">
+          <button class="icon-btn" id="btnPlay2" aria-label="Abspielen">▶</button>
+          <input class="sl" type="range" id="time" min="0" max="1000" step="1" value="0" aria-label="Zeit nach dem Blitz">
+          <span class="tval" id="tval">0 ms</span>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-head">
+          <span class="stage-title" id="chartTitle">Kontrastverlauf ΔT über der Zeit</span>
+          <div class="seg" style="max-width:340px" id="segChart">
+            <button data-chart="contrast" class="on">Kontrast ΔT(t)</button>
+            <button data-chart="loglog">log-log T(t)</button>
+          </div>
+        </div>
+        <svg class="chart" id="chart" viewBox="0 0 900 340" role="img" aria-label="Diagramm des Temperaturverlaufs"></svg>
+        <div class="legend" style="margin-top:9px" id="chartLegend"></div>
+        <div class="stats" id="stats"></div>
+        <div class="verdict" id="verdict">Noch kein Blitz ausgelöst.</div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-head">
+          <span class="stage-title">Auswertung je Fehlstelle</span>
+          <span class="stage-title" id="resNote" style="color:var(--text-faint)"></span>
+        </div>
+        <div class="tblwrap">
+          <table class="res" id="resTable"></table>
+        </div>
+      </div>
+
+      <details class="note">
+        <summary></summary>
+        <p><b>Vereinfachtes didaktisches Modell, kein kalibriertes Prüfsystem.</b> Gerechnet wird die eindimensionale Wärmeleitung nach einem idealen Blitz (Dirac-Impuls) mit der bekannten Spiegelquellen-Reihe für eine wärmedichte Grenzfläche in der Tiefe <code>L</code>:</p>
+        <p><code>T(t) = Q / (e·√(π·t)) · [ 1 + 2·Σ Rⁿ·exp(−n²L²/(α·t)) ]</code></p>
+        <p>mit der Wärmeeindringzahl <code>e = √(λ·ρ·c)</code>, der Temperaturleitfähigkeit <code>α = λ/(ρ·c)</code> und dem Reflexionsfaktor <code>R ≈ 1</code> für einen Luftspalt (Delamination, Flachbodenbohrung). Der Referenzbereich rechnet mit der vollen Wanddicke <code>d</code> statt <code>L</code>; die Differenz beider Kurven ist der Kontrast <code>ΔT</code>.</p>
+        <p><b>Dreidimensionale Korrektur:</b> Ein realer Fehler ist seitlich begrenzt, die Wärme fließt um ihn herum. Das wird über den Faktor <code>η(t) = a²/(a² + 0,5·α·t)</code> mit dem Fehlerradius <code>a</code> berücksichtigt. Er dämpft den Kontrast und lässt ihn nach dem Maximum wieder abklingen — deshalb verschwinden kleine, tiefe Fehler vollständig im Rauschen.</p>
+        <p><b>Tiefenabschätzung:</b> ausgewertet wird die Halbwertszeit <code>t½</code> der ansteigenden Kontrastflanke. Sie folgt der Ähnlichkeitsbeziehung <code>t½ = u·L²/α</code> mit einer werkstoffunabhängigen Konstante <code>u</code>, die der Simulator einmalig am idealen Fall bestimmt — das entspricht dem Einmessen an einem Referenzkörper. Auf die verrauschte, dreidimensional gedämpfte Kurve angewendet ergeben sich reale Abweichungen: kleine Fehler werden zu flach, tiefe Fehler tendenziell ebenfalls zu flach geschätzt. Die angezeigte Abweichung ist damit ein echtes Simulationsergebnis und keine eingebaute Konstante.</p>
+        <p><b>Rauschen:</b> Auf jeden Messpunkt wird normalverteiltes Rauschen mit der Standardabweichung NETD addiert. Ein Fehler gilt als nachgewiesen, wenn der Spitzenkontrast mindestens dem Dreifachen davon entspricht.</p>
+      </details>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => Math.max(a, Math.min(b,v));
+const deC = (v,d) => v.toFixed(d).replace('.', ',');
+
+/* ═══════════ Werkstoffe (SI-Einheiten) ═══════════ */
+const MATERIALS = [
+  {id:'stahl',  name:'Baustahl S235',            lam:50,   rho:7850, cp:470},
+  {id:'edel',   name:'Edelstahl 1.4301',         lam:15,   rho:7900, cp:500},
+  {id:'alu',    name:'Aluminium EN AW-6082',     lam:170,  rho:2700, cp:900},
+  {id:'titan',  name:'Titan Ti-6Al-4V',          lam:6.7,  rho:4430, cp:530},
+  {id:'cfk',    name:'CFK, quasi-isotrop (⊥)',   lam:0.7,  rho:1570, cp:1000},
+  {id:'gfk',    name:'GFK-Laminat',              lam:0.35, rho:1900, cp:1000},
+];
+MATERIALS.forEach(m => { m.alpha = m.lam/(m.rho*m.cp); m.e = Math.sqrt(m.lam*m.rho*m.cp); });
+const matById = id => MATERIALS.find(m => m.id===id) || MATERIALS[0];
+
+/* ═══════════ Zustand ═══════════ */
+const S = {
+  mode:'ref', material:'stahl', thick:10,
+  depth:3, dia:8, energy:25, netd:50, dtype:'delam',
+  view:'delta', pal:'iron', chart:'contrast',
+  tNorm:0, flashed:false, playing:false
+};
+const PLATE = {w:150, h:85};   // mm
+
+/* ═══════════ Physik ═══════════ */
+/* Fehlerarten über ihren thermischen Reflexionsfaktor R:
+   R = +1  vollständige Sperre (Luftspalt, Delamination, Flachbodenbohrung)
+   0<R<1   teilweiser Kontakt (Klebefehler, angebundene Delamination)
+   R < 0   Einschluss mit höherer Wärmeeindringzahl — erscheint kälter als das Umfeld */
+const DEFECT_TYPES = {
+  delam:  {name:'Delamination / Luftspalt', R: 1.00},
+  kleb:   {name:'Klebefehler, teilweise angebunden', R: 0.45},
+  einsch: {name:'Metallischer Einschluss', R: -0.40}
+};
+
+// Oberflächentemperatur über einer Grenzfläche in Tiefe L mit Reflexionsfaktor R (SI)
+function T1D(t, L, alpha, e, Q, R){
+  if(t <= 0) return 0;
+  if(R === undefined) R = 1;
+  let s = 1;
+  for(let n=1; n<=80; n++){
+    const term = Math.pow(R,n) * Math.exp(-(n*n*L*L)/(alpha*t));
+    s += 2*term;
+    if(Math.abs(term) < 1e-14 && n > 3) break;
+  }
+  return Q/(e*Math.sqrt(Math.PI*t)) * s;
+}
+// laterale 3D-Dämpfung: a = Fehlerradius [m]
+const etaLat = (t,a,alpha) => (a*a)/(a*a + 0.5*alpha*t);
+
+function ctx(){
+  const m = matById(S.material);
+  return {m, alpha:m.alpha, e:m.e, Q:S.energy*1000, d:S.thick/1000};
+}
+const Tsound = (t,c) => T1D(t, c.d, c.alpha, c.e, c.Q, 1);
+function dTdefect(t, L, a, c, R){
+  return (T1D(t, L, c.alpha, c.e, c.Q, R) - Tsound(t,c)) * etaLat(t, a, c.alpha);
+}
+
+/* Fehlerliste je Modus (Maße in mm) */
+/* Referenzkörper: obere Reihe zeigt den Tiefeneinfluss und die Fehlerart,
+   untere Reihe dieselben Tiefen mit kleinem Durchmesser für die Nachweisgrenze. */
+const REF_DEFECTS = [
+  {L:0.5, D:12, type:'delam'},
+  {L:1.5, D:12, type:'delam'},
+  {L:4.0, D:12, type:'delam'},
+  {L:1.5, D:12, type:'kleb'},
+  {L:0.5, D:3,  type:'delam'},
+  {L:1.5, D:3,  type:'delam'},
+  {L:4.0, D:3,  type:'delam'},
+  {L:1.5, D:12, type:'einsch'}
+];
+function defects(){
+  if(S.mode === 'single'){
+    return [{x:PLATE.w/2, y:PLATE.h/2, L:S.depth, D:S.dia,
+             type:S.dtype, R:DEFECT_TYPES[S.dtype].R,
+             typeName:DEFECT_TYPES[S.dtype].name, label:'F1'}];
+  }
+  return REF_DEFECTS.map((d,i) => ({
+    x: 26 + (i%4)*33,
+    y: 25 + Math.floor(i/4)*36,
+    L: d.L, D: d.D, type: d.type,
+    R: DEFECT_TYPES[d.type].R,
+    typeName: DEFECT_TYPES[d.type].name,
+    label: 'F' + (i+1)
+  }));
+}
+
+/* Zeitfenster: an das langsamste Ereignis angepasst */
+function timeWindow(){
+  const c = ctx();
+  const Lmax = Math.max(...defects().map(d=>d.L)) / 1000;
+  const tEnd = clamp(6 * Lmax*Lmax / c.alpha, 0.02, 600);
+  return {t0: tEnd/4000, t1: tEnd};
+}
+function tFromNorm(n){
+  const {t0,t1} = timeWindow();
+  return t0 * Math.pow(t1/t0, clamp(n,0,1000)/1000);
+}
+function normFromT(t){
+  const {t0,t1} = timeWindow();
+  return clamp(1000*Math.log(t/t0)/Math.log(t1/t0), 0, 1000);
+}
+const nowT = () => S.flashed ? tFromNorm(S.tNorm) : 0;
+/* Zeitpunkt, an dem die meisten Fehlstellen gut zu sehen sind: Median der
+   Kontrastmaxima aller nachgewiesenen Fehler. */
+function bestNorm(){
+  const rs = (RESULTS||[]).filter(r => r.snr >= 3 && r.tPeak > 0);
+  if(!rs.length) return 0.35;
+  const ts = rs.map(r => r.tPeak).sort((a,b)=>a-b);
+  const tm = ts[Math.floor(ts.length/2)];
+  const {t0,t1} = timeWindow();
+  return clamp(Math.log(tm/t0)/Math.log(t1/t0), 0, 1);
+}
+
+/* Kalibrierkonstante u = α·t½/L² – einmal je Werkstoff/Wanddicke bestimmt.
+   Entspricht dem Einmessen an einem Referenzkörper mit bekannter Tiefe. */
+let U_CAL = 0.64;
+function calibrate(){
+  const c = ctx();
+  const Lref = c.d/4, aRef = 0.02;              // 40 mm breite Referenzfehlstelle
+  const r = analyseCurve(Lref*1000, aRef*2000, c, true, 1);
+  U_CAL = (r.tHalf > 0) ? c.alpha*r.tHalf/(Lref*Lref) : 0.64;
+}
+
+/* Kontrastkurve auswerten: Maximum, Halbwertszeit der Anstiegsflanke */
+function analyseCurve(Lmm, Dmm, c, noiseless, R){
+  const {t0,t1} = timeWindow();
+  const L = Lmm/1000, a = Dmm/2000;
+  const N = 320;
+  const pts = new Array(N+1);
+  let pk = 0, pi = 0;
+  for(let i=0; i<=N; i++){
+    const t = t0*Math.pow(t1/t0, i/N);
+    const v = dTdefect(t, L, a, c, R);
+    pts[i] = {t, v};
+    if(Math.abs(v) > Math.abs(pk)){ pk = v; pi = i; }
+  }
+  const half = pk*0.5;
+  let tHalf = 0;
+  for(let i=1; i<=pi; i++){
+    if(Math.abs(pts[i].v) >= Math.abs(half)){
+      const p0 = pts[i-1], p1 = pts[i];
+      const f = (half - p0.v)/((p1.v - p0.v) || 1);
+      tHalf = p0.t + f*(p1.t - p0.t);
+      break;
+    }
+  }
+  if(!tHalf) tHalf = pts[Math.max(1,pi)].t;
+  const netd = S.netd/1000;
+  const snr = Math.abs(pk)/netd;
+  const Lest = noiseless ? Lmm : Math.sqrt(c.alpha*tHalf/U_CAL)*1000;
+  return {peak:pk, tPeak:pts[pi].t, tHalf, snr, Lest, pts};
+}
+
+/* Ergebnisse werden einmal je Bild berechnet und von allen Ansichten genutzt */
+let RESULTS = [];
+function computeResults(){
+  const c = ctx();
+  RESULTS = defects().map(d => Object.assign({}, d, analyseCurve(d.L, d.D, c, false, d.R)));
+}
+
+/* ═══════════ Farbpaletten ═══════════ */
+const PALETTES = {
+  iron:   [[0,[6,4,14]],[.18,[46,10,86]],[.40,[152,24,84]],[.62,[228,72,32]],[.82,[255,178,32]],[1,[255,252,222]]],
+  rainbow:[[0,[8,14,48]],[.25,[16,110,190]],[.48,[36,196,150]],[.68,[214,214,54]],[.86,[236,116,32]],[1,[248,60,54]]],
+  gray:   [[0,[10,10,12]],[1,[248,248,250]]]
+};
+function palRGB(v, name){
+  const st = PALETTES[name] || PALETTES.iron;
+  v = clamp(v,0,1);
+  for(let i=0;i<st.length-1;i++){
+    const [p0,c0] = st[i], [p1,c1] = st[i+1];
+    if(v>=p0 && v<=p1){
+      const f = (v-p0)/((p1-p0)||1);
+      return [c0[0]+(c1[0]-c0[0])*f, c0[1]+(c1[1]-c0[1])*f, c0[2]+(c1[2]-c0[2])*f];
+    }
+  }
+  const last = st[st.length-1][1]; return [last[0],last[1],last[2]];
+}
+
+/* deterministisches Pixelrauschen (kein Flackern bei gleichem t) */
+function hashNoise(i, seed){
+  let x = (i*374761393 + seed*668265263) | 0;
+  x = (x ^ (x >>> 13)) * 1274126177 | 0;
+  return ((x ^ (x >>> 16)) >>> 0)/4294967295 - 0.5;
+}
+
+/* ═══════════ Wärmebild ═══════════ */
+const FW = 380, FH = 215;                  // Rechengitter, feiner für weiche Verläufe
+const off = document.createElement('canvas');
+off.width = FW; off.height = FH;
+const offCtx = off.getContext('2d');
+const imgData = offCtx.createImageData(FW, FH);
+
+function drawHeat(){
+  const cv = $('heat'), g = cv.getContext('2d');
+  const c = ctx(), t = nowT();
+  const defs = defects();
+  const raw = (S.view === 'raw');
+  const netd = S.netd/1000;
+
+  const base = S.flashed ? Tsound(t, c) : 0;
+  const field = new Float32Array(FW*FH);
+  let vmin = Infinity, vmax = -Infinity;
+
+  // Fehleramplituden und Verschmierungsradien vorab
+  const dd = defs.map(d => ({
+    x:d.x, y:d.y, a:d.D/2,
+    amp: S.flashed ? dTdefect(t, d.L/1000, d.D/2000, c, d.R) : 0,
+    sig: Math.max(0.25, Math.sqrt(2*c.alpha*Math.max(t,1e-6))*1000)   // mm
+  }));
+
+  dd.forEach(D => { D.reach = D.a + 3.2*D.sig; });
+  for(let py=0; py<FH; py++){
+    const my = (py+0.5)/FH*PLATE.h;
+    for(let px=0; px<FW; px++){
+      const mx = (px+0.5)/FW*PLATE.w;
+      let v = raw ? base : 0;
+      for(let k=0; k<dd.length; k++){
+        const D = dd[k];
+        if(D.amp === 0) continue;
+        const ddx = mx-D.x, ddy = my-D.y;
+        if(Math.abs(ddx) > D.reach || Math.abs(ddy) > D.reach) continue;
+        const r = Math.sqrt(ddx*ddx + ddy*ddy);
+        const sD = r - D.a;
+        v += sD <= 0 ? D.amp : D.amp*Math.exp(-(sD*sD)/(2*D.sig*D.sig));
+      }
+      const i = py*FW+px;
+      v += S.flashed ? hashNoise(i, Math.round(t*1e4)%9973) * netd * 2.2 : 0;
+      field[i] = v;
+      if(v<vmin) vmin=v; if(v>vmax) vmax=v;
+    }
+  }
+
+  /* Spannenwahl. Ein einziger starker Fehler darf die Skala nicht an sich
+     reißen, sonst verschwinden die schwachen. Deshalb wird nicht auf das
+     absolute Maximum bezogen, sondern auf das 99,5-Perzentil, und die
+     Anzeige zusätzlich mit Gamma 0,6 gespreizt — so wie an einer
+     Thermografiekamera der Pegel- und Spannenregler benutzt wird. */
+  function pct(arr, q){
+    const n = arr.length, step = Math.max(1, Math.floor(n/20000));
+    const sm = [];
+    for(let i=0;i<n;i+=step) sm.push(Math.abs(arr[i]));
+    sm.sort((a,b)=>a-b);
+    return sm[Math.min(sm.length-1, Math.floor(q*sm.length))] || 1e-6;
+  }
+  let lo, hi;
+  if(raw){ lo = vmin; hi = Math.max(vmax, vmin+1e-4); }
+  else {
+    const m = Math.max(pct(field, 0.995), 3*netd);
+    lo = -m*0.45; hi = m;
+  }
+  const span = (hi-lo) || 1;
+  const GAMMA = raw ? 1 : 0.6;
+
+  const px32 = imgData.data;
+  for(let i=0;i<FW*FH;i++){
+    let u = (field[i]-lo)/span;
+    if(GAMMA !== 1){
+      const c0 = clamp((u - (-lo/span)) / (1 - (-lo/span) || 1), -1, 1);
+      const sgn = c0 < 0 ? -1 : 1;
+      u = (-lo/span) + sgn*Math.pow(Math.abs(c0), GAMMA) * (1 - (-lo/span));
+    }
+    const [r,g2,b] = palRGB(u, S.pal);
+    const o = i*4;
+    px32[o]=r; px32[o+1]=g2; px32[o+2]=b; px32[o+3]=255;
+  }
+  offCtx.putImageData(imgData, 0, 0);
+
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+  const rect = cv.getBoundingClientRect();
+  const W = Math.max(320, Math.round((rect.width||900)*dpr));
+  const H = Math.round(W * FH/FW);
+  if(cv.width!==W || cv.height!==H){ cv.width=W; cv.height=H; }
+  g.imageSmoothingEnabled = true;
+  g.imageSmoothingQuality = 'high';
+  g.drawImage(off, 0, 0, W, H);
+
+  // Fehlerumrisse und Beschriftung
+  const sx = W/PLATE.w, sy = H/PLATE.h;
+  g.lineWidth = Math.max(1, 1.1*dpr);
+  g.font = `${11*dpr}px JetBrains Mono, monospace`;
+  g.textAlign = 'center';
+  defs.forEach((d,i) => {
+    const res = S.flashed ? RESULTS[i] : null;
+    const detected = res && res.snr >= 3;
+    g.strokeStyle = detected ? 'rgba(255,255,255,.72)' : 'rgba(255,255,255,.26)';
+    g.setLineDash(detected ? [] : [4*dpr, 4*dpr]);
+    g.beginPath();
+    g.ellipse(d.x*sx, d.y*sy, d.D/2*sx, d.D/2*sy, 0, 0, Math.PI*2);
+    g.stroke();
+    g.setLineDash([]);
+    g.fillStyle = detected ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.45)';
+    g.fillText(`${deC(d.L,1)} mm${d.R<0?' ⌄':''}`, d.x*sx, (d.y + d.D/2)*sy + 14*dpr);
+  });
+  g.setLineDash([]);
+
+  // Maßstab
+  g.strokeStyle = 'rgba(255,255,255,.75)'; g.fillStyle = 'rgba(255,255,255,.75)';
+  const barMM = 20, bx = 14*dpr, by = H - 14*dpr;
+  g.lineWidth = 2*dpr;
+  g.beginPath(); g.moveTo(bx, by); g.lineTo(bx + barMM*sx, by); g.stroke();
+  g.textAlign = 'left';
+  g.fillText('20 mm', bx, by - 7*dpr);
+
+  drawCbar(lo, hi);
+}
+
+function drawCbar(lo, hi){
+  const cv = $('cbar'), g = cv.getContext('2d');
+  const dpr = Math.max(1, Math.min(2, window.devicePixelRatio||1));
+  const rect = cv.getBoundingClientRect();
+  const W = Math.max(40, Math.round((rect.width||54)*dpr));
+  const H = Math.max(120, Math.round((rect.height||400)*dpr));
+  if(cv.width!==W||cv.height!==H){ cv.width=W; cv.height=H; }
+  g.clearRect(0,0,W,H);
+  const barW = Math.round(W*0.42);
+  for(let y=0; y<H; y++){
+    const [r,gg,b] = palRGB(1 - y/H, S.pal);
+    g.fillStyle = `rgb(${r|0},${gg|0},${b|0})`;
+    g.fillRect(0, y, barW, 1);
+  }
+  const cs = getComputedStyle(document.body);
+  g.strokeStyle = cs.getPropertyValue('--border').trim() || '#555';
+  g.lineWidth = 1.5;
+  g.strokeRect(0.75, 0.75, barW-1.5, H-1.5);
+  g.fillStyle = cs.getPropertyValue('--text-dim').trim() || '#aaa';
+  g.font = `${10*dpr}px JetBrains Mono, monospace`;
+  g.textAlign = 'left';
+  for(let i=0;i<=4;i++){
+    const f = i/4, y = H - f*H;
+    const val = lo + f*(hi-lo);
+    const yy = clamp(y, 11*dpr, H-3*dpr);
+    g.fillText(fmtK(val), barW+5*dpr, yy);
+  }
+  g.save();
+  g.translate(W-2*dpr, H/2); g.rotate(-Math.PI/2);
+  g.textAlign='center';
+  g.fillText(S.view==='raw' ? 'ΔT zur Umgebung [K]' : 'Kontrast ΔT [K]', 0, 0);
+  g.restore();
+}
+function fmtK(v){
+  const a = Math.abs(v);
+  if(a >= 10)  return v.toFixed(0);
+  if(a >= 1)   return deC(v,1);
+  if(a >= 0.1) return deC(v,2);
+  return (v*1000).toFixed(0) + ' mK';
+}
+
+/* ═══════════ Diagramme ═══════════ */
+const CH = {W:900, H:340, l:62, r:22, t:18, b:44};
+function axisFrame(xTicks, yTicks, xLab, yLab, logX){
+  const {W,H,l,r,t,b} = CH, w = W-l-r, h = H-t-b;
+  let s = `<rect x="${l}" y="${t}" width="${w}" height="${h}" fill="none" stroke="var(--border)" stroke-width="1.5"/>`;
+  xTicks.forEach(tk => {
+    s += `<line x1="${tk.px}" y1="${t}" x2="${tk.px}" y2="${t+h}" stroke="var(--grid)" stroke-width="1" ${tk.minor?'opacity=".45"':''}/>`;
+    if(!tk.minor) s += `<text x="${tk.px}" y="${t+h+17}" font-family="JetBrains Mono" font-size="11" fill="var(--text-faint)" text-anchor="middle">${tk.label}</text>`;
+  });
+  yTicks.forEach(tk => {
+    s += `<line x1="${l}" y1="${tk.py}" x2="${l+w}" y2="${tk.py}" stroke="var(--grid)" stroke-width="1" ${tk.minor?'opacity=".45"':''}/>`;
+    if(!tk.minor) s += `<text x="${l-7}" y="${tk.py+4}" font-family="JetBrains Mono" font-size="11" fill="var(--text-faint)" text-anchor="end">${tk.label}</text>`;
+  });
+  s += `<text x="${l+w/2}" y="${H-6}" font-family="JetBrains Mono" font-size="11.5" fill="var(--text-dim)" text-anchor="middle">${xLab}</text>`;
+  s += `<text x="14" y="${t+h/2}" font-family="JetBrains Mono" font-size="11.5" fill="var(--text-dim)" text-anchor="middle" transform="rotate(-90 14 ${t+h/2})">${yLab}</text>`;
+  return s;
+}
+function logTicks(v0, v1, toPx){
+  const out = [];
+  const e0 = Math.floor(Math.log10(v0)), e1 = Math.ceil(Math.log10(v1));
+  for(let e=e0; e<=e1; e++){
+    for(let m=1; m<10; m++){
+      const v = m*Math.pow(10,e);
+      if(v < v0 || v > v1) continue;
+      out.push({px:toPx(v), label:m===1?fmtTime(v):'', minor:m!==1});
+    }
+  }
+  return out;
+}
+function fmtTime(s){
+  if(s < 1e-3) return (s*1e6).toFixed(0)+' µs';
+  if(s < 1)    return (s*1e3).toFixed(s<0.01?1:0).replace('.',',')+' ms';
+  if(s < 100)  return deC(s, s<10?1:0)+' s';
+  return (s/60).toFixed(1).replace('.',',')+' min';
+}
+
+const CURVE_COLORS = ['var(--cyan)','var(--amber)','var(--green)','var(--violet)','var(--blue)','var(--red)','#f79ac0','#8fd14f'];
+
+function drawChart(){
+  const c = ctx(), {t0,t1} = timeWindow();
+  const {W,H,l,r,t,b} = CH, w = W-l-r, h = H-t-b;
+  const toX = v => l + Math.log(v/t0)/Math.log(t1/t0)*w;
+  const defs = defects();
+  const N = 240;
+  const netd = S.netd/1000;
+  let svg = '', legend = '';
+
+  if(S.chart === 'contrast'){
+    const series = defs.map(d => {
+      const arr = [];
+      for(let i=0;i<=N;i++){
+        const tt = t0*Math.pow(t1/t0, i/N);
+        const n = hashNoise(i*17 + Math.round(d.L*97 + d.D*13), 31) * netd * 2.0;
+        arr.push({t:tt, v: dTdefect(tt, d.L/1000, d.D/2000, c, d.R) + n});
+      }
+      return arr;
+    });
+    let vmax = 0, vlow = 0;
+    series.forEach(a => a.forEach(p => { if(p.v>vmax) vmax = p.v; if(p.v<vlow) vlow = p.v; }));
+    vmax = Math.max(vmax*1.12, 6*netd);
+    const vmin = Math.min(vlow*1.15, -Math.max(3*netd, vmax*0.08));
+    const toY = v => t + h - (v-vmin)/(vmax-vmin)*h;
+
+    const yT = [];
+    for(let i=0;i<=5;i++){
+      const v = vmin + (vmax-vmin)*i/5;
+      yT.push({py:toY(v), label:fmtK(v)});
+    }
+    svg += axisFrame(logTicks(t0,t1,toX), yT, 'Zeit nach dem Blitz (logarithmisch)', 'Kontrast ΔT [K]', true);
+
+    // Rauschband ±3·NETD
+    svg += `<rect x="${l}" y="${toY(3*netd)}" width="${w}" height="${Math.max(1,toY(-3*netd)-toY(3*netd))}" fill="var(--red)" opacity=".08"/>`;
+    svg += `<line x1="${l}" y1="${toY(3*netd)}" x2="${l+w}" y2="${toY(3*netd)}" stroke="var(--red)" stroke-width="1.2" stroke-dasharray="5,4" opacity=".65"/>`;
+    svg += `<line x1="${l}" y1="${toY(-3*netd)}" x2="${l+w}" y2="${toY(-3*netd)}" stroke="var(--red)" stroke-width="1.2" stroke-dasharray="5,4" opacity=".65"/>`;
+    svg += `<text x="${l+w-5}" y="${toY(3*netd)-5}" font-family="JetBrains Mono" font-size="10" fill="var(--red)" text-anchor="end" opacity=".85">Nachweisgrenze ±3·NETD</text>`;
+
+    series.forEach((arr,i) => {
+      const col = CURVE_COLORS[i % CURVE_COLORS.length];
+      let d2 = '';
+      arr.forEach((p,j) => { d2 += (j?'L':'M') + toX(p.t).toFixed(1) + ',' + clamp(toY(p.v), t-2, t+h+2).toFixed(1) + ' '; });
+      svg += `<path d="${d2}" fill="none" stroke="${col}" stroke-width="1.9" stroke-linejoin="round" opacity=".95"/>`;
+      const res = RESULTS[i];
+      if(Math.abs(res.peak) > 3*netd && res.tPeak > t0 && res.tPeak < t1){
+        svg += `<circle cx="${toX(res.tPeak).toFixed(1)}" cy="${toY(res.peak).toFixed(1)}" r="3.6" fill="${col}" stroke="var(--panel)" stroke-width="1.4"/>`;
+      }
+      legend += `<span><i style="background:${col}"></i>${defs[i].label} · ${deC(defs[i].L,1)} mm · ∅${defs[i].D}${defs[i].R<0?' · Einschluss':(defs[i].R<1?' · Klebefehler':'')}</span>`;
+    });
+
+    if(S.flashed){
+      const tx = toX(clamp(nowT(), t0, t1));
+      svg += `<line x1="${tx.toFixed(1)}" y1="${t}" x2="${tx.toFixed(1)}" y2="${t+h}" stroke="var(--text)" stroke-width="1.3" stroke-dasharray="3,3" opacity=".7"/>`;
+    }
+  } else {
+    // log-log Rohtemperatur
+    const curves = [{label:'Referenzbereich (fehlerfrei)', col:'var(--text-dim)', L:null}]
+      .concat(defs.map((d,i)=>({label:`${d.label} · L=${deC(d.L,1)} mm`, col:CURVE_COLORS[i%CURVE_COLORS.length], d})));
+    const data = curves.map(cv => {
+      const arr = [];
+      for(let i=0;i<=N;i++){
+        const tt = t0*Math.pow(t1/t0, i/N);
+        const v = cv.L === null && !cv.d ? Tsound(tt,c)
+                : Tsound(tt,c) + dTdefect(tt, cv.d.L/1000, cv.d.D/2000, c, cv.d.R);
+        arr.push({t:tt, v:Math.max(v, 1e-6)});
+      }
+      return arr;
+    });
+    let vlo = Infinity, vhi = -Infinity;
+    data.forEach(a=>a.forEach(p=>{ if(p.v<vlo)vlo=p.v; if(p.v>vhi)vhi=p.v; }));
+    vlo = Math.max(vlo, vhi/3000);
+    const toY = v => t + h - Math.log(clamp(v,vlo,vhi)/vlo)/Math.log(vhi/vlo)*h;
+    const yT = [];
+    const e0 = Math.floor(Math.log10(vlo)), e1 = Math.ceil(Math.log10(vhi));
+    for(let e=e0;e<=e1;e++) for(let m=1;m<10;m++){
+      const v = m*Math.pow(10,e);
+      if(v<vlo||v>vhi) continue;
+      yT.push({py:toY(v), label:m===1?fmtK(v):'', minor:m!==1});
+    }
+    svg += axisFrame(logTicks(t0,t1,toX), yT, 'Zeit nach dem Blitz (logarithmisch)', 'Übertemperatur [K] (logarithmisch)', true);
+
+    // Asymptote mit Steigung −1/2
+    const A = c.Q/(c.e*Math.sqrt(Math.PI));
+    let dA = '';
+    for(let i=0;i<=40;i++){
+      const tt = t0*Math.pow(t1/t0, i/40);
+      dA += (i?'L':'M') + toX(tt).toFixed(1) + ',' + toY(A/Math.sqrt(tt)).toFixed(1) + ' ';
+    }
+    svg += `<path d="${dA}" fill="none" stroke="var(--text-faint)" stroke-width="1.4" stroke-dasharray="7,5"/>`;
+    svg += `<text x="${l+12}" y="${t+16}" font-family="JetBrains Mono" font-size="10.5" fill="var(--text-faint)">Gerade mit Steigung −1/2: ungestörte Abkühlung</text>`;
+
+    data.forEach((arr,i) => {
+      let d2 = '';
+      arr.forEach((p,j)=>{ d2 += (j?'L':'M') + toX(p.t).toFixed(1) + ',' + toY(p.v).toFixed(1) + ' '; });
+      const cvv = curves[i];
+      svg += `<path d="${d2}" fill="none" stroke="${cvv.col}" stroke-width="${i===0?2.4:1.9}" stroke-linejoin="round"/>`;
+      legend += `<span><i style="background:${cvv.col}"></i>${cvv.label}</span>`;
+    });
+    legend += `<span><i class="dash"></i>Steigung −1/2</span>`;
+
+    if(S.flashed){
+      const tx = toX(clamp(nowT(), t0, t1));
+      svg += `<line x1="${tx.toFixed(1)}" y1="${t}" x2="${tx.toFixed(1)}" y2="${t+h}" stroke="var(--text)" stroke-width="1.3" stroke-dasharray="3,3" opacity=".7"/>`;
+    }
+  }
+
+  $('chart').innerHTML = svg;
+  $('chartLegend').innerHTML = legend;
+  $('chartTitle').textContent = S.chart === 'contrast'
+    ? 'Kontrastverlauf ΔT über der Zeit'
+    : 'Abkühlkurve doppelt-logarithmisch';
+}
+
+/* ═══════════ Tabelle, Kennwerte, Bewertung ═══════════ */
+function updateReadouts(){
+  const c = ctx(), t = nowT(), defs = defects();
+  const netd = S.netd/1000;
+  const results = RESULTS;
+
+  // Kennzahlkarten
+  const diffLen = Math.sqrt(c.alpha*Math.max(t,0))*1000;
+  const best = results.reduce((a,b)=> b.snr>a.snr?b:a, results[0]);
+  const cur = results.reduce((a,b)=> {
+    const da = Math.abs(Math.log((a.tPeak||1e-9)/Math.max(t,1e-9)));
+    const db = Math.abs(Math.log((b.tPeak||1e-9)/Math.max(t,1e-9)));
+    return db<da?b:a;
+  }, results[0]);
+
+  const cards = [
+    ['Zeit nach Blitz', S.flashed ? fmtTime(t) : '—'],
+    ['Thermische Eindringtiefe √(α·t)', S.flashed ? deC(diffLen,2)+' <small>mm</small>' : '—'],
+    ['Nachgewiesene Fehler', `${results.filter(r=>r.snr>=3).length} <small>von ${results.length}</small>`, results.some(r=>r.snr>=3)?'ok':'bad'],
+    ['Bester SNR', S.flashed ? Math.round(best.snr)+' <small>:1</small>' : '—', 'hl'],
+    ['Kalibrierkonstante u', deC(U_CAL,3)],
+  ];
+  $('stats').innerHTML = cards.map(([k,v,cl]) =>
+    `<div class="stat${cl?' '+cl:''}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+
+  // Tabelle
+  let html = `<thead><tr>
+    <th>Fehler</th><th>Art</th><th>Tiefe L</th><th>∅</th><th>∅/L</th>
+    <th>t<sub>max</sub></th><th>ΔT<sub>max</sub></th><th>SNR</th>
+    <th>Nachweis</th><th>gemessene Tiefe</th><th>Abweichung</th></tr></thead><tbody>`;
+  results.forEach(r => {
+    const det = r.snr >= 3;
+    const err = (r.Lest - r.L)/r.L*100;
+    const isCur = (r === cur) && S.flashed;
+    html += `<tr class="${det?'vis':'dim'}${isCur?' cur':''}">
+      <td>${r.label}</td>
+      <td style="text-align:left">${r.type==='delam'?'Delamination':(r.type==='kleb'?'Klebefehler':'Einschluss')}</td>
+      <td>${deC(r.L,1)} mm</td>
+      <td>${deC(r.D,0)} mm</td>
+      <td>${deC(r.D/r.L,1)}</td>
+      <td>${fmtTime(r.tPeak)}</td>
+      <td>${fmtK(r.peak)} K</td>
+      <td>${r.snr>=1000?'>1000':Math.round(r.snr)}</td>
+      <td class="${det?'v-ok':'v-bad'}">${det?'sicher':'zu schwach'}</td>
+      <td>${det?deC(r.Lest,2)+' mm':'—'}</td>
+      <td>${det?(err>0?'+':'')+deC(err,0)+' %':'—'}</td>
+    </tr>`;
+  });
+  html += '</tbody>';
+  $('resTable').innerHTML = html;
+  $('resNote').textContent = S.flashed
+    ? 'Zeile hervorgehoben = Fehler, dessen Maximum der aktuellen Zeit am nächsten liegt'
+    : 'Werte gelten für den vollständigen Zeitverlauf nach einem Blitz';
+
+  // Bewertung
+  const v = $('verdict');
+  if(!S.flashed){
+    v.className = 'verdict';
+    v.innerHTML = 'Noch kein Blitz ausgelöst. Auf <b>Blitz auslösen</b> klicken und danach die Zeitachse durchfahren — oder direkt <b>zum Maximum</b> springen.';
+  } else {
+    const hidden = results.filter(r => r.snr < 3);
+    const worstAspect = results.reduce((a,b)=> (b.D/b.L)<(a.D/a.L)?b:a, results[0]);
+    if(hidden.length === 0){
+      v.className = 'verdict ok';
+      v.innerHTML = `<b>Alle ${results.length} Fehlstellen liegen über der Nachweisgrenze.</b> Die Tiefen kommen aus der Halbwertszeit der Kontrastflanke; die Abweichung in der Tabelle ist das echte Auswerteergebnis, nicht der eingestellte Sollwert.`
+        + (results.some(r=>r.R<0) ? ` Der Einschluss zeigt <b>negativen</b> Kontrast — im Kontrastbild erscheint er dunkel.` : '');
+    } else {
+      v.className = 'verdict bad';
+      v.innerHTML = `<b>${hidden.length} von ${results.length} Fehlstellen bleiben im Rauschen.</b> `+
+        `Ungünstigstes Verhältnis: ${worstAspect.label} mit ∅/L = ${deC(worstAspect.D/worstAspect.L,1)}. `+
+        `Mehr Energie hebt Signal und Rauschen gleichermaßen — hier hilft nur ein empfindlicherer Detektor, ein anderer Prüfwinkel oder ein anderes Verfahren.`;
+    }
+  }
+
+  // Badges & Sidebar-Kennwerte
+  const m = c.m;
+  $('bMat').textContent = m.name;
+  $('bTime').textContent = S.flashed ? 't = ' + fmtTime(t) : 'kein Blitz';
+  $('bTime').className = 'badge' + (S.flashed ? ' acc' : '');
+  $('kAlpha').textContent = deC(m.alpha*1e6, 2) + ' mm²/s';
+  $('kEff').textContent = Math.round(m.e) + ' Ws^½/m²K';
+  $('kLam').textContent = deC(m.lam, m.lam<10?2:0) + ' W/mK';
+  $('kAspect').textContent = deC(S.dia/S.depth, 1);
+  $('tval').textContent = S.flashed ? fmtTime(t) : '—';
+}
+
+/* ═══════════ Render ═══════════ */
+function render(){
+  computeResults();
+  drawHeat();
+  drawChart();
+  updateReadouts();
+}
+
+/* ═══════════ Bedienung ═══════════ */
+// Werkstoffliste
+MATERIALS.forEach(m => {
+  const o = document.createElement('option');
+  o.value = m.id; o.textContent = m.name;
+  $('material').appendChild(o);
+});
+$('material').value = S.material;
+$('material').addEventListener('change', () => {
+  S.material = $('material').value; calibrate(); render();
+});
+$('dtype').addEventListener('change', () => { S.dtype = $('dtype').value; render(); });
+
+function bindRange(id, key, fmt, after){
+  const inp = $(id), lab = $('v' + id.charAt(0).toUpperCase() + id.slice(1));
+  inp.addEventListener('input', () => {
+    S[key] = parseFloat(inp.value);
+    if(lab) lab.textContent = fmt(S[key]);
+    if(after) after();
+    render();
+  });
+  if(lab) lab.textContent = fmt(S[key]);
+}
+bindRange('thick','thick',  v => deC(v,1)+' mm', calibrate);
+bindRange('depth','depth',  v => deC(v,1)+' mm');
+bindRange('dia','dia',      v => deC(v,0)+' mm');
+bindRange('energy','energy',v => deC(v,0)+' kJ/m²');
+bindRange('netd','netd',    v => v+' mK');
+
+$('time').addEventListener('input', () => {
+  S.tNorm = parseFloat($('time').value);
+  if(!S.flashed) S.flashed = true;
+  render();
+});
+
+function segBind(id, key, after){
+  $(id).addEventListener('click', e => {
+    const b = e.target.closest('button'); if(!b) return;
+    [...$(id).children].forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    S[key] = b.dataset[key] || b.dataset[Object.keys(b.dataset)[0]];
+    if(after) after();
+    render();
+  });
+}
+$('segMode').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  [...$('segMode').children].forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  S.mode = b.dataset.mode;
+  $('panelSingle').style.display = S.mode === 'single' ? '' : 'none';
+  $('modeHint').textContent = S.mode === 'single'
+    ? 'Eine einzelne Fehlstelle mit frei einstellbarer Tiefe und Größe. Gut geeignet, um die Grenze ∅/L systematisch abzutasten.'
+    : 'Prüfkörper mit 8 Flachbodenbohrungen: vier Tiefen × zwei Durchmesser. Zeigt direkt, welche Fehler wann sichtbar werden und ab welchem Verhältnis ∅/Tiefe die Anzeige verschwindet.';
+  calibrate(); render();
+});
+$('segView').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  [...$('segView').children].forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  S.view = b.dataset.view;
+  $('viewHint').textContent = S.view === 'raw'
+    ? 'Rohbild: absolute Übertemperatur wie sie die Kamera sieht — der Abfall nach dem Blitz überlagert alles.'
+    : 'Kontrastbild: der Referenzverlauf des fehlerfreien Bereichs ist abgezogen. So bleibt nur die Fehleranzeige übrig, genau wie bei der Auswertung am Gerät.';
+  render();
+});
+segBind('segPal','pal');
+segBind('segChart','chart');
+
+function applyTheme(theme){
+  document.body.classList.toggle('light', theme === 'light');
+  $('themeBtn').textContent = theme === 'light' ? '☾' : '☀';
+}
+ZfPContext.onTheme(applyTheme);
+$('themeBtn').addEventListener('click', () => {
+  ZfPContext.toggleTheme();
+  render();
+});
+
+function doFlash(){
+  S.flashed = true;
+  S.tNorm = bestNorm();
+  $('time').value = 0;
+  render();
+}
+$('btnFlash').addEventListener('click', doFlash);
+
+function toPeak(){
+  computeResults();
+  const best = RESULTS.reduce((a,b)=> b.peak>a.peak?b:a, RESULTS[0]);
+  S.flashed = true;
+  S.tNorm = normFromT(best.tPeak);
+  $('time').value = S.tNorm;
+  render();
+}
+$('btnPeak').addEventListener('click', toPeak);
+
+let rafId = null, lastTs = 0;
+function setPlay(on){
+  S.playing = on;
+  $('btnPlay').textContent = on ? '⏸ Pause' : '▶ Abspielen';
+  $('btnPlay2').textContent = on ? '⏸' : '▶';
+  if(on){
+    S.flashed = true;
+    if(S.tNorm >= 1000) S.tNorm = 0;
+    lastTs = performance.now();
+    rafId = requestAnimationFrame(step);
+  } else if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
+}
+function step(ts){
+  const dt = Math.min((ts - lastTs)/1000, 0.05); lastTs = ts;
+  S.tNorm = Math.min(1000, S.tNorm + dt*1000/9);   // ~9 s für die volle Achse
+  $('time').value = S.tNorm;
+  render();
+  if(S.tNorm >= 1000){ setPlay(false); return; }
+  rafId = requestAnimationFrame(step);
+}
+$('btnPlay').addEventListener('click', () => setPlay(!S.playing));
+$('btnPlay2').addEventListener('click', () => setPlay(!S.playing));
+
+let rt = null;
+window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(render, 120); });
+
+/* ═══════════ Start ═══════════ */
+$('panelSingle').style.display = 'none';
+calibrate();
+doFlash();
+toPeak();
+})();
+</script>
+<script id="fit-js">
+window.FIT_CFG={sideW:280,maxCols:3,minCol:440,};
+(function(){
+  /* ═══ Kompakt-Dashboard (wie UT) – reines CSS-Pixel-Layout, KEIN Zoom-Eingriff: Browser-Zoom (Strg +/−) wirkt normal ═══ */
+  var C=window.FIT_CFG||{};
+  var app=document.querySelector('.app'); if(!app) return;
+  var container=app.querySelector(':scope > .layout, :scope > .grid'); if(!container) return;
+  var SIDEW=C.sideW||280, MINCOL=C.minCol||440, MAXK=C.maxCols||3, MAXS=C.maxSide||3,
+      SIDEGROUPS=C.sideGroups===undefined?[0]:C.sideGroups, MANUAL=C.cols||null, TEMPLATE=C.template||null;
+  var GAPS=[8,6,5], TIER=0, root=document.documentElement;
+  function isItem(c){ return c.classList.contains('panel')||c.classList.contains('stage'); }
+  function flat(g){
+    var o=[]; [].slice.call(g.children).forEach(function(ch){
+      if(ch.tagName==='SCRIPT'||ch.tagName==='STYLE') return;
+      if(getComputedStyle(ch).display==='contents'){ o.push.apply(o,flat(ch)); return; }
+      var kids=[].slice.call(ch.children);
+      if(ch.classList.contains('stagegrid') && kids.length>1 && kids.every(function(k){return k.classList.contains('stage');})){
+        var cls=['riss-only','gef-only'].filter(function(q){return ch.classList.contains(q);}), sc=ch.dataset.scn;
+        kids.forEach(function(k){ cls.forEach(function(q){k.classList.add(q);}); if(sc) k.dataset.scn=sc; o.push(k); });
+      } else o.push(ch);
+    }); return o;
+  }
+  var groups=[].slice.call(container.children).filter(function(c){return c.tagName!=='SCRIPT'&&c.tagName!=='STYLE';})
+    .map(function(c){ return isItem(c)?[c]:flat(c); });
+  var all=[]; groups.forEach(function(g,gi){ g.forEach(function(el){ all.push({el:el,g:gi,parent:el.parentElement,next:el.nextSibling}); }); });
+  var grid=null, cols=[], stash=null, curN=0, curSig='', busy=false;
+  function active(){ return window.innerWidth>=1000 && window.innerHeight>=520; }
+  function GAP(){ return GAPS[TIER]; }
+  function ensure(n){
+    if(grid&&curN===n) return;
+    if(!grid){ grid=document.createElement('div'); grid.className='fitgrid'; stash=document.createElement('div'); stash.style.display='none'; container.after(grid); container.after(stash); }
+    grid.textContent=''; cols=[]; curN=n; curSig='';
+    for(var i=0;i<n;i++){ var c=document.createElement('div'); c.className='fcol'; cols.push(c); grid.appendChild(c); }
+  }
+  function partition(hs,K){            /* zusammenhängende Aufteilung mit minimaler Maximalhöhe */
+    var n=hs.length, G=GAP(); if(K<=1||n<=1) return [hs.map(function(_,i){return i;})];
+    K=Math.min(K,n); var pre=[0]; hs.forEach(function(h,i){pre.push(pre[i]+h+G);});
+    var best=[],bestScore=1e12;
+    (function rec(start,k,cut){
+      if(k===1){ var cuts=cut.concat([n]), mx=0, sq=0; for(var j=0;j<cuts.length;j++){ var a=j?cuts[j-1]:0, h=pre[cuts[j]]-pre[a]; mx=Math.max(mx,h); sq+=h*h; }
+        var sc=mx+sq*1e-7; if(sc<bestScore){bestScore=sc;best=cuts;} return; }
+      for(var e=start+1;e<=n-(k-1);e++) rec(e,k-1,cut.concat([e]));
+    })(0,K,[]);
+    var out=[],s=0; best.forEach(function(e){ var a=[]; for(var i=s;i<e;i++) a.push(i); out.push(a); s=e; }); return out;
+  }
+  function colH(ix,list){ var t=0; ix.forEach(function(i){t+=list[i].h+GAP();}); return t; }
+  function setTier(t){ TIER=t; root.classList.remove('d1','d2'); if(t) root.classList.add('d'+t); }
+
+  function layoutOnce(){
+    var W=window.innerWidth, effW=W-26, G=GAP();
+    root.classList.add('fit'); container.style.display='none';
+    var mwrap=document.createElement('div'); mwrap.className='fitgrid'; mwrap.style.cssText='position:absolute;left:-99999px;top:0;display:block;flex:none;visibility:hidden;';
+    var meas=document.createElement('div'); meas.className='fcol'; meas.style.cssText='overflow:visible;height:auto;max-height:none;display:flex;flex-direction:column;';
+    mwrap.appendChild(meas); app.appendChild(mwrap);
+    ensure(1); grid.style.gridTemplateColumns='1fr';
+    var availH=Math.max(300,grid.clientHeight-2), plan, S, K, over=0, tpl;
+    function measure(list,w){ meas.style.width=w+'px'; list.forEach(function(a){meas.appendChild(a.el);}); list.forEach(function(a){a.h=a.el.getBoundingClientRect().height;}); }
+    if(MANUAL){
+      K=MANUAL.length; S=0; ensure(K);
+      plan=MANUAL.map(function(idxs){ return idxs.map(function(i){return all[i];}).filter(Boolean); });
+      var used={}; MANUAL.forEach(function(ix){ix.forEach(function(i){used[i]=1;});});
+      all.forEach(function(a,i){ if(!used[i]) plan[K-1].push(a); });
+      tpl=TEMPLATE||('repeat('+K+',minmax(0,1fr))');
+      plan.forEach(function(c,i){ var w=Math.floor((effW-G*(K-1))/K); measure(c,w); over=Math.max(over,colH(c.map(function(_,j){return j;}),c)-availH); });
+    } else {
+      var side=all.filter(function(a){return SIDEGROUPS.indexOf(a.g)>=0;}), rest=all.filter(function(a){return SIDEGROUPS.indexOf(a.g)<0;});
+      var best=null, sv=[];
+      var sideVis=side.length; if(side.length){ measure(side,SIDEW-6); sideVis=side.filter(function(a){return a.h>1;}).length; }
+      for(var s=(sideVis?1:0); s<=(sideVis?Math.min(MAXS,sideVis):0); s++){
+        if(effW-s*(SIDEW+G)<MINCOL) break;
+        var spart=[], oS=-1e9;
+        if(s){ measure(side,SIDEW-6); sv=side.filter(function(a){return a.h>1;}); spart=partition(sv.map(function(a){return a.h;}),s);
+          oS=Math.max.apply(null,spart.map(function(ix){return colH(ix,sv)-availH;})); }
+        var kmax=Math.max(1,Math.min(MAXK,Math.floor((effW-s*(SIDEW+G)+G)/(MINCOL+G))));
+        for(var k=1;k<=kmax;k++){
+          var mw=Math.floor((effW-s*(SIDEW+G)-G*(k-1))/k)-6;
+          measure(rest,mw);
+          var vv=rest.filter(function(a){return a.h>1;}); if(k>Math.max(1,vv.length)) break;
+          var pp=partition(vv.map(function(a){return a.h;}),k);
+          var hR=pp.map(function(ix){return colH(ix,vv);}), mxR=Math.max.apply(null,hR);
+          var solvable=(k===1&&s>=1&&vv.length<=2), ov=Math.max(0,oS,solvable?0:mxR-availH), left=solvable?0:Math.max(0,availH-mxR);
+          var score=ov>2?(1e6+ov*10):(left*0.5+s*45+k*4+(solvable?25:0));
+          if(!best||score<best.score) best={score:score,S:s,K:k,spart:spart,pp:pp,vv:vv,sv:sv,over:ov,mw:mw};
+        }
+      }
+      S=best.S; K=best.K; over=best.over;
+      ensure(S+K);
+      plan=best.spart.map(function(ix){return ix.map(function(i){return best.sv[i];});}).concat(best.pp.map(function(ix){return ix.map(function(i){return best.vv[i];});}));
+      if(S) side.filter(function(a){return a.h<=1;}).forEach(function(a){plan[0].push(a);});
+      while(plan.length<S+K) plan.push([]);
+      var sw=[]; for(var q=0;q<S;q++) sw.push(SIDEW+'px');
+      tpl=(S?sw.join(' ')+' ':'')+'repeat('+K+',minmax(0,1fr))';
+    }
+    var sig=plan.map(function(c){return c.map(function(a){return all.indexOf(a);}).join(',');}).join('|')+'@'+curN;
+    var inPlan=new Set(); plan.forEach(function(c){c.forEach(function(a){inPlan.add(a);});});
+    if(sig!==curSig){ plan.forEach(function(c,i){ cols[i].replaceChildren.apply(cols[i],c.map(function(a){return a.el;})); }); curSig=sig; }
+    else plan.forEach(function(c,i){ c.forEach(function(a){ if(a.el.parentElement!==cols[i]) cols[i].appendChild(a.el); }); });
+    all.forEach(function(a){ if(!inPlan.has(a)) stash.appendChild(a.el); });
+    mwrap.remove();
+    grid.style.gridTemplateColumns=tpl;
+    window.__fitDbg={S:S,K:K,tier:TIER,over:Math.round(over),availH:availH};
+    return {over:over,S:S,K:K,availH:availH};
+  }
+  function redraw(){ window.__fitSilent=true; window.dispatchEvent(new Event('resize')); window.__fitSilent=false; }
+  function colNat(c){ var t=0,n=0; [].forEach.call(c.children,function(ch){ var h=ch.getBoundingClientRect().height; if(h>0){ t+=h; n++; } }); return t+Math.max(0,n-1)*GAP(); }
+  function isGraphicCol(c){
+    var els=c.querySelectorAll('canvas,svg'); for(var i=0;i<els.length;i++){ var e=els[i]; if(e.closest('button,.icon,.badge,.toggle,summary')) continue; var r=e.getBoundingClientRect(); if(r.width>150&&r.height>60) return true; } return false;
+  }
+  var TEXTMIN=C.textMin||300;
+  function fitWidths(avail){        /* Grafik-Spalten so breit, dass ihre Höhe die Fensterhöhe füllt (Seitenverhältnis bleibt, nichts verzerrt); Rest geht an Text-Spalten */
+    var n=cols.length; if(n<1) return 0;
+    var G=GAP(), availW=window.innerWidth-26-G*(n-1), g=cols.map(isGraphicCol), nG=g.filter(Boolean).length, nT=n-nG;
+    function tpl(w){ return cols.map(function(_,i){ return g[i]?Math.round(w[i])+'px':'minmax('+TEXTMIN+'px,1fr)'; }).join(' '); }
+    if(!nG||n===1){ grid.style.gridTemplateColumns=cols.map(function(){return 'minmax(0,1fr)';}).join(' '); redraw(); }
+    else {
+      var budget=availW-nT*TEXTMIN, w=cols.map(function(_,i){return g[i]?budget/nG:0;}), lo=MINCOL*0.7;
+      for(var it=0; it<7; it++){
+        grid.style.gridTemplateColumns=tpl(w); redraw();
+        var worst=0, nw=w.slice();
+        cols.forEach(function(c,i){ if(!g[i]) return; var h=colNat(c); worst=Math.max(worst,Math.abs(h-avail)/avail); nw[i]=Math.max(lo,Math.min(budget,w[i]*Math.pow(avail/Math.max(150,h),0.95))); });
+        var sum=0; cols.forEach(function(_,i){ if(g[i]) sum+=nw[i]; });
+        if(sum>budget) cols.forEach(function(_,i){ if(g[i]) nw[i]=Math.max(lo,nw[i]*budget/sum); });
+        w=nw; if(worst<0.02) break;
+      }
+      grid.style.gridTemplateColumns=tpl(w); grid.style.justifyContent=nT?'stretch':'center'; redraw();
+    }
+    var mx=0; cols.forEach(function(c){ mx=Math.max(mx,colNat(c)-avail); });
+    var sw=cols.map(function(c){ var hs=[].slice.call(c.querySelectorAll('.panel,.stage')); return hs.length; });
+    /* breite Einstellungsspalten: Regler zweispaltig */
+    cols.forEach(function(c){ var wide=c.getBoundingClientRect().width>=430&&!isGraphicCol(c); [].forEach.call(c.querySelectorAll('.panel'),function(pn){ var k=[].filter.call(pn.children,function(e){return e.classList.contains('ctl-row')||e.classList.contains('field');}).length; pn.classList.toggle('fit2',wide&&k>=3); }); });
+    return mx-5;
+  }
+  function relayout(){
+    if(busy) return; busy=true;
+    try{
+      if(!active()){ restore(); return; }
+      var r=null, mx=0;
+      for(var t=0;t<3;t++){ setTier(t); r=layoutOnce(); redraw(); mx=fitWidths(r.availH-5); if(mx<=0) break; }
+      window.__fitDbg.over=Math.round(Math.max(0,mx)); redraw();
+    } finally { busy=false; }
+  }
+  function restore(){
+    root.classList.remove('fit','d1','d2'); TIER=0;
+    if(!grid) return; container.style.display='';
+    all.forEach(function(a){ if(a.next&&a.next.parentNode===a.parent) a.parent.insertBefore(a.el,a.next); else a.parent.appendChild(a.el); });
+    grid.remove(); stash.remove(); grid=null; stash=null; cols=[]; curN=0; curSig='';
+  }
+  function again(){ clearTimeout(window.__fitA); window.__fitA=setTimeout(function(){ relayout(); },70); }
+  window.addEventListener('resize',function(){ if(window.__fitSilent) return; clearTimeout(window.__fitT); window.__fitT=setTimeout(relayout,90); });
+  document.addEventListener('click',function(e){ if(e.target.closest('button,.toggle,.seg,.tabs,label,summary')) again(); },true);
+  document.addEventListener('change',function(e){ if(e.target.matches('select,input[type=checkbox],input[type=radio]')) again(); },true);
+  window.__fitRelayout=again;
+  relayout();
+  setTimeout(relayout,350);
+})();
+
+</script>
+</body>
+</html>

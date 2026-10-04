@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Barkhausenrausch-Simulator · BN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media=\'all\'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
+<style>
+  :root{
+    --bg:#1c1e20; --panel:#2a2d30; --panel-2:#2f3236;
+    --border:#4a5058; --border-soft:#3a4048; --text:#f0f2f4; --text-dim:#b8bec4; --text-faint:#7a8490;
+    --amber:#ffc94d; --amber-dim:#8a6420; --amber-glow:rgba(255,201,77,.24);
+    --cyan:#4de9d4; --cyan-glow:rgba(77,233,212,.18);
+    --red:#ff6f66; --green:#5fe072; --green-glow:rgba(95,224,114,.55);
+    --mono:'JetBrains Mono',ui-monospace,monospace; --disp:'Space Grotesk',sans-serif; --body:'Inter',sans-serif;
+  }
+  body.light-mode{
+    --bg:#e7ecf2; --panel:#f7f9fb; --panel-2:#eaeff4;
+    --border:#7c93a8; --border-soft:#a9bccb; --text:#0c1620; --text-dim:#2b3e4f; --text-faint:#51687a;
+    --amber:#a45f00; --amber-dim:#e0aa4a; --amber-glow:rgba(164,95,0,.16);
+    --cyan:#0a7d6e; --cyan-glow:rgba(10,125,110,.14);
+    --red:#b0241a; --green:#187a32; --green-glow:rgba(24,122,50,.25);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--body);transition:background .2s,color .2s;}
+  body{min-height:100vh;background:
+      radial-gradient(ellipse 1400px 700px at 10% -5%,#0a1e30 0%,transparent 55%),
+      radial-gradient(ellipse 900px 500px at 95% 5%,#14101e 0%,transparent 50%),
+      var(--bg);}
+  body.light-mode{background:
+      radial-gradient(ellipse 1400px 700px at 10% -5%,#c9d7e4 0%,transparent 55%),
+      radial-gradient(ellipse 900px 500px at 95% 5%,#dcd3e8 0%,transparent 50%),
+      var(--bg);}
+  .app{max-width:1200px;margin:0 auto;padding:14px 12px 48px;}
+  @media(min-width:768px){.app{padding:20px 20px 56px;}}
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;margin-bottom:16px;border-bottom:1.5px solid var(--border);flex-wrap:wrap;}
+  .brand-eyebrow{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--cyan);margin:0 0 4px;display:flex;align-items:center;gap:6px;}
+  .brand-eyebrow::before{content:'';display:inline-block;width:18px;height:1.5px;background:var(--cyan);opacity:.8;}
+  h1{font-family:var(--disp);font-weight:700;font-size:20px;margin:0;background:linear-gradient(120deg,var(--text) 60%,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  h1 small{display:block;font-family:var(--body);font-weight:400;font-size:11.5px;color:var(--text-dim);margin-top:2px;-webkit-text-fill-color:var(--text-dim);}
+  @media(min-width:600px){h1{font-size:24px;}h1 small{font-size:12.5px;}}
+  .hdr-right{display:flex;align-items:center;gap:8px;}
+  .badge{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:5px 10px;border:1px solid var(--border);border-radius:20px;color:var(--text-dim);display:flex;align-items:center;gap:6px;}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green-glow);}
+  .theme-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--panel-2);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:.15s;}
+  .theme-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+
+  .grid{display:grid;grid-template-columns:1fr;gap:16px;}
+  @media(min-width:960px){.grid{grid-template-columns:1.3fr .9fr;align-items:start;}}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border-soft);border-radius:14px;padding:14px;}
+  .stage-title{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);margin:0 0 10px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:4px;}
+
+  .stage{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--border-soft);background:#000;margin-bottom:10px;touch-action:none;}
+  canvas{display:block;width:100%;height:auto;}
+  .hint{font-family:var(--mono);font-size:10px;color:var(--text-faint);margin:0 0 10px;}
+
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin:0 0 14px;font-family:var(--mono);font-size:10px;color:var(--text-dim);}
+  .legend span{display:flex;align-items:center;gap:5px;}
+  .sw{width:10px;height:10px;border-radius:2px;display:inline-block;}
+
+  .ctl-row{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .ctl-row label{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--text-dim);display:flex;justify-content:space-between;}
+  .ctl-row label b{color:var(--amber);font-weight:700;}
+  input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:4px;background:var(--panel-2);outline:none;border:1px solid var(--border-soft);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--amber);border:2px solid #1a1200;box-shadow:0 0 8px var(--amber-glow);cursor:pointer;}
+
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  button{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);cursor:pointer;transition:.15s;}
+  button:hover{border-color:var(--cyan);color:var(--cyan);}
+  button.primary{background:linear-gradient(120deg,var(--amber-dim),#5c4310);border-color:var(--amber);color:var(--amber);}
+  body.light-mode button.primary{background:linear-gradient(120deg,#f2d9a8,#e0aa4a);color:#4a2f00;}
+  button.sel{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-glow);}
+
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+  .stat{background:var(--panel-2);border:1px solid var(--border-soft);border-radius:8px;padding:8px 10px;}
+  .stat .k{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);}
+  .stat .v{font-family:var(--disp);font-size:16px;font-weight:700;color:var(--cyan);}
+  .stat .v small{font-size:10px;color:var(--text-dim);font-weight:400;}
+  .stat.warn .v{color:var(--red);}
+  .stat.ok .v{color:var(--green);}
+
+  .callout{margin-top:12px;padding:10px 12px;border-radius:8px;border:1px solid var(--border-soft);background:var(--panel-2);font-size:12px;color:var(--text-dim);}
+  .callout.good{border-color:#245c30;color:#b7f0c0;}
+  body.light-mode .callout.good{color:#0f4a20;background:#e2f5e6;}
+  .callout.bad{border-color:#7a2a2a;color:#ffb3ac;}
+  body.light-mode .callout.bad{color:#7a1a12;background:#fbe4e2;}
+</style>
+<script src="/shared/zfp-context.js"></script>
+<script id="zfp-offline">
+/* Offline-Fallback: läuft die App ohne Server (file://), fehlt /shared/zfp-context.js – dann wird der Theme-Kontext lokal bereitgestellt. */
+(function(){
+  if(window.ZfPContext) return;
+  var cbs=[], mode=null, KEY='zfp-theme';
+  function store(v){ try{ if(v===undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY,v); }catch(e){} return null; }
+  function init(){ if(mode) return; var s=store(); mode=(s==='light'||s==='dark')?s:((document.body&&(document.body.classList.contains('light-mode')||document.body.classList.contains('light')))?'light':'dark'); }
+  window.ZfPContext={
+    get theme(){ init(); return mode; },
+    onTheme:function(f){ if(typeof f!=='function') return; cbs.push(f); init(); f(mode); },
+    toggleTheme:function(){ init(); mode=mode==='light'?'dark':'light'; store(mode); cbs.forEach(function(f){ try{ f(mode); }catch(e){} }); }
+  };
+})();
+</script>
+
+<style id="fit-css">
+/* ═══ Kompakt-Dashboard (wie UT): kleine Schrift, dichte Panels, alles auf einem Bildschirm ═══ */
+html.fit, html.fit body{height:100%; overflow:hidden;}
+html.fit .app{box-sizing:border-box; display:flex; flex-direction:column; padding:5px 12px 8px; gap:6px; max-width:none; width:100%; height:100vh; height:100dvh; overflow:hidden; zoom:1 !important;}
+html.fit .sfl-bar{display:none;}
+html.fit header.top{margin:0; padding:0 0 4px; flex:0 0 auto; align-items:center; gap:12px; flex-wrap:nowrap;}
+html.fit header.top .brand-eyebrow, html.fit .eyebrow{font-size:9px; margin:0 0 1px;}
+html.fit header.top h1{font-size:21px; line-height:1.05; margin:0;}
+html.fit header.top h1 small, html.fit header.top .title-group > small, html.fit header.top .sub{font-size:11.5px; line-height:1.2;}
+html.fit .badge{font-size:10.5px; padding:3px 9px;}
+html.fit .icon-btn{width:30px; height:30px; font-size:14px;}
+html.fit .fitgrid{flex:1 1 0; min-height:0; display:grid; gap:8px; margin:0; align-items:stretch;}
+html.fit .fcol{display:flex; flex-direction:column; gap:8px; min-height:0; min-width:0; overflow-y:auto; overflow-x:hidden; padding:0 2px 4px 0; scrollbar-width:thin;}
+html.fit .fcol > *{flex:0 0 auto; margin:0 !important;}
+html.fit .panel{padding:8px 10px 9px; border-radius:10px;}
+html.fit .panel h2, html.fit .stage-title, html.fit .panel > .stage-title{margin:0 0 5px; font-size:10.5px; letter-spacing:.07em; line-height:1.25;}
+html.fit .stage-head{gap:4px 10px; flex-wrap:wrap; padding:0 0 4px; margin:0 0 2px;}
+html.fit .ctl-row, html.fit .field{margin:0 0 5px;}
+html.fit .ctl-row label, html.fit .field label{font-size:11.5px; margin:0 0 1px; line-height:1.25;}
+html.fit .ctl-row label .val, html.fit .field label .val{font-size:11.5px;}
+html.fit input[type=range]{margin:1px 0; height:18px;}
+html.fit .hint, html.fit .note, html.fit .ctl-row .note, html.fit .sidebar-note, html.fit .panel .hint{font-size:10.5px; line-height:1.32; margin:2px 0 0;}
+html.fit .btnrow{gap:5px; margin:4px 0;}
+html.fit button, html.fit select{font-size:11.5px; padding:5px 9px;}
+html.fit .callout, html.fit .verdict{font-size:11.5px; line-height:1.4; padding:7px 10px; margin-top:5px; max-height:none; overflow:visible;}
+html.fit .stat{padding:5px 8px;} html.fit .stat .k{font-size:9.5px; line-height:1.2;} html.fit .stat .v{font-size:14.5px;}
+html.fit .stats{gap:5px; grid-template-columns:repeat(3,1fr);}
+html.fit .seg{gap:4px;}
+html.fit .seg button, html.fit .toggle button{padding:6px 5px; min-width:0; white-space:normal; line-height:1.2; font-size:11px;}
+html.fit .seg.mini button{padding:3px 8px; font-size:10.5px;}
+html.fit .toggle{flex-wrap:wrap; padding:5px 8px; margin:0 0 4px;}
+html.fit .legend{font-size:10px; margin-top:4px; gap:3px 12px;}
+html.fit table.res td, html.fit table.res th, html.fit table.ht td, html.fit table.ht th{padding:3px 5px; font-size:10.5px;}
+html.fit .pstep, html.fit .step{padding-top:5px; padding-bottom:5px; gap:8px;}
+html.fit .pstep p, html.fit .step p{font-size:10.5px; line-height:1.38; margin-top:2px;}
+html.fit .pstep h4{font-size:12px;}
+html.fit .frow{padding:3px 0; font-size:11.5px;}
+html.fit .frow .nm small{font-size:10px; line-height:1.25;}
+html.fit .live{padding:8px 11px; margin-bottom:6px;}
+html.fit .live-val{font-size:19px;}
+html.fit .pbar{margin:6px 0 4px;}
+html.fit .stage, html.fit .panel > .stage{margin:0;}
+html.fit .foot{font-size:10.5px; padding-top:3px;}
+html.fit .kv{font-size:11px;}
+html.fit canvas, html.fit svg.view{max-width:100%; height:auto;}
+html.fit .step p, html.fit .pstep p{display:none;}
+html.fit .step.cur p, html.fit .pstep.cur p{display:block;}
+/* Slider-reiche Panels: zwei Regler nebeneinander */
+html.fit .panel.fit2{display:grid; grid-template-columns:1fr 1fr; column-gap:12px; align-content:start;}
+html.fit .panel.fit2 > *{grid-column:1/-1;}
+html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{grid-column:auto; min-width:0;}
+
+/* Grafiken: nur Breite begrenzt, Höhe folgt dem Seitenverhältnis → nie verzerrt */
+html.fit .stage canvas, html.fit .stage svg{max-width:100%; height:auto;}
+/* Kompaktstufen (nur Abstände, Schriftgröße bleibt → Browser-Zoom wirkt normal) */
+html.fit.d1 .fitgrid, html.fit.d1 .fcol{gap:6px;}
+html.fit.d1 .panel{padding:6px 8px 7px;}
+html.fit.d1 .panel h2, html.fit.d1 .stage-title{margin-bottom:3px;}
+html.fit.d1 .ctl-row, html.fit.d1 .field{margin-bottom:3px;}
+html.fit.d1 .hint, html.fit.d1 .note, html.fit.d1 .panel .hint{margin-top:1px; line-height:1.25;}
+html.fit.d1 .stat{padding:3px 7px;} html.fit.d1 .stats{gap:4px;}
+html.fit.d1 .toggle{padding:3px 7px; margin-bottom:3px;}
+html.fit.d1 .seg button, html.fit.d1 .toggle button{padding:4px 4px;}
+html.fit.d1 button, html.fit.d1 select{padding:3px 8px;}
+html.fit.d1 .callout, html.fit.d1 .verdict{padding:5px 8px; margin-top:3px; line-height:1.3;}
+html.fit.d1 .pstep, html.fit.d1 .step{padding-top:3px; padding-bottom:3px;}
+html.fit.d1 .legend{margin-top:2px;} html.fit.d1 .btnrow{margin:2px 0;}
+html.fit.d1 header.top{padding-bottom:2px;}
+html.fit.d2 .fitgrid, html.fit.d2 .fcol{gap:4px;}
+html.fit.d2 .panel{padding:4px 7px 5px; border-radius:8px;}
+html.fit.d2 .panel h2, html.fit.d2 .stage-title{margin-bottom:2px; font-size:10px;}
+html.fit.d2 .ctl-row, html.fit.d2 .field{margin-bottom:1px;}
+html.fit.d2 input[type=range]{height:14px; margin:0;}
+html.fit.d2 .hint, html.fit.d2 .note, html.fit.d2 .panel .hint{line-height:1.18; font-size:10px; margin-top:0;}
+html.fit.d2 .stat{padding:2px 6px;} html.fit.d2 .stat .v{font-size:13px;} html.fit.d2 .stats{gap:3px;}
+html.fit.d2 .toggle{padding:2px 6px; margin-bottom:2px;}
+html.fit.d2 .seg button, html.fit.d2 .toggle button{padding:3px 3px;}
+html.fit.d2 button, html.fit.d2 select{padding:2px 7px;}
+html.fit.d2 .callout, html.fit.d2 .verdict{padding:3px 7px; margin-top:2px; line-height:1.25;}
+html.fit.d2 .pstep, html.fit.d2 .step{padding-top:2px; padding-bottom:2px;}
+html.fit.d2 header.top h1{font-size:19px;} html.fit.d2 header.top h1 small{display:none;}
+html.fit.d2 .legend{margin-top:1px;} html.fit.d2 .btnrow{margin:1px 0;} html.fit.d2 .live{padding:5px 9px; margin-bottom:3px;}
+
+html.fit .thermal-wrap{align-items:start;}
+html.fit #heat{height:auto !important; align-self:start;}
+html.fit #cbar{height:100%;}
+/* Tabellen: nie rechts abschneiden */
+html.fit .fcol div:has(> table), html.fit .fcol .tablewrap, html.fit .fcol .skiptbl-wrap{overflow-x:auto; max-width:100%;}
+html.fit .fcol table{font-size:10.5px;}
+html.fit .fcol table th, html.fit .fcol table td{padding:3px 4px; white-space:normal;}
+/* alte max-height-Kappen der Einzel-Apps aufheben: Höhe folgt nur dem Seitenverhältnis (keine Seitenbalken) */
+html.fit svg, html.fit .stage svg, html.fit #setup, html.fit #wave, html.fit #chart, html.fit #view{max-height:none !important;}
+html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{min-width:0; overflow:hidden;}
+html.fit .panel.fit2 select, html.fit .panel.fit2 input[type=range]{width:100%; max-width:100%; min-width:0;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="title-group">
+      <p class="brand-eyebrow">SCHAEFFLER · ZFP · SCHWEINFURT</p>
+      <h1>Barkhausenrausch-Simulator<small>BN · Prüfkopf-Scan über das Bauteil – Eigenspannung &amp; Härte lokal erfassen</small></h1>
+    </div>
+    <div class="hdr-right">
+      <div class="badge"><span class="dot"></span>SIMULATION</div>
+      <button class="theme-btn" id="themeBtn" title="Light/Dark Mode">☀</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <p class="stage-title">PRÜFAUFBAU <span id="polInfo">Scanposition: 50%</span></p>
+      <div class="stage"><canvas id="cvSetup"></canvas></div>
+      <p class="hint">▸ Sonde mit Maus/Finger greifen und über das Bauteil ziehen, um die Randzone abzuscannen.</p>
+      <div class="legend">
+        <span><i class="sw" style="background:#c87f3a"></i>Erregerspule (Joch)</span>
+        <span><i class="sw" style="background:#4de9d4"></i>Empfängerspule (Sensor)</span>
+        <span><i class="sw" style="background:#ffc94d"></i>Barkhausen-Sprung</span>
+        <span><i class="sw" style="background:#8a5ea8"></i>Anlassfarbe / Auffälligkeit</span>
+      </div>
+
+      <p class="stage-title">HYSTERESESCHLEIFE (B–H, lokal am Sondenort) <span id="loopInfo">Hc / Br</span></p>
+      <div class="stage"><canvas id="cvHyst"></canvas></div>
+      <p class="stage-title">BARKHAUSENRAUSCH-SIGNAL (ZEITBEREICH)</p>
+      <div class="stage"><canvas id="cvNoise"></canvas></div>
+      <div class="btnrow">
+        <button class="primary" id="btnRun">⏸ Pause</button>
+        <button id="btnScan">▶ Auto-Scan</button>
+        <button id="btnNewFlaw">🎯 Neue Fehlerposition</button>
+        <button id="btnReset">Zurücksetzen</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <p class="stage-title">FEHLERZONE (EIGENSCHAFT DER AUFFÄLLIGKEIT)</p>
+
+      <div class="ctl-row">
+        <label>Eigenspannung in der Zone <b id="stressV">Zug 70%</b></label>
+        <input type="range" id="stress" min="-100" max="100" value="70" step="5">
+      </div>
+      <div class="ctl-row">
+        <label>Härteabfall in der Zone <b id="hardV">stark erweicht</b></label>
+        <input type="range" id="hard" min="0" max="100" value="65" step="5">
+      </div>
+      <div class="ctl-row">
+        <label>Zonenbreite <b id="widthV">mittel</b></label>
+        <input type="range" id="width" min="40" max="220" value="120" step="10">
+      </div>
+
+      <p class="stage-title" style="margin-top:18px;">SONDENEINSTELLUNG</p>
+      <div class="ctl-row">
+        <label>Erregerfeld-Amplitude <b id="fieldV">100 %</b></label>
+        <input type="range" id="field" min="30" max="100" value="100" step="5">
+      </div>
+      <div class="ctl-row">
+        <label>Erregerfrequenz <b id="freqV">125 Hz</b></label>
+        <input type="range" id="freq" min="50" max="250" value="125" step="5">
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k">MBN-Effektivwert</div><div class="v" id="stRms">– <small>mV</small></div></div>
+        <div class="stat"><div class="k">MP-Kennwert</div><div class="v" id="stMp">–</div></div>
+        <div class="stat" id="stStressBox"><div class="k">lokale Spannung</div><div class="v" id="stStressLbl">–</div></div>
+        <div class="stat" id="stHardBox"><div class="k">lokale Härte</div><div class="v" id="stHardLbl">–</div></div>
+      </div>
+
+      <div class="callout" id="callout">
+        Ziehe die Sonde über das Bauteil. Außerhalb der Fehlerzone liegt ein normal
+        gehärteter, leicht druckvorgespannter Gutbereich vor. Über der Fehlerzone
+        (z. B. Schleifbrand) steigen Zugspannung und Erweichung an — das
+        Barkhausenrauschen nimmt spürbar zu.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cvS=document.getElementById('cvSetup'), sctx=cvS.getContext('2d');
+const cvH=document.getElementById('cvHyst'), hctx=cvH.getContext('2d');
+const cvN=document.getElementById('cvNoise'), nctx=cvN.getContext('2d');
+const SW=900, SH=260, HW=900, HH=280, NW=900, NH=220;
+function hiDPI(canvas, ctx, cw, ch){
+  const dpr=Math.max(1, window.devicePixelRatio||1);
+  canvas.width=cw*dpr; canvas.height=ch*dpr;
+  canvas.style.aspectRatio=(cw/ch);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+hiDPI(cvS,sctx,SW,SH); hiDPI(cvH,hctx,HW,HH); hiDPI(cvN,nctx,NW,NH);
+
+const stressEl=document.getElementById('stress'), hardEl=document.getElementById('hard'), widthEl=document.getElementById('width'), fieldEl=document.getElementById('field'), freqEl=document.getElementById('freq');
+const stressV=document.getElementById('stressV'), hardV=document.getElementById('hardV'), widthV=document.getElementById('widthV'), fieldV=document.getElementById('fieldV'), freqV=document.getElementById('freqV');
+const stRms=document.getElementById('stRms'), stMp=document.getElementById('stMp'), stStressLbl=document.getElementById('stStressLbl'), stHardLbl=document.getElementById('stHardLbl');
+const stStressBox=document.getElementById('stStressBox'), stHardBox=document.getElementById('stHardBox');
+const callout=document.getElementById('callout');
+const themeBtn=document.getElementById('themeBtn');
+const btnRun=document.getElementById('btnRun');
+const btnScan=document.getElementById('btnScan');
+const polInfo=document.getElementById('polInfo');
+
+let running=true, t=0, rafId=null, light=false, autoScan=false;
+let noiseHistory = new Array(360).fill(0);
+let rmsSmooth = 0;
+let sparks = [];
+
+// ---- component / probe geometry --------------------------------------
+const MARGIN=40;              // component left/right edge
+const LEG_GAP=130;            // distance between yoke legs
+const PROBE_MIN = MARGIN + LEG_GAP/2 + 14;
+const PROBE_MAX = SW - MARGIN - LEG_GAP/2 - 14;
+let probeX = SW*0.32;         // start away from the flaw
+let dragging=false;
+
+const BASE_STRESS=-25, BASE_HARD=78;   // properties of a correctly processed "Gutbereich"
+let defectCenter = SW*0.68;
+
+function clampProbe(x){ return Math.max(PROBE_MIN, Math.min(PROBE_MAX, x)); }
+
+function canvasX(clientX){
+  const rect = cvS.getBoundingClientRect();
+  return (clientX-rect.left) * (SW/rect.width);
+}
+cvS.style.cursor='grab';
+cvS.addEventListener('pointerdown', e=>{
+  dragging=true; autoScan=false; btnScan.classList.remove('sel'); btnScan.textContent='▶ Auto-Scan';
+  cvS.style.cursor='grabbing';
+  probeX = clampProbe(canvasX(e.clientX));
+  cvS.setPointerCapture(e.pointerId);
+});
+cvS.addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  probeX = clampProbe(canvasX(e.clientX));
+});
+cvS.addEventListener('pointerup', ()=>{ dragging=false; cvS.style.cursor='grab'; });
+cvS.addEventListener('pointerleave', ()=>{ dragging=false; cvS.style.cursor='grab'; });
+
+btnScan.addEventListener('click',()=>{
+  autoScan=!autoScan;
+  btnScan.classList.toggle('sel',autoScan);
+  btnScan.textContent = autoScan ? '■ Scan stoppen' : '▶ Auto-Scan';
+});
+document.getElementById('btnNewFlaw').addEventListener('click',()=>{
+  defectCenter = MARGIN+80 + Math.random()*(SW-2*MARGIN-160);
+});
+
+function applyTheme(theme){
+  light = theme === 'light';
+  document.body.classList.toggle('light-mode',light);
+  themeBtn.textContent = light ? '☾' : '☀';
+}
+ZfPContext.onTheme(applyTheme);
+themeBtn.addEventListener('click',()=>{
+  ZfPContext.toggleTheme();
+});
+
+btnRun.addEventListener('click',()=>{
+  running=!running;
+  btnRun.textContent = running ? '⏸ Pause' : '▶ Weiter';
+  if(running && !rafId) rafId=requestAnimationFrame(tick);
+});
+document.getElementById('btnReset').addEventListener('click',()=>{
+  t=0; noiseHistory=new Array(360).fill(0); rmsSmooth=0; sparks=[]; probeX=SW*0.32;
+});
+
+function localZone(){
+  const sigma = parseFloat(widthEl.value)/2;
+  const d = probeX-defectCenter;
+  const weight = Math.exp(-(d*d)/(2*sigma*sigma));
+  const zoneStress = parseFloat(stressEl.value);
+  const zoneHardDrop = parseFloat(hardEl.value); // 0..100, higher = softer in the zone
+  const zoneHard = 100 - zoneHardDrop;           // convert to a "hardness" value like before
+  const stress = BASE_STRESS + (zoneStress-BASE_STRESS)*weight;
+  const hard = BASE_HARD + (zoneHard-BASE_HARD)*weight;
+  return {weight, stress, hard};
+}
+
+function amplitudeFactor(stress,hard){
+  const s = stress/100, h = hard/100;
+  const stressTerm = 1 + s*0.9;
+  const hardTerm = 1.3 - h*0.9;
+  return Math.max(0.08, stressTerm*hardTerm);
+}
+
+function pal(){
+  return light ? {
+    bg:'#eef2f6', grid:'#c3cfd9', axis:'#51687a', loop:'#0a5f8f', marker:'#a45f00',
+    noise:'#0a7d6e', text:'#2b3e4f', envelope:'rgba(10,125,110,.14)',
+    steel:'#9aa7b2', steelDark:'#7c8a96', yoke:'#3a4652', coil:'#c87f3a', coilDark:'#8a5220',
+    field:'#a45f00', sensor:'#0a7d6e', spark:'#c47a00', temper:'#8a5ea8'
+  } : {
+    bg:'#04070a', grid:'#101d26', axis:'#4a6379', loop:'#6cc0ec', marker:'#ffc94d',
+    noise:'#39fff0', text:'#7a8490', envelope:'rgba(57,255,240,.12)',
+    steel:'#5a6b7a', steelDark:'#414f5c', yoke:'#c9d3dc', coil:'#c87f3a', coilDark:'#8a5220',
+    field:'#ffc94d', sensor:'#4de9d4', spark:'#ffe27a', temper:'#a97fc9'
+  };
+}
+
+function branchB(hn, k, s, ascending){
+  return ascending ? Math.tanh(k*(hn+s)) : Math.tanh(k*(hn-s));
+}
+
+function magState(zone){
+  const hard = zone.hard/100, stress=zone.stress/100;
+  const k = 2.6 + hard*2.2;
+  const s = 0.22 + hard*0.22 - stress*0.05;
+  const speed = 0.09*(parseFloat(freqEl.value)/125);
+  const amp = Math.max(0.3, parseFloat(fieldEl.value)/100);
+  const ph = (t*speed)%(Math.PI*2);
+  const hnRaw = Math.sin(ph)*amp;
+  const ascending = Math.cos(ph)>0;
+  const bnow = branchB(hnRaw,k,s,ascending);
+  const dh=0.01;
+  const b2 = branchB(Math.min(1,Math.max(-1,hnRaw+dh)),k,s,ascending);
+  const slope = Math.abs(b2-bnow)/dh;
+  return {k,s,hnRaw,ascending,bnow,slope,ph};
+}
+
+function drawSetup(state, zone){
+  const P=pal();
+  const w=SW,h=SH;
+  sctx.clearRect(0,0,w,h);
+  sctx.fillStyle=P.bg; sctx.fillRect(0,0,w,h);
+
+  const surfaceY = 158;
+
+  const grad = sctx.createLinearGradient(0,surfaceY,0,h);
+  grad.addColorStop(0,P.steel); grad.addColorStop(1,P.steelDark);
+  sctx.fillStyle=grad;
+  sctx.fillRect(MARGIN, surfaceY, w-2*MARGIN, h-surfaceY-14);
+  sctx.save();
+  sctx.globalAlpha=0.08; sctx.strokeStyle= light? '#000':'#fff';
+  for(let i=0;i<18;i++){ const yy=surfaceY+8+Math.random()*(h-surfaceY-30); sctx.beginPath(); sctx.moveTo(MARGIN,yy); sctx.lineTo(w-MARGIN,yy+(Math.random()*4-2)); sctx.lineWidth=0.6; sctx.stroke(); }
+  sctx.restore();
+
+  // visible temper-color band marking the anomaly (grinding burn discoloration)
+  const sigma = parseFloat(widthEl.value)/2;
+  const tgrad = sctx.createLinearGradient(defectCenter-sigma*1.6,0,defectCenter+sigma*1.6,0);
+  tgrad.addColorStop(0,'rgba(0,0,0,0)');
+  tgrad.addColorStop(0.5, hexA(P.temper,0.55));
+  tgrad.addColorStop(1,'rgba(0,0,0,0)');
+  sctx.fillStyle=tgrad;
+  sctx.fillRect(defectCenter-sigma*1.6, surfaceY, sigma*3.2, 14);
+
+  sctx.fillStyle=P.text; sctx.font='11px "JetBrains Mono",monospace';
+  sctx.fillText('Prüfteil · gehärteter Wälzlagerstahl (100Cr6)', MARGIN+8, surfaceY+18);
+
+  const leg1 = probeX-LEG_GAP/2, leg2 = probeX+LEG_GAP/2;
+  const yokeTop = 44, legBottom = surfaceY;
+
+  const dir = state.hnRaw>=0 ? 1 : -1;
+  sctx.save();
+  sctx.strokeStyle=P.field; sctx.lineWidth=1.6; sctx.globalAlpha=0.55;
+  for(let i=0;i<3;i++){
+    const depth = 26+i*20;
+    sctx.beginPath();
+    sctx.moveTo(leg1, legBottom);
+    sctx.bezierCurveTo(leg1, legBottom+depth+20, leg2, legBottom+depth+20, leg2, legBottom);
+    sctx.stroke();
+    const midX = probeX, midY = legBottom+depth+18;
+    sctx.save();
+    sctx.translate(midX, midY);
+    sctx.rotate(dir>0? 0 : Math.PI);
+    sctx.beginPath();
+    sctx.moveTo(-5,-4); sctx.lineTo(5,0); sctx.lineTo(-5,4);
+    sctx.strokeStyle=P.field; sctx.stroke();
+    sctx.restore();
+  }
+  sctx.restore();
+
+  sctx.fillStyle=P.yoke;
+  sctx.fillRect(leg1-9, yokeTop, 18, legBottom-yokeTop);
+  sctx.fillRect(leg2-9, yokeTop, 18, legBottom-yokeTop);
+  sctx.fillRect(leg1-9, yokeTop, LEG_GAP+18, 16);
+
+  sctx.strokeStyle=P.coil; sctx.lineWidth=3;
+  [leg1,leg2].forEach(lx=>{
+    for(let i=0;i<6;i++){
+      const yy = yokeTop+22+i*14;
+      sctx.beginPath();
+      sctx.ellipse(lx, yy, 13, 6, 0, 0, Math.PI*2);
+      sctx.stroke();
+    }
+  });
+
+  const sensY = surfaceY-26;
+  sctx.fillStyle=P.sensor; sctx.globalAlpha=0.85;
+  if(sctx.roundRect){ sctx.beginPath(); sctx.roundRect(probeX-24, sensY-12, 48, 24, 6); sctx.fill(); }
+  else { sctx.fillRect(probeX-24, sensY-12, 48, 24); }
+  sctx.globalAlpha=1;
+  sctx.strokeStyle= light? '#063f38':'#0a3b34'; sctx.lineWidth=1.5;
+  for(let i=0;i<4;i++){ sctx.beginPath(); sctx.moveTo(probeX-20+i*13, sensY-10); sctx.lineTo(probeX-20+i*13, sensY+10); sctx.stroke(); }
+
+  sctx.fillStyle=P.text; sctx.font='10.5px "JetBrains Mono",monospace';
+  sctx.fillText('Joch', leg1-24, yokeTop-6);
+  sctx.fillText('Empfänger', probeX-30, sensY-18);
+  sctx.fillText('Erreger', Math.min(w-70,leg2+16), yokeTop+40);
+
+  // small drag handle affordance on top bar
+  sctx.save();
+  sctx.globalAlpha=0.5;
+  sctx.fillStyle=P.text;
+  for(let i=-1;i<=1;i++){ sctx.fillRect(probeX-2+i*6, yokeTop+4, 2, 8); }
+  sctx.restore();
+
+  const pct = Math.round(((probeX-PROBE_MIN)/(PROBE_MAX-PROBE_MIN))*100);
+  polInfo.textContent = 'Scanposition: '+pct+'%  ·  H = '+state.hnRaw.toFixed(2);
+
+  const steepNorm = Math.min(1, state.slope/6);
+  const burstProb = Math.pow(steepNorm, 1.4);
+  if(Math.random() < burstProb*0.5){
+    const n = 1+Math.floor(Math.random()*2);
+    for(let i=0;i<n;i++){
+      sparks.push({ x: leg1+20+Math.random()*(LEG_GAP-40), y: surfaceY+6+Math.random()*30, life:14, maxLife:14 });
+    }
+  }
+  sparks = sparks.filter(sp=>sp.life>0);
+  sparks.forEach(sp=>{
+    const a = sp.life/sp.maxLife;
+    sctx.save();
+    sctx.globalAlpha=a;
+    sctx.strokeStyle=P.spark; sctx.fillStyle=P.spark;
+    sctx.lineWidth=1.4;
+    const r = 3+ (1-a)*6;
+    for(let ang=0; ang<Math.PI*2; ang+=Math.PI/3){
+      sctx.beginPath(); sctx.moveTo(sp.x,sp.y); sctx.lineTo(sp.x+Math.cos(ang)*r, sp.y+Math.sin(ang)*r); sctx.stroke();
+    }
+    sctx.beginPath(); sctx.arc(sp.x,sp.y,1.6,0,Math.PI*2); sctx.fill();
+    sctx.restore();
+    sp.life--;
+  });
+}
+
+function hexA(hex,a){
+  const c = hex.replace('#','');
+  const r=parseInt(c.substring(0,2),16), g=parseInt(c.substring(2,4),16), b=parseInt(c.substring(4,6),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function drawHyst(state){
+  const P=pal();
+  const w=HW,h=HH;
+  hctx.clearRect(0,0,w,h);
+  hctx.fillStyle=P.bg; hctx.fillRect(0,0,w,h);
+
+  const cx=w/2, cy=h/2, rx=w*0.38, ry=h*0.36;
+
+  hctx.strokeStyle=P.grid; hctx.lineWidth=1;
+  for(let i=-4;i<=4;i++){
+    hctx.beginPath(); hctx.moveTo(cx+i*rx/4, 14); hctx.lineTo(cx+i*rx/4, h-14); hctx.stroke();
+    hctx.beginPath(); hctx.moveTo(14, cy+i*ry/4); hctx.lineTo(w-14, cy+i*ry/4); hctx.stroke();
+  }
+  hctx.strokeStyle=P.axis; hctx.lineWidth=1.4;
+  hctx.beginPath(); hctx.moveTo(20,cy); hctx.lineTo(w-20,cy); hctx.stroke();
+  hctx.beginPath(); hctx.moveTo(cx,16); hctx.lineTo(cx,h-16); hctx.stroke();
+  hctx.fillStyle=P.text; hctx.font='11px "JetBrains Mono",monospace';
+  hctx.fillText('H →', w-38, cy-8); hctx.fillText('B ↑', cx+8, 26);
+
+  const {k,s} = state;
+  hctx.strokeStyle=P.loop; hctx.lineWidth=2.4;
+  hctx.beginPath();
+  const N=160;
+  for(let i=0;i<=N;i++){
+    const hn=-1+2*i/N;
+    const b=branchB(hn,k,s,true);
+    const x=cx+hn*rx, y=cy-b*ry;
+    if(i===0) hctx.moveTo(x,y); else hctx.lineTo(x,y);
+  }
+  hctx.stroke();
+  hctx.beginPath();
+  for(let i=0;i<=N;i++){
+    const hn=1-2*i/N;
+    const b=branchB(hn,k,s,false);
+    const x=cx+hn*rx, y=cy-b*ry;
+    if(i===0) hctx.moveTo(x,y); else hctx.lineTo(x,y);
+  }
+  hctx.stroke();
+
+  const br = branchB(0,k,s,true);
+  hctx.fillStyle=P.marker;
+  hctx.beginPath(); hctx.arc(cx, cy-br*ry, 3.5,0,Math.PI*2); hctx.fill();
+  hctx.beginPath(); hctx.arc(cx-s*rx, cy, 3.5,0,Math.PI*2); hctx.fill();
+  hctx.font='10px "JetBrains Mono",monospace'; hctx.fillStyle=P.text;
+  hctx.fillText('Br', cx+8, cy-br*ry-6);
+  hctx.fillText('-Hc', cx-s*rx-24, cy+16);
+
+  const mx=cx+state.hnRaw*rx, my=cy-state.bnow*ry;
+  hctx.fillStyle=P.marker;
+  hctx.beginPath(); hctx.arc(mx,my,5.5,0,Math.PI*2); hctx.fill();
+  hctx.strokeStyle=P.marker; hctx.globalAlpha=0.5; hctx.lineWidth=1.5;
+  hctx.beginPath(); hctx.arc(mx,my,9,0,Math.PI*2); hctx.stroke(); hctx.globalAlpha=1;
+}
+
+function drawNoise(state, zone){
+  const P=pal();
+  const w=NW,h=NH;
+  nctx.clearRect(0,0,w,h);
+  nctx.fillStyle=P.bg; nctx.fillRect(0,0,w,h);
+  nctx.strokeStyle=P.grid;
+  for(let i=1;i<8;i++){ nctx.beginPath(); nctx.moveTo(0,i*h/8); nctx.lineTo(w,i*h/8); nctx.stroke(); }
+  nctx.strokeStyle=P.axis; nctx.beginPath(); nctx.moveTo(0,h/2); nctx.lineTo(w,h/2); nctx.stroke();
+
+  const amp = amplitudeFactor(zone.stress, zone.hard);
+  const steepNorm = Math.min(1, state.slope/6);
+  const burstProb = Math.pow(steepNorm, 1.4);
+
+  let val;
+  if(Math.random() < burstProb*0.92){
+    val = (Math.random()-0.5)*2*amp*(0.55+burstProb*1.3);
+  } else {
+    val = (Math.random()-0.5)*0.05*amp;
+  }
+  noiseHistory.push(val); noiseHistory.shift();
+
+  nctx.save();
+  nctx.globalAlpha=0.9;
+  nctx.fillStyle=P.envelope;
+  nctx.fillRect(0,h/2-amp*h*0.42,w,amp*h*0.84);
+  nctx.restore();
+
+  nctx.strokeStyle=P.noise; nctx.lineWidth=1.3;
+  if(P.noise==='#39fff0'){ nctx.shadowColor=P.noise; nctx.shadowBlur=4; }
+  nctx.beginPath();
+  for(let i=0;i<noiseHistory.length;i++){
+    const x=(i/noiseHistory.length)*w;
+    const y=h/2-noiseHistory[i]*h*0.42;
+    if(i===0) nctx.moveTo(x,y); else nctx.lineTo(x,y);
+  }
+  nctx.stroke();
+  nctx.shadowBlur=0;
+
+  const rms = Math.sqrt(noiseHistory.reduce((a,v)=>a+v*v,0)/noiseHistory.length);
+  return rms;
+}
+
+function updateStats(rms, zone){
+  rmsSmooth += (rms-rmsSmooth)*0.08;
+  const rmsScaled = rmsSmooth*140;
+  stRms.innerHTML = rmsScaled.toFixed(1)+' <small>mV</small>';
+  const mp = (rmsScaled/2.0);
+  stMp.textContent = mp.toFixed(1);
+
+  stStressBox.classList.remove('warn','ok');
+  let sLabel='neutral';
+  if(zone.stress>15){ sLabel='Zug ('+Math.round(zone.stress)+'%)'; stStressBox.classList.add('warn'); }
+  else if(zone.stress<-15){ sLabel='Druck ('+Math.round(Math.abs(zone.stress))+'%)'; stStressBox.classList.add('ok'); }
+  stStressLbl.textContent=sLabel;
+
+  stHardBox.classList.remove('warn','ok');
+  let hLabel='mittel';
+  if(zone.hard>70){ hLabel='hoch'; stHardBox.classList.add('ok'); }
+  else if(zone.hard<40){ hLabel='niedrig (erweicht)'; stHardBox.classList.add('warn'); }
+  stHardLbl.textContent=hLabel;
+
+  if(zone.weight>0.5 && zone.stress>15 && zone.hard<50){
+    callout.className='callout bad';
+    callout.innerHTML='<b>Fehlerzone erfasst!</b> Zugeigenspannung + Erweichung — typisches Signaturmuster eines Schleifbrands. Barkhausenrauschen deutlich erhöht.';
+  } else if(zone.weight<0.15){
+    callout.className='callout good';
+    callout.innerHTML='<b>Gutbereich.</b> Leichte Druckeigenspannung, hohe Randhärte — unauffälliges Signal. Weiter über das Bauteil scannen, um die Fehlerzone zu finden.';
+  } else {
+    callout.className='callout';
+    callout.innerHTML='Sonde nähert sich einer Auffälligkeit — Signal beobachten, wie es sich beim Weiterziehen verändert.';
+  }
+}
+
+let scanDir=1;
+function tick(){
+  if(autoScan && !dragging){
+    probeX += 1.6*scanDir;
+    if(probeX>=PROBE_MAX){ probeX=PROBE_MAX; scanDir=-1; }
+    if(probeX<=PROBE_MIN){ probeX=PROBE_MIN; scanDir=1; }
+  }
+  if(!running){ rafId=null; return; }
+  t += 1;
+  const zone = localZone();
+  const state = magState(zone);
+  drawSetup(state, zone);
+  drawHyst(state);
+  const rms = drawNoise(state, zone);
+  updateStats(rms, zone);
+  rafId=requestAnimationFrame(tick);
+}
+rafId=requestAnimationFrame(tick);
+
+[stressEl,hardEl,widthEl,fieldEl,freqEl].forEach(el=>el.addEventListener('input',()=>{
+  const stress=parseFloat(stressEl.value);
+  stressV.textContent = stress===0?'neutral':(stress>0?('Zug '+stress+'%'):('Druck '+Math.abs(stress)+'%'));
+  const hardDrop=parseFloat(hardEl.value);
+  hardV.textContent = hardDrop<25?'gering':(hardDrop>60?'hoch (stark erweicht)':'mittel');
+  widthV.textContent = widthEl.value<90?'schmal':(widthEl.value>160?'breit':'mittel');
+  fieldV.textContent = fieldEl.value+' %';
+  freqV.textContent = freqEl.value+' Hz';
+}));
+window.addEventListener('resize', ()=>{ hiDPI(cvS,sctx,SW,SH); hiDPI(cvH,hctx,HW,HH); hiDPI(cvN,nctx,NW,NH); });
+
+stressV.textContent='Zug 70%';
+hardV.textContent='stark erweicht';
+widthV.textContent='mittel';
+fieldV.textContent=fieldEl.value+' %';
+freqV.textContent=freqEl.value+' Hz';
+</script>
+<script id="fit-js">
+window.FIT_CFG={sideGroups:[1],sideW:280,maxCols:3,minCol:440,};
+(function(){
+  /* ═══ Kompakt-Dashboard (wie UT) – reines CSS-Pixel-Layout, KEIN Zoom-Eingriff: Browser-Zoom (Strg +/−) wirkt normal ═══ */
+  var C=window.FIT_CFG||{};
+  var app=document.querySelector('.app'); if(!app) return;
+  var container=app.querySelector(':scope > .layout, :scope > .grid'); if(!container) return;
+  var SIDEW=C.sideW||280, MINCOL=C.minCol||440, MAXK=C.maxCols||3, MAXS=C.maxSide||3,
+      SIDEGROUPS=C.sideGroups===undefined?[0]:C.sideGroups, MANUAL=C.cols||null, TEMPLATE=C.template||null;
+  var GAPS=[8,6,5], TIER=0, root=document.documentElement;
+  function isItem(c){ return c.classList.contains('panel')||c.classList.contains('stage'); }
+  function flat(g){
+    var o=[]; [].slice.call(g.children).forEach(function(ch){
+      if(ch.tagName==='SCRIPT'||ch.tagName==='STYLE') return;
+      if(getComputedStyle(ch).display==='contents'){ o.push.apply(o,flat(ch)); return; }
+      var kids=[].slice.call(ch.children);
+      if(ch.classList.contains('stagegrid') && kids.length>1 && kids.every(function(k){return k.classList.contains('stage');})){
+        var cls=['riss-only','gef-only'].filter(function(q){return ch.classList.contains(q);}), sc=ch.dataset.scn;
+        kids.forEach(function(k){ cls.forEach(function(q){k.classList.add(q);}); if(sc) k.dataset.scn=sc; o.push(k); });
+      } else o.push(ch);
+    }); return o;
+  }
+  var groups=[].slice.call(container.children).filter(function(c){return c.tagName!=='SCRIPT'&&c.tagName!=='STYLE';})
+    .map(function(c){ return isItem(c)?[c]:flat(c); });
+  var all=[]; groups.forEach(function(g,gi){ g.forEach(function(el){ all.push({el:el,g:gi,parent:el.parentElement,next:el.nextSibling}); }); });
+  var grid=null, cols=[], stash=null, curN=0, curSig='', busy=false;
+  function active(){ return window.innerWidth>=1000 && window.innerHeight>=520; }
+  function GAP(){ return GAPS[TIER]; }
+  function ensure(n){
+    if(grid&&curN===n) return;
+    if(!grid){ grid=document.createElement('div'); grid.className='fitgrid'; stash=document.createElement('div'); stash.style.display='none'; container.after(grid); container.after(stash); }
+    grid.textContent=''; cols=[]; curN=n; curSig='';
+    for(var i=0;i<n;i++){ var c=document.createElement('div'); c.className='fcol'; cols.push(c); grid.appendChild(c); }
+  }
+  function partition(hs,K){            /* zusammenhängende Aufteilung mit minimaler Maximalhöhe */
+    var n=hs.length, G=GAP(); if(K<=1||n<=1) return [hs.map(function(_,i){return i;})];
+    K=Math.min(K,n); var pre=[0]; hs.forEach(function(h,i){pre.push(pre[i]+h+G);});
+    var best=[],bestScore=1e12;
+    (function rec(start,k,cut){
+      if(k===1){ var cuts=cut.concat([n]), mx=0, sq=0; for(var j=0;j<cuts.length;j++){ var a=j?cuts[j-1]:0, h=pre[cuts[j]]-pre[a]; mx=Math.max(mx,h); sq+=h*h; }
+        var sc=mx+sq*1e-7; if(sc<bestScore){bestScore=sc;best=cuts;} return; }
+      for(var e=start+1;e<=n-(k-1);e++) rec(e,k-1,cut.concat([e]));
+    })(0,K,[]);
+    var out=[],s=0; best.forEach(function(e){ var a=[]; for(var i=s;i<e;i++) a.push(i); out.push(a); s=e; }); return out;
+  }
+  function colH(ix,list){ var t=0; ix.forEach(function(i){t+=list[i].h+GAP();}); return t; }
+  function setTier(t){ TIER=t; root.classList.remove('d1','d2'); if(t) root.classList.add('d'+t); }
+
+  function layoutOnce(){
+    var W=window.innerWidth, effW=W-26, G=GAP();
+    root.classList.add('fit'); container.style.display='none';
+    var mwrap=document.createElement('div'); mwrap.className='fitgrid'; mwrap.style.cssText='position:absolute;left:-99999px;top:0;display:block;flex:none;visibility:hidden;';
+    var meas=document.createElement('div'); meas.className='fcol'; meas.style.cssText='overflow:visible;height:auto;max-height:none;display:flex;flex-direction:column;';
+    mwrap.appendChild(meas); app.appendChild(mwrap);
+    ensure(1); grid.style.gridTemplateColumns='1fr';
+    var availH=Math.max(300,grid.clientHeight-2), plan, S, K, over=0, tpl;
+    function measure(list,w){ meas.style.width=w+'px'; list.forEach(function(a){meas.appendChild(a.el);}); list.forEach(function(a){a.h=a.el.getBoundingClientRect().height;}); }
+    if(MANUAL){
+      K=MANUAL.length; S=0; ensure(K);
+      plan=MANUAL.map(function(idxs){ return idxs.map(function(i){return all[i];}).filter(Boolean); });
+      var used={}; MANUAL.forEach(function(ix){ix.forEach(function(i){used[i]=1;});});
+      all.forEach(function(a,i){ if(!used[i]) plan[K-1].push(a); });
+      tpl=TEMPLATE||('repeat('+K+',minmax(0,1fr))');
+      plan.forEach(function(c,i){ var w=Math.floor((effW-G*(K-1))/K); measure(c,w); over=Math.max(over,colH(c.map(function(_,j){return j;}),c)-availH); });
+    } else {
+      var side=all.filter(function(a){return SIDEGROUPS.indexOf(a.g)>=0;}), rest=all.filter(function(a){return SIDEGROUPS.indexOf(a.g)<0;});
+      var best=null, sv=[];
+      var sideVis=side.length; if(side.length){ measure(side,SIDEW-6); sideVis=side.filter(function(a){return a.h>1;}).length; }
+      for(var s=(sideVis?1:0); s<=(sideVis?Math.min(MAXS,sideVis):0); s++){
+        if(effW-s*(SIDEW+G)<MINCOL) break;
+        var spart=[], oS=-1e9;
+        if(s){ measure(side,SIDEW-6); sv=side.filter(function(a){return a.h>1;}); spart=partition(sv.map(function(a){return a.h;}),s);
+          oS=Math.max.apply(null,spart.map(function(ix){return colH(ix,sv)-availH;})); }
+        var kmax=Math.max(1,Math.min(MAXK,Math.floor((effW-s*(SIDEW+G)+G)/(MINCOL+G))));
+        for(var k=1;k<=kmax;k++){
+          var mw=Math.floor((effW-s*(SIDEW+G)-G*(k-1))/k)-6;
+          measure(rest,mw);
+          var vv=rest.filter(function(a){return a.h>1;}); if(k>Math.max(1,vv.length)) break;
+          var pp=partition(vv.map(function(a){return a.h;}),k);
+          var hR=pp.map(function(ix){return colH(ix,vv);}), mxR=Math.max.apply(null,hR);
+          var solvable=(k===1&&s>=1&&vv.length<=2), ov=Math.max(0,oS,solvable?0:mxR-availH), left=solvable?0:Math.max(0,availH-mxR);
+          var score=ov>2?(1e6+ov*10):(left*0.5+s*45+k*4+(solvable?25:0));
+          if(!best||score<best.score) best={score:score,S:s,K:k,spart:spart,pp:pp,vv:vv,sv:sv,over:ov,mw:mw};
+        }
+      }
+      S=best.S; K=best.K; over=best.over;
+      ensure(S+K);
+      plan=best.spart.map(function(ix){return ix.map(function(i){return best.sv[i];});}).concat(best.pp.map(function(ix){return ix.map(function(i){return best.vv[i];});}));
+      if(S) side.filter(function(a){return a.h<=1;}).forEach(function(a){plan[0].push(a);});
+      while(plan.length<S+K) plan.push([]);
+      var sw=[]; for(var q=0;q<S;q++) sw.push(SIDEW+'px');
+      tpl=(S?sw.join(' ')+' ':'')+'repeat('+K+',minmax(0,1fr))';
+    }
+    var sig=plan.map(function(c){return c.map(function(a){return all.indexOf(a);}).join(',');}).join('|')+'@'+curN;
+    var inPlan=new Set(); plan.forEach(function(c){c.forEach(function(a){inPlan.add(a);});});
+    if(sig!==curSig){ plan.forEach(function(c,i){ cols[i].replaceChildren.apply(cols[i],c.map(function(a){return a.el;})); }); curSig=sig; }
+    else plan.forEach(function(c,i){ c.forEach(function(a){ if(a.el.parentElement!==cols[i]) cols[i].appendChild(a.el); }); });
+    all.forEach(function(a){ if(!inPlan.has(a)) stash.appendChild(a.el); });
+    mwrap.remove();
+    grid.style.gridTemplateColumns=tpl;
+    window.__fitDbg={S:S,K:K,tier:TIER,over:Math.round(over),availH:availH};
+    return {over:over,S:S,K:K,availH:availH};
+  }
+  function redraw(){ window.__fitSilent=true; window.dispatchEvent(new Event('resize')); window.__fitSilent=false; }
+  function colNat(c){ var t=0,n=0; [].forEach.call(c.children,function(ch){ var h=ch.getBoundingClientRect().height; if(h>0){ t+=h; n++; } }); return t+Math.max(0,n-1)*GAP(); }
+  function isGraphicCol(c){
+    var els=c.querySelectorAll('canvas,svg'); for(var i=0;i<els.length;i++){ var e=els[i]; if(e.closest('button,.icon,.badge,.toggle,summary')) continue; var r=e.getBoundingClientRect(); if(r.width>150&&r.height>60) return true; } return false;
+  }
+  var TEXTMIN=C.textMin||300;
+  function fitWidths(avail){        /* Grafik-Spalten so breit, dass ihre Höhe die Fensterhöhe füllt (Seitenverhältnis bleibt, nichts verzerrt); Rest geht an Text-Spalten */
+    var n=cols.length; if(n<1) return 0;
+    var G=GAP(), availW=window.innerWidth-26-G*(n-1), g=cols.map(isGraphicCol), nG=g.filter(Boolean).length, nT=n-nG;
+    function tpl(w){ return cols.map(function(_,i){ return g[i]?Math.round(w[i])+'px':'minmax('+TEXTMIN+'px,1fr)'; }).join(' '); }
+    if(!nG||n===1){ grid.style.gridTemplateColumns=cols.map(function(){return 'minmax(0,1fr)';}).join(' '); redraw(); }
+    else {
+      var budget=availW-nT*TEXTMIN, w=cols.map(function(_,i){return g[i]?budget/nG:0;}), lo=MINCOL*0.7;
+      for(var it=0; it<7; it++){
+        grid.style.gridTemplateColumns=tpl(w); redraw();
+        var worst=0, nw=w.slice();
+        cols.forEach(function(c,i){ if(!g[i]) return; var h=colNat(c); worst=Math.max(worst,Math.abs(h-avail)/avail); nw[i]=Math.max(lo,Math.min(budget,w[i]*Math.pow(avail/Math.max(150,h),0.95))); });
+        var sum=0; cols.forEach(function(_,i){ if(g[i]) sum+=nw[i]; });
+        if(sum>budget) cols.forEach(function(_,i){ if(g[i]) nw[i]=Math.max(lo,nw[i]*budget/sum); });
+        w=nw; if(worst<0.02) break;
+      }
+      grid.style.gridTemplateColumns=tpl(w); grid.style.justifyContent=nT?'stretch':'center'; redraw();
+    }
+    var mx=0; cols.forEach(function(c){ mx=Math.max(mx,colNat(c)-avail); });
+    var sw=cols.map(function(c){ var hs=[].slice.call(c.querySelectorAll('.panel,.stage')); return hs.length; });
+    /* breite Einstellungsspalten: Regler zweispaltig */
+    cols.forEach(function(c){ var wide=c.getBoundingClientRect().width>=430&&!isGraphicCol(c); [].forEach.call(c.querySelectorAll('.panel'),function(pn){ var k=[].filter.call(pn.children,function(e){return e.classList.contains('ctl-row')||e.classList.contains('field');}).length; pn.classList.toggle('fit2',wide&&k>=3); }); });
+    return mx-5;
+  }
+  function relayout(){
+    if(busy) return; busy=true;
+    try{
+      if(!active()){ restore(); return; }
+      var r=null, mx=0;
+      for(var t=0;t<3;t++){ setTier(t); r=layoutOnce(); redraw(); mx=fitWidths(r.availH-5); if(mx<=0) break; }
+      window.__fitDbg.over=Math.round(Math.max(0,mx)); redraw();
+    } finally { busy=false; }
+  }
+  function restore(){
+    root.classList.remove('fit','d1','d2'); TIER=0;
+    if(!grid) return; container.style.display='';
+    all.forEach(function(a){ if(a.next&&a.next.parentNode===a.parent) a.parent.insertBefore(a.el,a.next); else a.parent.appendChild(a.el); });
+    grid.remove(); stash.remove(); grid=null; stash=null; cols=[]; curN=0; curSig='';
+  }
+  function again(){ clearTimeout(window.__fitA); window.__fitA=setTimeout(function(){ relayout(); },70); }
+  window.addEventListener('resize',function(){ if(window.__fitSilent) return; clearTimeout(window.__fitT); window.__fitT=setTimeout(relayout,90); });
+  document.addEventListener('click',function(e){ if(e.target.closest('button,.toggle,.seg,.tabs,label,summary')) again(); },true);
+  document.addEventListener('change',function(e){ if(e.target.matches('select,input[type=checkbox],input[type=radio]')) again(); },true);
+  window.__fitRelayout=again;
+  relayout();
+  setTimeout(relayout,350);
+})();
+
+</script>
+</body>
+</html>

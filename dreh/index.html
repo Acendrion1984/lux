@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Magnetpulverprüf-Simulator · MT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media=\'all\'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
+<style>
+  :root{
+    --bg:#1c1e20; --bg-2:#242628; --panel:#2a2d30; --panel-2:#2f3236;
+    --border:#4a5058; --border-soft:#3a4048; --text:#f0f2f4; --text-dim:#b8bec4; --text-faint:#7a8490;
+    --amber:#ffc94d; --amber-dim:#8a6420; --amber-glow:rgba(255,201,77,.24);
+    --cyan:#4de9d4; --cyan-dim:#1f6a61; --cyan-glow:rgba(77,233,212,.18);
+    --red:#ff6f66; --green:#5fe072; --green-glow:rgba(95,224,114,.55);
+    --mono:'JetBrains Mono',ui-monospace,monospace; --disp:'Space Grotesk',sans-serif; --body:'Inter',sans-serif;
+  }
+  body.light-mode{
+    --bg:#e7ecf2; --bg-2:#dbe3ec; --panel:#f7f9fb; --panel-2:#eaeff4;
+    --border:#7c93a8; --border-soft:#a9bccb; --text:#0c1620; --text-dim:#2b3e4f; --text-faint:#51687a;
+    --amber:#a45f00; --amber-dim:#e0aa4a; --amber-glow:rgba(164,95,0,.16);
+    --cyan:#0a7d6e; --cyan-dim:#bfe9e1; --cyan-glow:rgba(10,125,110,.14);
+    --red:#b0241a; --green:#187a32; --green-glow:rgba(24,122,50,.25);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--body);transition:background .2s,color .2s;}
+  body{min-height:100vh;background:
+      radial-gradient(ellipse 1400px 700px at 10% -5%,#0a1e30 0%,transparent 55%),
+      radial-gradient(ellipse 900px 500px at 95% 5%,#14101e 0%,transparent 50%),
+      var(--bg);}
+  body.light-mode{background:
+      radial-gradient(ellipse 1400px 700px at 10% -5%,#c9d7e4 0%,transparent 55%),
+      radial-gradient(ellipse 900px 500px at 95% 5%,#dcd3e8 0%,transparent 50%),
+      var(--bg);}
+  .app{max-width:1200px;margin:0 auto;padding:14px 12px 48px;}
+  @media(min-width:768px){.app{padding:20px 20px 56px;}}
+  /* FIX: Breite Bildschirme nutzten bislang nur 1200px, Rest blieb leer */
+  @media(min-width:1500px){.app{max-width:1760px;}}
+  @media(min-width:1900px){.app{max-width:2000px;}}
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;margin-bottom:16px;border-bottom:1.5px solid var(--border);flex-wrap:wrap;}
+  .brand-eyebrow{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--cyan);margin:0 0 4px;display:flex;align-items:center;gap:6px;}
+  .brand-eyebrow::before{content:'';display:inline-block;width:18px;height:1.5px;background:var(--cyan);opacity:.8;}
+  h1{font-family:var(--disp);font-weight:700;font-size:20px;margin:0;background:linear-gradient(120deg,var(--text) 60%,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  h1 small{display:block;font-family:var(--body);font-weight:400;font-size:11.5px;color:var(--text-dim);margin-top:2px;-webkit-text-fill-color:var(--text-dim);}
+  @media(min-width:600px){h1{font-size:24px;}h1 small{font-size:12.5px;}}
+  .hdr-right{display:flex;align-items:center;gap:8px;}
+  .badge{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:5px 10px;border:1px solid var(--border);border-radius:20px;color:var(--text-dim);display:flex;align-items:center;gap:6px;}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green-glow);}
+  .theme-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--panel-2);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:.15s;}
+  .theme-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+
+  .grid{display:grid;grid-template-columns:1fr;gap:16px;}
+  @media(min-width:960px){.grid{grid-template-columns:1.3fr .9fr;align-items:start;}}
+  @media(min-width:1500px){.grid{grid-template-columns:1.7fr .9fr;gap:22px;}}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border-soft);border-radius:14px;padding:14px;}
+  .stage-title{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);margin:0 0 10px;display:flex;justify-content:space-between;}
+
+  .stage{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--border-soft);background:#000;}
+  canvas{display:block;width:100%;height:auto;}
+
+  .ctl-row{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .ctl-row label{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--text-dim);display:flex;justify-content:space-between;}
+  .ctl-row label b{color:var(--amber);font-weight:700;}
+  input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:4px;background:var(--panel-2);outline:none;border:1px solid var(--border-soft);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--amber);border:2px solid #1a1200;box-shadow:0 0 8px var(--amber-glow);cursor:pointer;}
+  select{width:100%;background:var(--panel-2);color:var(--text);border:1px solid var(--border-soft);border-radius:8px;padding:8px 10px;font-family:var(--body);font-size:13px;}
+
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;}
+  button{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);cursor:pointer;transition:.15s;}
+  button:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan);}
+  button.primary{background:linear-gradient(120deg,var(--amber-dim),#5c4310);border-color:var(--amber);color:var(--amber);}
+  body.light-mode button.primary{background:linear-gradient(120deg,#f2d9a8,#e0aa4a);color:#4a2f00;}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+  .stat{background:var(--panel-2);border:1px solid var(--border-soft);border-radius:8px;padding:8px 10px;}
+  .stat .k{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);}
+  .stat .v{font-family:var(--disp);font-size:16px;font-weight:700;color:var(--cyan);}
+  .stat .v small{font-size:10px;color:var(--text-dim);font-weight:400;}
+  .stat.warn .v{color:var(--red);}
+  .stat.ok .v{color:var(--green);}
+
+  .gauge{margin-top:12px;}
+  .gauge .bar{position:relative;height:14px;border-radius:7px;background:linear-gradient(90deg,#3a1010 0%, #3a1010 18%, #1a3a20 32%, #12401f 68%, #3a2a10 82%, #3a1010 100%);border:1px solid var(--border-soft);overflow:visible;}
+  body.light-mode .gauge .bar{background:linear-gradient(90deg,#f3caca 0%, #f3caca 18%, #cdeed3 32%, #b9e6c2 68%, #f2e0b9 82%, #f3caca 100%);}
+  .gauge .needle{position:absolute;top:-4px;width:3px;height:22px;background:var(--text);border-radius:2px;transform:translateX(-1.5px);transition:left .2s;}
+  .gauge .lbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--text-faint);margin-top:4px;}
+
+  .callout{margin-top:12px;padding:10px 12px;border-radius:8px;border:1px solid var(--border-soft);background:var(--panel-2);font-size:12px;color:var(--text-dim);}
+  .callout.bad{border-color:#7a2a2a;color:#ffb3ac;}
+  body.light-mode .callout.bad{color:#7a1a12;background:#fbe4e2;}
+  .callout.good{border-color:#245c30;color:#b7f0c0;}
+  body.light-mode .callout.good{color:#0f4a20;background:#e2f5e6;}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--text-dim);}
+
+  /* ═══ MT-Simulator ═══ */
+  .hidden{display:none !important;}
+  body[data-tab="test"] .only-demag{display:none !important;}
+  body[data-tab="demag"] .only-test{display:none !important;}
+  .tabs{display:flex;gap:6px;margin-bottom:12px;}
+  .tabs button{flex:1;padding:11px 10px;font-size:11.5px;font-weight:600;text-transform:none;letter-spacing:.02em;line-height:1.25;}
+  .tabs button.sel{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-glow);box-shadow:0 0 0 1px var(--cyan) inset,0 0 20px var(--cyan-glow);}
+  body.light-mode .tabs button.sel{background:#08954C;border-color:#08954C;color:#fff;}
+  .seg{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:12px;}
+  .seg button{padding:9px 6px;font-size:10.5px;text-transform:none;letter-spacing:.02em;line-height:1.25;}
+  .seg button.sel{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-glow);}
+  body.light-mode .seg button.sel{background:#08954C;border-color:#08954C;color:#fff;}
+  .seg3{grid-template-columns:repeat(3,1fr);}
+  .sub-h{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-faint);margin:12px 0 8px;display:flex;align-items:center;gap:8px;}
+  .sub-h i{width:8px;height:8px;border-radius:50%;display:inline-block;}
+  body.light-mode .sub-h{color:var(--text-dim);}
+  .dcac{display:flex;gap:6px;margin:0 0 8px;}
+  .dcac button{flex:1;padding:7px 4px;font-size:10.5px;}
+  .dcac button.sel{border-color:var(--amber);color:var(--amber);background:var(--amber-glow);}
+  .stage{box-shadow:inset 0 0 0 1px rgba(255,255,255,.05),0 8px 20px -12px rgba(0,0,0,.7);}
+  .panel{box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 10px 28px -14px rgba(0,0,0,.55);}
+  body.light-mode .panel{box-shadow:0 10px 26px -16px rgba(12,31,22,.28);}
+  input[type=range]{background:linear-gradient(90deg,var(--amber) var(--p,40%),var(--panel-2) var(--p,40%));}
+  input[type=range]:disabled{opacity:.4;}
+  input[type=range]:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;}
+  .col{display:flex;flex-direction:column;gap:16px;min-width:0;}
+  .stage-title .sub{color:var(--text-faint);font-weight:400;text-transform:none;letter-spacing:0;font-size:10.5px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .btnrow button.tog.on{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-glow);}
+  .btnrow button.stop{border-color:var(--red);color:var(--red);}
+  .ctl-row .note{font-size:10.5px;color:var(--text-faint);line-height:1.4;}
+  body.light-mode .ctl-row .note{color:var(--text-dim);}
+  .stats{grid-template-columns:1fr 1fr;}
+  .stat .v{font-size:15px;}
+  .stat .v small{display:block;font-family:var(--mono);font-size:9.5px;color:var(--text-faint);font-weight:500;margin-top:1px;}
+  body.light-mode .stat .v small{color:var(--text-dim);}
+  .hint{font-size:11.5px;color:var(--text-faint);line-height:1.5;margin:8px 0 0;}
+  body.light-mode .hint{color:var(--text-dim);}
+  .legend{gap:8px 16px;}
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .legend i{width:12px;height:4px;border-radius:2px;display:inline-block;}
+  .gauge.ht .bar{background:linear-gradient(90deg,#4a1414 0%,#4a1414 25%,#14402a 25%,#14402a 81.25%,#4a1414 81.25%,#4a1414 100%);}
+  body.light-mode .gauge.ht .bar{background:linear-gradient(90deg,#f3caca 0%,#f3caca 25%,#bfe9c9 25%,#bfe9c9 81.25%,#f3caca 81.25%,#f3caca 100%);}
+  .gauge .ticks{position:relative;height:14px;margin-top:4px;font-family:var(--mono);font-size:9px;color:var(--text-faint);}
+  .gauge .ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap;}
+  body.light-mode .gauge .ticks{color:var(--text-dim);}
+  .gauge .needle{transition:left .12s;}
+
+  .vecrow{display:grid;grid-template-columns:minmax(0,300px) 1fr;gap:12px;align-items:start;}
+  @media(max-width:700px){.vecrow{grid-template-columns:1fr;}}
+  .vecrow .stage{margin:0;}
+
+  .cbars{display:flex;flex-direction:column;gap:7px;margin-top:12px;}
+  .cbar{display:grid;grid-template-columns:128px 1fr 40px;gap:8px;align-items:center;font-size:10.5px;}
+  .cbar .nm{font-family:var(--mono);color:var(--text-dim);font-size:10px;line-height:1.2;}
+  .cbar .tr{position:relative;height:9px;border-radius:5px;background:var(--bg-2);border:1px solid var(--border-soft);overflow:hidden;}
+  .cbar .tr i{display:block;height:100%;width:0;border-radius:5px;background:var(--amber);}
+  .cbar .tr b{position:absolute;top:-1px;bottom:-1px;width:2px;background:var(--text);opacity:.55;}
+  .cbar .pc{font-family:var(--mono);font-weight:700;text-align:right;color:var(--text-dim);}
+  .cbar.hit .pc{color:var(--green);}
+
+  .resbar{height:10px;border-radius:5px;background:var(--bg-2);border:1px solid var(--border-soft);overflow:hidden;margin:6px 0;}
+  .resbar i{display:block;height:100%;width:0;border-radius:5px;background:var(--green);transition:width .15s,background .15s;}
+  .compass{width:46px;height:46px;border-radius:50%;border:1.5px solid var(--border);position:relative;background:var(--panel-2);flex-shrink:0;}
+  .compass .nd{position:absolute;left:50%;top:50%;width:3px;height:19px;border-radius:2px;transform-origin:50% 100%;transform:translate(-50%,-100%) rotate(0rad);background:var(--green);}
+  .compass .dt{position:absolute;left:50%;top:50%;width:7px;height:7px;border-radius:50%;background:var(--text);transform:translate(-50%,-50%);}
+  .resline{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:2px 0 8px;}
+  .resline b{font-family:var(--mono);font-size:19px;}
+  .resline span{font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 9px;border-radius:4px;}
+  details.exp{margin:6px 0 4px;}
+  details.exp summary{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);cursor:pointer;padding:4px 0;}
+  body.light-mode details.exp summary{color:var(--text-dim);}
+  .modeinfo{font-size:11.5px;line-height:1.5;color:var(--text-dim);background:var(--panel-2);border:1px solid var(--border-soft);border-radius:8px;padding:8px 10px;margin:0 0 10px;}
+  .statusline{display:flex;justify-content:space-between;gap:10px;font-family:var(--mono);font-size:10.5px;color:var(--text-dim);padding:6px 2px 0;}
+  .statusline b{color:var(--amber);}
+
+  .steps{display:flex;flex-direction:column;}
+  .step{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--border-soft);}
+  .step:first-child{border-top:0;padding-top:2px;}
+  .step .ic{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;border:1.5px solid var(--border);color:var(--text-dim);background:var(--panel-2);}
+  .step.ok .ic{border-color:var(--green);color:var(--green);background:var(--cyan-glow);}
+  .step.warn .ic{border-color:var(--red);color:var(--red);background:rgba(255,111,102,.12);}
+  .step h4{margin:0;font-family:var(--disp);font-size:12.5px;font-weight:600;display:flex;justify-content:space-between;gap:8px;align-items:baseline;}
+  .step h4 .val{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--text-dim);text-align:right;}
+  .step.ok h4 .val{color:var(--green);}
+  .step.warn h4 .val{color:var(--red);}
+  .step p{margin:3px 0 0;font-size:11px;line-height:1.45;color:var(--text-faint);}
+  body.light-mode .step p{color:var(--text-dim);}
+  .step p.fix{color:var(--red);font-weight:500;}
+  .step.cur{background:linear-gradient(90deg,var(--cyan-glow),transparent 70%);margin:0 -6px;padding-left:6px;padding-right:6px;border-radius:8px;}
+
+  /* ═══ Prüfzyklus (Echtzeit) ═══ */
+  .live{margin:0 0 4px;padding:12px 14px;border:1px solid var(--border-soft);border-radius:10px;background:var(--panel-2);}
+  .live-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:var(--mono);}
+  .live-state{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);}
+  .live-state.run{color:var(--amber);}
+  .live-state.run::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--amber);margin-right:7px;box-shadow:0 0 8px var(--amber);animation:livepulse 1s ease-in-out infinite;}
+  @keyframes livepulse{0%,100%{opacity:1}50%{opacity:.3}}
+  @media(prefers-reduced-motion:reduce){.live-state.run::before{animation:none;}}
+  .live-clock{font-size:20px;font-weight:700;color:var(--text);}
+  .live-clock small{font-size:11px;font-weight:500;color:var(--text-faint);}
+  body.light-mode .live-clock small{color:var(--text-dim);}
+  .pbar{height:7px;border-radius:4px;background:var(--bg-2);border:1px solid var(--border-soft);margin:9px 0 6px;overflow:hidden;}
+  .pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--amber-dim),var(--amber));}
+  .live-sub{font-family:var(--mono);font-size:10px;color:var(--text-faint);line-height:1.5;}
+  body.light-mode .live-sub{color:var(--text-dim);}
+  .tl{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0 12px;}
+  .tl span{padding:8px 4px;text-align:center;border:1px solid var(--border-soft);border-radius:8px;font-family:var(--mono);font-size:9.5px;line-height:1.25;color:var(--text-faint);background:var(--panel-2);}
+  body.light-mode .tl span{color:var(--text-dim);}
+  .tl span.done{border-color:var(--green);color:var(--green);}
+  .tl span.cur{border-color:var(--amber);color:var(--amber);background:var(--amber-glow);font-weight:700;}
+  .cyspeed{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 10px;}
+  .cyspeed button{padding:8px 4px;font-size:10.5px;text-transform:none;letter-spacing:.02em;line-height:1.2;}
+  .cyspeed button.sel{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-glow);}
+  body.light-mode .cyspeed button.sel{background:#08954C;border-color:#08954C;color:#fff;}
+
+  table.ht{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;margin-top:10px;}
+  table.ht th{font-weight:600;color:var(--text-faint);text-align:right;padding:5px 6px;border-bottom:1px solid var(--border-soft);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;}
+  body.light-mode table.ht th{color:var(--text-dim);}
+  table.ht th:first-child,table.ht td:first-child{text-align:left;}
+  table.ht td{padding:6px;text-align:right;border-bottom:1px solid var(--border-soft);color:var(--text);}
+  table.ht tr.out td{color:var(--red);}
+  table.ht tr.cur td{background:var(--amber-glow);}
+  table.ht td.l,table.ht th.l{text-align:left;}
+  #btnEval{flex:1 1 100%;}
+</style>
+<script src="/shared/zfp-context.js"></script>
+<script id="zfp-offline">
+/* Offline-Fallback: läuft die App ohne Server (file://), fehlt /shared/zfp-context.js – dann wird der Theme-Kontext lokal bereitgestellt. */
+(function(){
+  if(window.ZfPContext) return;
+  var cbs=[], mode=null, KEY='zfp-theme';
+  function store(v){ try{ if(v===undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY,v); }catch(e){} return null; }
+  function init(){ if(mode) return; var s=store(); mode=(s==='light'||s==='dark')?s:((document.body&&(document.body.classList.contains('light-mode')||document.body.classList.contains('light')))?'light':'dark'); }
+  window.ZfPContext={
+    get theme(){ init(); return mode; },
+    onTheme:function(f){ if(typeof f!=='function') return; cbs.push(f); init(); f(mode); },
+    toggleTheme:function(){ init(); mode=mode==='light'?'dark':'light'; store(mode); cbs.forEach(function(f){ try{ f(mode); }catch(e){} }); }
+  };
+})();
+</script>
+
+<style id="fit-css">
+/* ═══ Kompakt-Dashboard (wie UT): kleine Schrift, dichte Panels, alles auf einem Bildschirm ═══ */
+html.fit, html.fit body{height:100%; overflow:hidden;}
+html.fit .app{box-sizing:border-box; display:flex; flex-direction:column; padding:5px 12px 8px; gap:6px; max-width:none; width:100%; height:100vh; height:100dvh; overflow:hidden; zoom:1 !important;}
+html.fit .sfl-bar{display:none;}
+html.fit header.top{margin:0; padding:0 0 4px; flex:0 0 auto; align-items:center; gap:12px; flex-wrap:nowrap;}
+html.fit header.top .brand-eyebrow, html.fit .eyebrow{font-size:9px; margin:0 0 1px;}
+html.fit header.top h1{font-size:21px; line-height:1.05; margin:0;}
+html.fit header.top h1 small, html.fit header.top .title-group > small, html.fit header.top .sub{font-size:11.5px; line-height:1.2;}
+html.fit .badge{font-size:10.5px; padding:3px 9px;}
+html.fit .icon-btn{width:30px; height:30px; font-size:14px;}
+html.fit .fitgrid{flex:1 1 0; min-height:0; display:grid; gap:8px; margin:0; align-items:stretch;}
+html.fit .fcol{display:flex; flex-direction:column; gap:8px; min-height:0; min-width:0; overflow-y:auto; overflow-x:hidden; padding:0 2px 4px 0; scrollbar-width:thin;}
+html.fit .fcol > *{flex:0 0 auto; margin:0 !important;}
+html.fit .panel{padding:8px 10px 9px; border-radius:10px;}
+html.fit .panel h2, html.fit .stage-title, html.fit .panel > .stage-title{margin:0 0 5px; font-size:10.5px; letter-spacing:.07em; line-height:1.25;}
+html.fit .stage-head{gap:4px 10px; flex-wrap:wrap; padding:0 0 4px; margin:0 0 2px;}
+html.fit .ctl-row, html.fit .field{margin:0 0 5px;}
+html.fit .ctl-row label, html.fit .field label{font-size:11.5px; margin:0 0 1px; line-height:1.25;}
+html.fit .ctl-row label .val, html.fit .field label .val{font-size:11.5px;}
+html.fit input[type=range]{margin:1px 0; height:18px;}
+html.fit .hint, html.fit .note, html.fit .ctl-row .note, html.fit .sidebar-note, html.fit .panel .hint{font-size:10.5px; line-height:1.32; margin:2px 0 0;}
+html.fit .btnrow{gap:5px; margin:4px 0;}
+html.fit button, html.fit select{font-size:11.5px; padding:5px 9px;}
+html.fit .callout, html.fit .verdict{font-size:11.5px; line-height:1.4; padding:7px 10px; margin-top:5px; max-height:none; overflow:visible;}
+html.fit .stat{padding:5px 8px;} html.fit .stat .k{font-size:9.5px; line-height:1.2;} html.fit .stat .v{font-size:14.5px;}
+html.fit .stats{gap:5px; grid-template-columns:repeat(3,1fr);}
+html.fit .seg{gap:4px;}
+html.fit .seg button, html.fit .toggle button{padding:6px 5px; min-width:0; white-space:normal; line-height:1.2; font-size:11px;}
+html.fit .seg.mini button{padding:3px 8px; font-size:10.5px;}
+html.fit .toggle{flex-wrap:wrap; padding:5px 8px; margin:0 0 4px;}
+html.fit .legend{font-size:10px; margin-top:4px; gap:3px 12px;}
+html.fit table.res td, html.fit table.res th, html.fit table.ht td, html.fit table.ht th{padding:3px 5px; font-size:10.5px;}
+html.fit .pstep, html.fit .step{padding-top:5px; padding-bottom:5px; gap:8px;}
+html.fit .pstep p, html.fit .step p{font-size:10.5px; line-height:1.38; margin-top:2px;}
+html.fit .pstep h4{font-size:12px;}
+html.fit .frow{padding:3px 0; font-size:11.5px;}
+html.fit .frow .nm small{font-size:10px; line-height:1.25;}
+html.fit .live{padding:8px 11px; margin-bottom:6px;}
+html.fit .live-val{font-size:19px;}
+html.fit .pbar{margin:6px 0 4px;}
+html.fit .stage, html.fit .panel > .stage{margin:0;}
+html.fit .foot{font-size:10.5px; padding-top:3px;}
+html.fit .kv{font-size:11px;}
+html.fit canvas, html.fit svg.view{max-width:100%; height:auto;}
+html.fit .step p, html.fit .pstep p{display:none;}
+html.fit .step.cur p, html.fit .pstep.cur p{display:block;}
+/* Slider-reiche Panels: zwei Regler nebeneinander */
+html.fit .panel.fit2{display:grid; grid-template-columns:1fr 1fr; column-gap:12px; align-content:start;}
+html.fit .panel.fit2 > *{grid-column:1/-1;}
+html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{grid-column:auto; min-width:0;}
+
+/* Grafiken: nur Breite begrenzt, Höhe folgt dem Seitenverhältnis → nie verzerrt */
+html.fit .stage canvas, html.fit .stage svg{max-width:100%; height:auto;}
+/* Kompaktstufen (nur Abstände, Schriftgröße bleibt → Browser-Zoom wirkt normal) */
+html.fit.d1 .fitgrid, html.fit.d1 .fcol{gap:6px;}
+html.fit.d1 .panel{padding:6px 8px 7px;}
+html.fit.d1 .panel h2, html.fit.d1 .stage-title{margin-bottom:3px;}
+html.fit.d1 .ctl-row, html.fit.d1 .field{margin-bottom:3px;}
+html.fit.d1 .hint, html.fit.d1 .note, html.fit.d1 .panel .hint{margin-top:1px; line-height:1.25;}
+html.fit.d1 .stat{padding:3px 7px;} html.fit.d1 .stats{gap:4px;}
+html.fit.d1 .toggle{padding:3px 7px; margin-bottom:3px;}
+html.fit.d1 .seg button, html.fit.d1 .toggle button{padding:4px 4px;}
+html.fit.d1 button, html.fit.d1 select{padding:3px 8px;}
+html.fit.d1 .callout, html.fit.d1 .verdict{padding:5px 8px; margin-top:3px; line-height:1.3;}
+html.fit.d1 .pstep, html.fit.d1 .step{padding-top:3px; padding-bottom:3px;}
+html.fit.d1 .legend{margin-top:2px;} html.fit.d1 .btnrow{margin:2px 0;}
+html.fit.d1 header.top{padding-bottom:2px;}
+html.fit.d2 .fitgrid, html.fit.d2 .fcol{gap:4px;}
+html.fit.d2 .panel{padding:4px 7px 5px; border-radius:8px;}
+html.fit.d2 .panel h2, html.fit.d2 .stage-title{margin-bottom:2px; font-size:10px;}
+html.fit.d2 .ctl-row, html.fit.d2 .field{margin-bottom:1px;}
+html.fit.d2 input[type=range]{height:14px; margin:0;}
+html.fit.d2 .hint, html.fit.d2 .note, html.fit.d2 .panel .hint{line-height:1.18; font-size:10px; margin-top:0;}
+html.fit.d2 .stat{padding:2px 6px;} html.fit.d2 .stat .v{font-size:13px;} html.fit.d2 .stats{gap:3px;}
+html.fit.d2 .toggle{padding:2px 6px; margin-bottom:2px;}
+html.fit.d2 .seg button, html.fit.d2 .toggle button{padding:3px 3px;}
+html.fit.d2 button, html.fit.d2 select{padding:2px 7px;}
+html.fit.d2 .callout, html.fit.d2 .verdict{padding:3px 7px; margin-top:2px; line-height:1.25;}
+html.fit.d2 .pstep, html.fit.d2 .step{padding-top:2px; padding-bottom:2px;}
+html.fit.d2 header.top h1{font-size:19px;} html.fit.d2 header.top h1 small{display:none;}
+html.fit.d2 .legend{margin-top:1px;} html.fit.d2 .btnrow{margin:1px 0;} html.fit.d2 .live{padding:5px 9px; margin-bottom:3px;}
+
+html.fit .thermal-wrap{align-items:start;}
+html.fit #heat{height:auto !important; align-self:start;}
+html.fit #cbar{height:100%;}
+/* Tabellen: nie rechts abschneiden */
+html.fit .fcol div:has(> table), html.fit .fcol .tablewrap, html.fit .fcol .skiptbl-wrap{overflow-x:auto; max-width:100%;}
+html.fit .fcol table{font-size:10.5px;}
+html.fit .fcol table th, html.fit .fcol table td{padding:3px 4px; white-space:normal;}
+/* alte max-height-Kappen der Einzel-Apps aufheben: Höhe folgt nur dem Seitenverhältnis (keine Seitenbalken) */
+html.fit svg, html.fit .stage svg, html.fit #setup, html.fit #wave, html.fit #chart, html.fit #view{max-height:none !important;}
+html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{min-width:0; overflow:hidden;}
+html.fit .panel.fit2 select, html.fit .panel.fit2 input[type=range]{width:100%; max-width:100%; min-width:0;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="title-group">
+      <p class="brand-eyebrow">SCHAEFFLER · ZFP · SCHWEINFURT</p>
+      <h1>Magnetpulverprüf-Simulator<small>MT · Magnetisierung, Prüfmittel, Auswertung &amp; Entmagnetisierung</small></h1>
+    </div>
+    <div class="hdr-right">
+      <div class="badge" id="badge"><span class="dot"></span>FELD AN</div>
+      <button class="theme-btn" id="themeBtn" title="Light/Dark Mode">☀</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <div class="panel">
+        <div class="tabs" id="tabs">
+          <button data-tab="test" class="sel">Prüfung · Magnetpulver</button>
+          <button data-tab="demag">Entmagnetisieren</button>
+        </div>
+
+        <div class="only-test">
+          <p class="stage-title"><span>PRÜFOBJEKT · ROHR (MANTEL ABGEWICKELT)</span><span class="sub" id="partSub">—</span></p>
+          <div class="stage"><canvas id="cvPart"></canvas></div>
+          <div class="legend" id="partLegend"></div>
+        </div>
+
+        <div class="only-demag">
+          <p class="stage-title"><span>DOMÄNENMODELL · ELEMENTARMAGNETE</span><span class="sub">Maus bzw. Finger = Handmagnet</span></p>
+          <div class="stage"><canvas id="cvDemag"></canvas></div>
+          <div class="statusline"><span id="dmMode">—</span><b id="dmLive"></b></div>
+          <div class="legend">
+            <span><i style="background:#c03030"></i>Nordpol-Seite der Nadel</span>
+            <span><i style="background:#2d6da8"></i>Südpol-Seite der Nadel</span>
+            <span><i style="background:rgba(255,155,20,.7)"></i>Feldstärke-Heatmap</span>
+            <span><i style="background:rgba(100,140,200,.6)"></i>AC: nicht magnetisierter Kern</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel only-test">
+        <p class="stage-title"><span>FELDVEKTOR UND ERREGERSTRÖME</span><span class="sub" id="fieldSub">—</span></p>
+        <div class="vecrow">
+          <div class="stage"><canvas id="cvVec"></canvas></div>
+          <div>
+            <div class="stage"><canvas id="cvWave"></canvas></div>
+            <p class="hint">Ein Fehler zeigt sich nur, wenn die Feldkomponente <b>senkrecht</b> zum Fehler groß genug ist: Bₙ = B₂·sin θ + B₁·cos θ. Die grünen und roten Ringe markieren das Feldfenster 2–6,5 kA/m. Die Frequenz ist hier zur Anschauung stark verlangsamt.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel only-demag">
+        <p class="stage-title"><span>MODELL</span></p>
+        <p class="hint" style="margin-top:0">Jede Nadel hat eine individuelle, log-normal verteilte Koerzitivität H<sub>c</sub>. Sie dreht sich in Feldrichtung, solange das Feld größer als ihr H<sub>c</sub> ist, und friert sonst ein. So entsteht eine echte Restmagnetisierung, die nur ein langsam abklingendes Wechselfeld wieder auf null bringt. Die Ausgangslage entspricht dem Zustand, in dem die Prüfung das Bauteil zurückgelassen hat.</p>
+      </div>
+    </div>
+
+    <div class="col">
+
+      <!-- ═══ Prüfung ═══ -->
+      <div class="panel only-test">
+        <p class="stage-title"><span>PRÜFZYKLUS · ECHTZEIT</span><span class="sub" id="cySubT">Magnetisieren → Bespülen → Nachmagnetisieren</span></p>
+        <div class="live">
+          <div class="live-top"><span class="live-state" id="cyState">bereit</span><span class="live-clock" id="cyClock">–</span></div>
+          <div class="pbar"><i id="cyBar"></i></div>
+          <div class="live-sub" id="cySub">—</div>
+        </div>
+        <div class="tl" id="cyTl"><span data-p="mag">① Magnetisieren</span><span data-p="spray">② Bespülen</span><span data-p="post">③ Nachmag-<br>netisieren</span><span data-p="done">④ Auswerten</span></div>
+        <div class="ctl-row"><label>Magnetisieren (ohne Prüfmittel) <b id="cdMagV">3 s</b></label><input type="range" id="cdMag" min="1" max="10" step="1" value="3"></div>
+        <div class="ctl-row"><label>Bespülen mit Prüfmittel <b id="cdSprV">6 s</b></label><input type="range" id="cdSpr" min="2" max="20" step="1" value="6"></div>
+        <div class="ctl-row"><label>Nachmagnetisieren (Feld bleibt an) <b id="cdPostV">4 s</b></label><input type="range" id="cdPost" min="1" max="15" step="1" value="4"></div>
+        <div class="cyspeed" id="cySpeed" role="group" aria-label="Zeitraffer"><button data-s="1" class="sel">1×<br>Echtzeit</button><button data-s="2">2×</button><button data-s="4">4×</button></div>
+        <div class="btnrow"><button class="primary" id="btnCycle">▶ Prüfzyklus starten</button><button class="tog on" id="btnInner" aria-pressed="true">Innenfehler einbezogen</button><button id="btnEval" disabled>🔍 Auswerten</button></div>
+        <p class="hint">Der Zyklus läuft in Echtzeit: Feld an, danach wird die Prüffläche bespült, und das Feld bleibt zum Nachmagnetisieren an. Mit „Innenfehler“ lässt sich der Fehler unter der Oberfläche optional aus der Prüfung nehmen.</p>
+      </div>
+
+      <div class="panel only-test">
+        <p class="stage-title"><span>MAGNETISIERUNG</span><span class="sub" id="presetName">—</span></p>
+        <div class="seg" id="presets">
+          <button data-p="durchf">Stromdurchflutung<br>umlaufendes Feld B₁</button>
+          <button data-p="joch">Joch / Spule<br>axiales Feld B₂</button>
+          <button data-p="dreh" class="sel">Drehfeld<br>B₁ + B₂, AC 90°</button>
+          <button data-p="kombi">Kombination<br>B₁ DC + B₂ AC</button>
+        </div>
+
+        <div class="sub-h"><i style="background:#2266cc"></i>Feld 1 · umlaufend (B₁)</div>
+        <div class="ctl-row"><label>Stromamplitude 1 <b id="a1V">0,80</b></label><input type="range" id="a1" min="0" max="1.2" step="0.01" value="0.8"></div>
+        <div class="dcac" id="dcac1"><button data-v="dc">DC</button><button data-v="ac" class="sel">AC ⬃</button></div>
+        <div class="ctl-row" id="p1Row"><label>Phase φ₁ <b id="p1V">0°</b></label><input type="range" id="p1" min="0" max="360" step="1" value="0"></div>
+
+        <div class="sub-h"><i style="background:#cc6600"></i>Feld 2 · axial (B₂)</div>
+        <div class="ctl-row"><label>Stromamplitude 2 <b id="a2V">0,80</b></label><input type="range" id="a2" min="0" max="1.2" step="0.01" value="0.8"></div>
+        <div class="dcac" id="dcac2"><button data-v="dc">DC</button><button data-v="ac" class="sel">AC ⬃</button></div>
+        <div class="ctl-row" id="p2Row"><label>Phase φ₂ <b id="p2V">90°</b></label><input type="range" id="p2" min="0" max="360" step="1" value="90"></div>
+
+        <div class="ctl-row"><label>Frequenz (Zeitlupe) <b id="frV">1,0 Hz</b></label><input type="range" id="fr" min="0.1" max="3" step="0.1" value="1"></div>
+
+        <div class="gauge ht">
+          <div class="lbl" style="margin:0 0 4px;justify-content:space-between"><span>Tangentialfeldstärke (Spitze)</span><b id="hVal" style="color:var(--text)">–</b></div>
+          <div class="bar"><div class="needle" id="hNeedle" style="left:50%"></div></div>
+          <div class="ticks"><span style="left:0%">0</span><span style="left:25%">2</span><span style="left:81.25%">6,5</span><span style="left:99%">8 kA/m</span></div>
+        </div>
+        <div class="btnrow" style="margin-top:10px"><button class="primary" id="btnField">■ Feld ausschalten (manuell)</button></div>
+      </div>
+
+      <div class="panel only-test">
+        <p class="stage-title"><span>PRÜFMITTEL &amp; BELEUCHTUNG</span></p>
+        <div class="seg" id="typeSeg">
+          <button data-t="fl" class="sel">Fluoreszierend<br>UV-A, abgedunkelt</button>
+          <button data-t="col">Farbkontrast<br>schwarz auf Weißgrund</button>
+        </div>
+        <div class="ctl-row"><label>Suspensionskonzentration <b id="cV">0,25</b></label><input type="range" id="conc" min="0" max="1" step="0.01" value="0.25"><div class="note" id="cNote"></div></div>
+        <div class="ctl-row" id="uvRow"><label>UV-A-Intensität <b id="uvV">12 W/m²</b></label><input type="range" id="uv" min="0" max="20" step="1" value="12"><div class="note">Soll ≥ 10 W/m² (1000 µW/cm²) auf der Prüffläche</div></div>
+        <div class="ctl-row"><label><span id="luxLbl">Umgebungslicht</span> <b id="luxV">5 lx</b></label><input type="range" id="lux" min="0" max="300" step="5" value="5"><div class="note" id="luxNote"></div></div>
+        <div class="btnrow">
+          <button class="tog on" id="btnSpray" aria-pressed="true">Prüfmittel aufbringen</button>
+          <button class="tog on" id="btnClean" aria-pressed="true">Oberfläche sauber</button>
+          <button class="tog on" id="btnFlines" aria-pressed="true">Feldlinien</button>
+          <button id="btnWash">↺ Anzeigen abwaschen</button>
+        </div>
+      </div>
+
+      <div class="panel only-test">
+        <p class="stage-title"><span>AUSWERTUNG</span><span class="sub" id="evalSub">—</span></p>
+        <div class="stats">
+          <div class="stat" id="stHtBox"><div class="k">Tangentialfeld (Spitze)</div><div class="v" id="stHt">–</div></div>
+          <div class="stat" id="stSensBox"><div class="k">Systemempfindlichkeit</div><div class="v" id="stSens">–</div></div>
+          <div class="stat" id="stRefBox"><div class="k">Prüfkörper</div><div class="v" id="stRef">–</div></div>
+          <div class="stat" id="stLightBox"><div class="k">Beleuchtung</div><div class="v" id="stLight">–</div></div>
+          <div class="stat" id="stCovBox"><div class="k">Fehlerlagen erfassbar</div><div class="v" id="stCov">–</div></div>
+          <div class="stat" id="stRemBox"><div class="k">Restmagnetismus</div><div class="v" id="stRem">–</div></div>
+        </div>
+        <div class="cbars" id="cbars"></div>
+        <div class="callout" id="callout"></div>
+      </div>
+
+      <div class="panel only-test">
+        <p class="stage-title"><span>AUSWERTEPROTOKOLL</span><span class="sub" id="evSub">nach dem Prüfzyklus</span></p>
+        <div class="callout" id="evSummary">Noch keine Auswertung. Nach dem Prüfzyklus auf „Auswerten“ klicken und dann jede Anzeige im Bild anklicken – so entsteht die Befundliste.</div>
+        <div class="live" style="margin-top:10px"><div class="live-top"><span class="live-state" id="evProgState">Anzeigen erfasst</span><span class="live-val" id="evProgVal" style="font-size:18px;font-weight:700">0 / 0</span></div><div class="pbar"><i id="evProgBar"></i></div></div>
+        <table class="ht" id="evTable"><thead><tr><th class="l">Nr · Fehlerlage</th><th>Länge</th><th>Art</th><th>Bewertung</th></tr></thead><tbody></tbody></table>
+        <div class="btnrow" style="margin-top:12px"><button class="primary" id="btnDoc" disabled>📄 Befund abschließen</button></div>
+        <p class="hint">Jede im Bild erkennbare Anzeige anklicken, um sie in die Befundliste zu übernehmen (nochmaliges Anklicken entfernt sie). Erst wenn alle erkennbaren Anzeigen erfasst sind, lässt sich der Befund abschließen. Fehler, die nicht angezeigt werden, tauchen in der Liste nicht auf – das zeigt der Abschluss.</p>
+      </div>
+
+      <!-- ═══ Entmagnetisieren ═══ -->
+      <div class="panel only-demag">
+        <p class="stage-title"><span>MAGNETISIERUNG (SCHULUNGSMODELL)</span></p>
+        <div class="seg" id="dType">
+          <button data-m="dc" class="sel">⚡ Gleichstrom</button>
+          <button data-m="ac">〜 Wechselstrom</button>
+        </div>
+        <div class="modeinfo" id="dInfo"></div>
+        <div class="ctl-row"><label>Koerzitivität Ø <b id="d_hcV">2,0</b></label><input type="range" id="d_hc" min="0.1" max="30" step="0.1" value="2"></div>
+        <div class="ctl-row"><label>Magnetwinkel <b id="d_angV">0°</b></label><input type="range" id="d_ang" min="-90" max="90" step="5" value="0"></div>
+        <div class="ctl-row"><label>Magnetlänge <b id="d_lenV">55 px</b></label><input type="range" id="d_len" min="20" max="120" step="5" value="55"></div>
+        <div class="ctl-row" id="d_skinRow" style="display:none"><label>Eindringtiefe AC (Lagen) <b id="d_skinV">2</b></label><input type="range" id="d_skin" min="1" max="6" step="1" value="2"></div>
+        <details class="exp"><summary>Erweiterte Modellparameter</summary>
+          <div class="ctl-row"><label>Feldstärke <b id="d_strV">4000</b></label><input type="range" id="d_str" min="200" max="10000" step="100" value="4000"></div>
+          <div class="ctl-row"><label>Trägheit <b id="d_inV">0,45</b></label><input type="range" id="d_in" min="0.1" max="3" step="0.05" value="0.45"></div>
+          <div class="ctl-row"><label>Dämpfung <b id="d_daV">0,88</b></label><input type="range" id="d_da" min="0.6" max="0.99" step="0.01" value="0.88"></div>
+        </details>
+        <div class="btnrow"><button class="primary" id="dMagBtn">⚡ Jetzt magnetisieren</button></div>
+        <p class="hint">Gleichfeld in Magnetwinkel-Richtung auf alle <b>aktiven</b> Nadeln: <b id="dActive">210 / 210</b>.</p>
+      </div>
+
+      <div class="panel only-demag">
+        <p class="stage-title"><span>ENTMAGNETISIERUNGSMETHODE</span></p>
+        <div class="seg seg3" id="dMeth">
+          <button data-m="ac" class="sel">〜 AC Amplitude</button>
+          <button data-m="pulse">⚡ Puls</button>
+          <button data-m="distance">↔ Abstand</button>
+        </div>
+        <div class="modeinfo" id="dMethInfo"></div>
+        <div id="dp_ac">
+          <div class="ctl-row"><label>Abklingrate (langsam = gut) <b id="v_decayRate">0,18</b></label><input type="range" id="s_decayRate" min="0.03" max="1.5" step="0.03" value="0.18"></div>
+          <div class="ctl-row"><label>Startfeldstärke ×H<sub>c</sub> <b id="v_sm_ac">15</b></label><input type="range" id="s_sm_ac" min="3" max="30" step="1" value="15"></div>
+        </div>
+        <div id="dp_pulse" style="display:none">
+          <div class="ctl-row"><label>Abklingfaktor je Puls (hoch = gut) <b id="v_pulseFactor">0,85</b></label><input type="range" id="s_pulseFactor" min="0.6" max="0.98" step="0.01" value="0.85"></div>
+          <div class="ctl-row"><label>Pulsdauer <b id="v_pulseDur">0,28 s</b></label><input type="range" id="s_pulseDur" min="0.1" max="0.6" step="0.05" value="0.28"></div>
+          <div class="ctl-row"><label>Startfeldstärke ×H<sub>c</sub> <b id="v_sm_pulse">15</b></label><input type="range" id="s_sm_pulse" min="3" max="30" step="1" value="15"></div>
+        </div>
+        <div id="dp_distance" style="display:none">
+          <div class="ctl-row"><label>Geschwindigkeit (langsam = gut) <b id="v_distSpeed">60 px/s</b></label><input type="range" id="s_distSpeed" min="15" max="400" step="5" value="60"></div>
+          <div class="ctl-row"><label>Startfeldstärke ×H<sub>c</sub> <b id="v_sm_distance">15</b></label><input type="range" id="s_sm_distance" min="3" max="30" step="1" value="15"></div>
+        </div>
+        <div class="btnrow"><button class="primary" id="dStart">▶ Start</button><button class="stop" id="dStop" style="display:none">■ Stopp</button></div>
+        <p class="hint" id="dStopHint" style="display:none">Stopp bricht den Prozess ab: bei unvollständiger Entmagnetisierung bleibt Restmagnetisierung sichtbar.</p>
+      </div>
+
+      <div class="panel only-demag">
+        <p class="stage-title"><span>RESTMAGNETISIERUNG</span><span class="sub">Grenzwert 0,3 mT</span></p>
+        <div class="resline"><b id="rPct">0 %</b><span id="rLbl">–</span></div>
+        <div class="resbar"><i id="rBar"></i></div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:8px">
+          <div class="compass"><div class="nd" id="cNd"></div><div class="dt"></div></div>
+          <div>
+            <div class="hint" style="margin:0">Nettofeldrichtung der aktiven Nadeln</div>
+            <div id="rAng" style="font-family:var(--mono);font-weight:700">0°</div>
+            <div id="rMt" style="font-family:var(--mono);font-size:11px">0,00 mT</div>
+          </div>
+        </div>
+        <div class="btnrow" style="margin-top:12px"><button class="tog on" id="dHeat" aria-pressed="true">Feldstärke-Heatmap</button><button id="dReset">↺ Komplett zurücksetzen</button></div>
+      </div>
+
+      <!-- ═══ gemeinsam ═══ -->
+      <div class="panel">
+        <p class="stage-title"><span>PRÜFABLAUF</span><span class="sub" id="stepsCount">—</span></p>
+        <div class="steps" id="steps"></div>
+        <p class="hint">Richtwerte vereinfacht nach DIN EN ISO 9934-1/-2 (Tangentialfeld 2–6,5 kA/m, UV-A ≥ 10 W/m², Umgebungslicht ≤ 20 lx, Weißlicht ≥ 500 lx, Konzentration fluoreszierend 0,1–0,4 und schwarz/weiß 1,2–2,4 ml/100 ml). Der Grenzwert 0,3 mT für Restmagnetismus ist eine typische Forderung.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => Math.max(a,Math.min(b,v));
+const fmt = (n,d=1) => Number(n).toFixed(d).replace('.',',');
+const rad = d => d*Math.PI/180;
+let light=false, ready=false, tab='test';
+
+/* ── Theme: global über ZfPContext, lokaler Fallback ─────────── */
+function setTheme(mode){
+  light = mode==='light';
+  document.body.classList.toggle('light-mode',light);
+  $('themeBtn').textContent = light ? '☾' : '☀';
+}
+const ctxTheme = window.ZfPContext || (()=>{ let cb=()=>{}, mode='dark'; return { onTheme(f){cb=f; f(mode);}, toggleTheme(){ mode=mode==='light'?'dark':'light'; cb(mode);} }; })();
+ctxTheme.onTheme(setTheme);
+$('themeBtn').addEventListener('click',()=>ctxTheme.toggleTheme());
+
+function pal(){
+  return light ? {
+    bg1:'#eef3f8', bg2:'#dce5ee', grid:'rgba(40,70,90,.16)', text:'#415667', label:'#0c1620',
+    b1:'#2266cc', b2:'#cc6600', res:'#d6249f', trail:'#0a9bd6', ok:'#187a32', bad:'#b0241a', amber:'#a45f00', dmBg:'#f0eeea', dmDot:'#c5c1b8'
+  } : {
+    bg1:'#0a1016', bg2:'#131c25', grid:'rgba(120,150,170,.18)', text:'#9fb0bd', label:'#d5dde3',
+    b1:'#5b9bff', b2:'#ff9a3c', res:'#ff5fd0', trail:'#4de1ff', ok:'#5fe072', bad:'#ff6f66', amber:'#ffc94d', dmBg:'#161d24', dmDot:'#2c3640'
+  };
+}
+
+/* ── Canvas ──────────────────────────────────────────────────── */
+const PW=900, PH=330, VW=320, VH=320, WW=560, WH=250, DW=820, DH=520;
+const cvPart=$('cvPart'), pctx=cvPart.getContext('2d');
+const cvVec=$('cvVec'), vctx=cvVec.getContext('2d');
+const cvWave=$('cvWave'), wctx=cvWave.getContext('2d');
+const cvDemag=$('cvDemag'), dctx=cvDemag.getContext('2d');
+function hiDPI(c,ctx,w,h){ const d=Math.max(1,window.devicePixelRatio||1); c.width=w*d; c.height=h*d; c.style.aspectRatio=(w/h); ctx.setTransform(d,0,0,d,0,0); }
+function setupCanvases(){ hiDPI(cvPart,pctx,PW,PH); hiDPI(cvVec,vctx,VW,VH); hiDPI(cvWave,wctx,WW,WH); hiDPI(cvDemag,dctx,DW,DH); }
+setupCanvases();
+function rngSeed(seed){ let s=seed%2147483647; if(s<=0) s+=2147483646; return ()=>{ s=s*16807%2147483647; return (s-1)/2147483646; }; }
+
+/* ═══════════════════════════════════════════════════════════════
+   PRÜFUNG
+   Feldrichtung: B₂ axial (x), B₁ umlaufend (y nach oben). Bildschirm: x → rechts, y ↓.
+   Ein Fehler mit Richtung θ (Bildschirmkoordinaten) wird erkannt über die Feldkomponente
+   senkrecht zum Fehler:  Bₙ = |B₂·sin θ + B₁·cos θ|
+   (0° Längsriss → nur B₁, 90° Ringriss → nur B₂, 45° „\\" und 135° „/" → Mischung)
+   ═══════════════════════════════════════════════════════════════ */
+const KA=6.0;                         // kA/m je Amplitudeneinheit
+const H_MIN=2.0, H_MAX=6.5, VIS=0.25; // Feldfenster / Sichtbarkeitsschwelle
+const REM={pct:0, ang:0, dirty:false}; // Restmagnetismus des Bauteils (100 % ≙ 3 mT)
+const MT_PER_PCT=0.03, REM_LIMIT_PCT=10;
+
+const T={ on:true, t:0, amp1:0.8, amp2:0.8, ac1:true, ac2:true, phi1:0, phi2:90, freq:1, preset:'dreh',
+  fluor:true, concFl:0.25, concCol:1.8, uv:12, ambFl:5, whiteCol:600, clean:true, spray:true, flines:true,
+  trail:[], trailT:-1, everMag:true, sprayed:false };
+
+const WP={x:70,y:100,w:760,h:186};
+const CRALL=[
+  {tag:'0° Längsriss', sh:'0° Längsriss', ang:0,   x:170, y:190, len:84, f:1.0,  depth:0},
+  {tag:'45° Schrägriss', sh:'45° Schräg', ang:45,  x:310, y:190, len:84, f:1.0,  depth:0},
+  {tag:'90° Ringriss', sh:'90° Ring', ang:90,  x:450, y:190, len:70, f:1.0,  depth:0},
+  {tag:'135° Schrägriss, fein', sh:'135° fein', ang:135, x:590, y:190, len:84, f:0.6,  depth:0},
+  {tag:'0° unter der Oberfläche', sh:'0° tief (1 mm)', ang:0, x:730, y:190, len:84, f:0.85, depth:1.0}
+];
+const REFS=[
+  {tag:'Prüfkörper 1', ref:true, ang:0, x:700, y:46, len:44, f:1.0,  depth:0},
+  {tag:'Prüfkörper 2', ref:true, ang:0, x:760, y:46, len:44, f:0.55, depth:0},
+  {tag:'Prüfkörper 3', ref:true, ang:0, x:820, y:46, len:44, f:0.3,  depth:0}
+];
+let CR=CRALL.slice();                 // aktive Fehlerlagen (Innenfehler optional)
+let ALLC=CR.concat(REFS);
+CRALL.concat(REFS).forEach(c=>{ c.acc=0; c.vis=0; c.cov=0; });
+const SPK=(()=>{ const r=rngSeed(77), a=[]; for(let i=0;i<220;i++) a.push([r(),r(),0.6+r()*1.6]); return a; })();
+const JIT=(()=>{ const r=rngSeed(31), a=[]; for(let i=0;i<64;i++) a.push([r(),r(),r()]); return a; })();
+
+function fieldAt(t,force){
+  if(!T.on && !force) return {B1:0,B2:0};
+  const w=2*Math.PI*T.freq;
+  return { B1:T.ac1?T.amp1*Math.sin(w*t+rad(T.phi1)):T.amp1, B2:T.ac2?T.amp2*Math.sin(w*t+rad(T.phi2)):T.amp2 };
+}
+// Eindringung: Wechselfeld nur im Skin-Bereich (δ ≈ 0,7 mm), Gleichfeld tief (≈ 10 mm)
+const pen=(ac,d)=>d<=0?1:(ac?Math.exp(-d/0.7):Math.exp(-d/10));
+function leakOf(c,B1,B2){ const th=rad(c.ang); return KA*Math.abs(B2*pen(T.ac2,c.depth)*Math.sin(th)+B1*pen(T.ac1,c.depth)*Math.cos(th))*c.f; }
+
+let AN=null;
+function analyse(){
+  const fl=T.fluor, rng=fl?[0.1,0.4]:[1.2,2.4], conc=fl?T.concFl:T.concCol;
+  let cF=1, bgC=0;
+  if(conc<rng[0]) cF=0.3+0.7*conc/rng[0];
+  else if(conc>rng[1]){ cF=Math.max(0.45,1-0.45*(conc-rng[1])/rng[1]); bgC=clamp((conc-rng[1])/rng[1],0,1)*0.7; }
+  const concOK=conc>=rng[0]&&conc<=rng[1];
+  const cleanF=T.clean?1:0.5, Sp=cF*cleanF;
+  let lightF, lightOK, lightTxt;
+  if(fl){ lightF=clamp(T.uv/10,0,1)/(1+Math.pow(T.ambFl/100,2)); lightOK=T.uv>=10&&T.ambFl<=20; lightTxt='UV-A '+T.uv+' W/m² · '+T.ambFl+' lx'; }
+  else { lightF=Math.pow(clamp(T.whiteCol/500,0,1),0.7); lightOK=T.whiteCol>=500; lightTxt=T.whiteCol+' lx Weißlicht'; }
+  // Feldverlauf über eine Periode (unabhängig vom Ein/Aus-Zustand)
+  const N=72, per=1/T.freq; let Hpk=0;
+  ALLC.forEach(c=>c.cov=0);
+  let Hpk1=0;
+  for(let k=0;k<N;k++){
+    const f=fieldAt(per*k/N,true);
+    Hpk=Math.max(Hpk,Math.hypot(f.B1,f.B2)*KA);
+    ALLC.forEach(c=>{ c.cov=Math.max(c.cov,clamp((leakOf(c,f.B1,f.B2)*Sp-0.8)/3.2,0,1)); });
+  }
+  const bgF=clamp((Hpk-H_MAX)/3,0,1)*0.8, bg=clamp(bgC+bgF,0,1);
+  const lf=lightF*(1-0.6*bg);
+  ALLC.forEach(c=>c.cov*=lf);
+  const covN=CR.filter(c=>c.cov>=VIS).length, refN=REFS.filter(c=>c.cov>=VIS).length;
+  return {conc,rng,concOK,cF,cleanF,Sp,lightF,lightOK,lightTxt,Hpk,bg,bgC,bgF,lf,covN,refN,sens:Sp*lightF};
+}
+
+function stepTest(dt){
+  if(T.on) T.t+=dt;
+  const {B1,B2}=fieldAt(T.t);
+  // Spur
+  const dur=1.5/T.freq;
+  if(T.on && T.t-T.trailT>=0.01){ T.trail.unshift({B1,B2,t:T.t}); T.trailT=T.t; }
+  while(T.trail.length && T.t-T.trail[T.trail.length-1].t>dur) T.trail.pop();
+  AN=analyse();
+  ALLC.forEach(c=>{
+    const ip=clamp((leakOf(c,B1,B2)*AN.Sp-0.8)/3.2,0,1);
+    // Bespülen: schnelle Anzeigenbildung; Nachmagnetisieren: Restpulver sammelt sich langsamer an den Streufeldern
+    const feed = T.on && (T.spray || CY.phase==='post'), rate = CY.phase==='post' ? 0.4 : 1;
+    if(feed && ip>c.acc) c.acc+=(ip-c.acc)*(1-Math.exp(-dt*rate/0.5));
+    c.vis=c.acc*AN.lf;
+  });
+  if(T.on&&T.spray&&Math.hypot(B1,B2)>0.05) T.sprayed=true;
+  // Restmagnetismus aus Betrag und Art des Feldes
+  const stamp=[T.on,T.amp1,T.amp2,T.ac1,T.ac2].join('|');
+  if(T.on && stamp!==stepTest.stamp && (T.amp1>0.01||T.amp2>0.01)){
+    stepTest.stamp=stamp;
+    const r1=(1-Math.exp(-T.amp1*KA/2.5))*(T.ac1?0.55:1), r2=(1-Math.exp(-T.amp2*KA/2.5))*(T.ac2?0.55:1);
+    REM.pct=Math.min(100,Math.round(100*Math.hypot(r1,r2)));
+    REM.dirty=true; T.everMag=true;
+  } else if(!T.on) stepTest.stamp='';
+  if(T.on && Math.hypot(B1,B2)>0.05 && REM.pct>0 && stamp===stepTest.stamp && !REM.frozen) REM.ang=Math.atan2(-B1,B2);
+  return {B1,B2};
+}
+
+/* ── Zeichnen: Prüfobjekt ───────────────────────────────────── */
+function drawArrow(g,x1,y1,x2,y2,color,w,glow){
+  const dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy); if(len<0.5) return;
+  g.save(); g.strokeStyle=color; g.fillStyle=color; g.lineWidth=w; g.lineCap='round';
+  if(glow){ g.shadowColor=color; g.shadowBlur=glow; }
+  g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.stroke();
+  const a=Math.atan2(dy,dx), al=Math.min(10+w,len*0.45), bx=x2-al*Math.cos(a), by=y2-al*Math.sin(a);
+  g.beginPath(); g.moveTo(x2,y2); g.lineTo(bx-al*0.4*Math.sin(a),by+al*0.4*Math.cos(a)); g.lineTo(bx+al*0.4*Math.sin(a),by-al*0.4*Math.cos(a)); g.closePath(); g.fill();
+  g.restore();
+}
+function drawIndication(g,c,fl){
+  const th=rad(c.ang), hx=Math.cos(th)*c.len/2, hy=Math.sin(th)*c.len/2;
+  const x1=c.x-hx,y1=c.y-hy,x2=c.x+hx,y2=c.y+hy, v=clamp(c.vis,0,1);
+  g.save(); g.lineCap='round';
+  g.strokeStyle=fl?'rgba(200,190,255,.60)':'rgba(70,70,80,.45)'; g.lineWidth=1.2;
+  g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.stroke();
+  if(v>0.02){
+    if(fl){
+      g.shadowColor='rgba(190,255,60,'+(0.35+0.65*v).toFixed(2)+')'; g.shadowBlur=6+20*v;
+      g.strokeStyle='rgba(190,255,70,'+(0.22+0.78*v).toFixed(2)+')'; g.lineWidth=2.5+5.5*v;
+      g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.stroke();
+      g.shadowBlur=0; g.strokeStyle='rgba(245,255,205,'+v.toFixed(2)+')'; g.lineWidth=1+2*v;
+      g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.stroke();
+    } else {
+      g.strokeStyle='rgba(10,10,14,'+(0.3+0.7*v).toFixed(2)+')'; g.lineWidth=2.5+6*v;
+      g.beginPath(); g.moveTo(x1,y1); g.lineTo(x2,y2); g.stroke();
+    }
+    // Pulverkörner entlang der Anzeige
+    const n=Math.round(10+34*v); g.shadowBlur=0;
+    for(let i=0;i<n;i++){ const j=JIT[i%JIT.length], u=(j[0]), ox=(j[1]-0.5)*(6+10*v), oy=(j[2]-0.5)*(6+10*v);
+      g.fillStyle=fl?'rgba(215,255,120,'+(0.25+0.6*v).toFixed(2)+')':'rgba(5,5,8,'+(0.35+0.55*v).toFixed(2)+')';
+      g.fillRect(x1+(x2-x1)*u+ox,y1+(y2-y1)*u+oy,1.6,1.6); }
+  }
+  g.restore();
+}
+function drawPart(B1,B2){
+  const P=pal(), g=pctx, W=PW, H=PH, fl=T.fluor, now=performance.now()/1000;
+  g.clearRect(0,0,W,H);
+  const bg=g.createLinearGradient(0,0,0,H);
+  if(fl){ bg.addColorStop(0,'#1c1438'); bg.addColorStop(1,'#2c2058'); } else { bg.addColorStop(0,'#eef1f4'); bg.addColorStop(1,'#d9e0e6'); }
+  g.fillStyle=bg; g.fillRect(0,0,W,H);
+
+  // Prüfobjekt (Welle, Mantel abgewickelt)
+  const wg=g.createLinearGradient(0,WP.y,0,WP.y+WP.h);
+  if(fl){ wg.addColorStop(0,'#4a4590'); wg.addColorStop(0.35,'#6a64b8'); wg.addColorStop(0.7,'#4a4590'); wg.addColorStop(1,'#322d68'); }
+  else { wg.addColorStop(0,'#e1e7ed'); wg.addColorStop(0.5,'#fbfcfd'); wg.addColorStop(1,'#d7dee5'); }
+  g.fillStyle=wg; g.beginPath(); g.roundRect?g.roundRect(WP.x,WP.y,WP.w,WP.h,14):g.rect(WP.x,WP.y,WP.w,WP.h); g.fill();
+  g.strokeStyle=fl?'rgba(205,195,255,.9)':'rgba(90,110,130,.55)'; g.lineWidth=1.4; g.stroke();
+  g.save(); g.beginPath(); g.rect(WP.x,WP.y,WP.w,WP.h); g.clip(); g.strokeStyle=fl?'rgba(255,255,255,.10)':'rgba(0,0,0,.07)'; g.lineWidth=1;
+  for(let y=WP.y+4;y<WP.y+WP.h;y+=6){ g.beginPath(); g.moveTo(WP.x,y); g.lineTo(WP.x+WP.w,y); g.stroke(); } g.restore();
+
+  // Zylinder-Schattierung (Rohr): Glanzlicht oben, dunklerer Rand unten
+  { const sh=g.createLinearGradient(0,WP.y,0,WP.y+WP.h);
+    sh.addColorStop(0,'rgba(255,255,255,'+(fl?0.26:0.30)+')'); sh.addColorStop(0.28,'rgba(255,255,255,'+(fl?0.12:0.18)+')'); sh.addColorStop(0.55,'rgba(255,255,255,0)'); sh.addColorStop(1,'rgba(0,0,0,'+(fl?0.26:0.20)+')');
+    g.fillStyle=sh; g.beginPath(); g.roundRect?g.roundRect(WP.x,WP.y,WP.w,WP.h,14):g.rect(WP.x,WP.y,WP.w,WP.h); g.fill(); }
+  // UV-Licht / Weißlicht
+  if(fl){
+    const a=clamp(T.uv/20,0,1)*0.34, lg=g.createRadialGradient(110,6,10,WP.x+WP.w*0.45,WP.y+WP.h*0.5,620);
+    lg.addColorStop(0,'rgba(150,90,255,'+a.toFixed(3)+')'); lg.addColorStop(1,'rgba(90,40,200,0)');
+    g.fillStyle=lg; g.fillRect(0,0,W,H);
+  }
+  // Feldlinien (aufgelöste Richtung des resultierenden Feldes)
+  const mag=Math.hypot(B1,B2);
+  if(T.flines && mag>0.02){
+    for(let j=0;j<3;j++) for(let i=0;i<9;i++){
+      const x=WP.x+(i+0.5)*WP.w/9, y=WP.y+(j+0.5)*WP.h/3, s=46, al=clamp(0.5+mag*0.7,0.5,1);
+      drawArrow(g,x-B2*s*0.5,y+B1*s*0.5,x+B2*s*0.5,y-B1*s*0.5,fl?'rgba(255,160,236,'+al.toFixed(2)+')':'rgba(168,16,120,'+al.toFixed(2)+')',2.8,fl?9:0);
+    }
+  }
+  // Untergrund (Pulverreste durch hohe Feldstärke oder zu dichte Suspension)
+  const nbg=Math.floor(AN.bg*SPK.length);
+  for(let i=0;i<nbg;i++){ const s=SPK[i]; g.fillStyle=fl?'rgba(185,240,90,.30)':'rgba(15,15,20,.30)'; g.fillRect(WP.x+s[0]*WP.w,WP.y+s[1]*WP.h,s[2],s[2]); }
+
+  // Anzeigen
+  CR.forEach(c=>drawIndication(g,c,fl));
+  g.font='10px "JetBrains Mono",monospace'; g.textAlign='center'; g.fillStyle=fl?'#e6eaff':'#2b3e4f';
+  CR.forEach(c=>g.fillText(c.sh,c.x,WP.y+WP.h+16));
+
+  drawEvalOverlay(g,fl);
+  // Prüfkörper
+  g.fillStyle=fl?'#2d2860':'#f1f3f5'; g.strokeStyle=fl?'rgba(205,195,255,.9)':'rgba(90,110,130,.55)'; g.lineWidth=1.2;
+  g.beginPath(); g.roundRect?g.roundRect(662,16,206,60,8):g.rect(662,16,206,60); g.fill(); g.stroke();
+  REFS.forEach(c=>drawIndication(g,c,fl));
+  g.fillStyle=fl?'#e6eaff':'#2b3e4f'; g.textAlign='left'; g.fillText('Prüfkörper (Kontrollmittel)',670,31+38);
+
+  // Beschriftungen und Achsen
+  g.textAlign='left'; g.fillStyle=P.text; g.font='10px "JetBrains Mono",monospace';
+  g.fillText('x: axial (B₂)   ·   y: umlaufend (B₁)',WP.x,WP.y-12);
+  g.fillStyle=fl?'#ff9aea':'#b0127f'; g.fillText(T.on?('H = '+fmt(mag*KA,1)+' kA/m'):'Feld aus',WP.x+250,WP.y-12);
+
+  // Lampe + Beleuchtungswerte
+  g.fillStyle=fl?'rgba(190,150,255,.9)':'rgba(200,150,20,.95)'; g.beginPath(); g.moveTo(24,10); g.lineTo(78,10); g.lineTo(66,30); g.lineTo(36,30); g.closePath(); g.fill();
+  g.fillStyle=P.text; g.fillText(fl?'UV-A '+T.uv+' W/m²':'Weißlicht '+T.whiteCol+' lx',14,48);
+  if(fl) g.fillText('Umgebung '+T.ambFl+' lx',14,62);
+  if(fl && T.ambFl>0){ g.fillStyle='rgba(255,255,255,'+clamp(T.ambFl/330,0,0.55).toFixed(3)+')'; g.fillRect(0,0,W,H); }
+
+  // Bespülen: Düse fährt über das Rohr, Prüfmittel strömt über die Fläche
+  if(T.spray&&T.on) drawNozzle(g,now,fl,P);
+  drawPhaseBanner(g,P,fl);
+}
+function drawNozzle(g,now,fl,P){
+  const nx=WP.x+WP.w*(0.5+0.44*Math.sin(now*0.8)), ny=WP.y-30;
+  g.save();
+  // Feuchtfilm
+  g.globalAlpha=0.10+0.05*Math.sin(now*3); g.fillStyle=fl?'#bfff5a':'#202840';
+  g.beginPath(); g.roundRect?g.roundRect(WP.x,WP.y,WP.w,WP.h,14):g.rect(WP.x,WP.y,WP.w,WP.h); g.fill();
+  g.globalAlpha=1;
+  // Strahl aus Tropfen
+  for(let i=0;i<80;i++){
+    const ph=(now*1.2+i*0.137)%1, a=Math.sin(i*12.9898)*0.5, px=nx+Math.sin(a)*ph*WP.h*1.1+Math.sin(i*3.1+now*2)*3, py=ny+10+ph*(WP.h+34)*Math.cos(a);
+    if(py>WP.y+WP.h) continue;
+    g.fillStyle=fl?'rgba(200,255,100,'+(0.8*(1-ph*0.35)).toFixed(2)+')':'rgba(30,36,64,'+(0.8*(1-ph*0.35)).toFixed(2)+')';
+    g.beginPath(); g.arc(px,py,1.3+((i*7)%3)*0.5,0,7); g.fill();
+  }
+  // Schlauch + Düse
+  g.strokeStyle=fl?'#c4b8ff':'#3a4654'; g.lineWidth=4; g.lineCap='round';
+  g.beginPath(); g.moveTo(nx,ny-14); g.quadraticCurveTo(nx+34,ny-36,nx+110,ny-30); g.stroke();
+  const ng=g.createLinearGradient(nx-10,0,nx+10,0); ng.addColorStop(0,'#8e9aa6'); ng.addColorStop(0.5,'#f0f4f8'); ng.addColorStop(1,'#6f7b87');
+  g.fillStyle=ng; g.beginPath(); g.moveTo(nx-10,ny-14); g.lineTo(nx+10,ny-14); g.lineTo(nx+4,ny+10); g.lineTo(nx-4,ny+10); g.closePath(); g.fill();
+  g.fillStyle=P.text; g.font='10px "JetBrains Mono",monospace'; g.textAlign='left'; g.fillText('Prüfmittel läuft',WP.x+WP.w-120,WP.y-12);
+  g.restore();
+}
+function drawPhaseBanner(g,P,fl){
+  if(!(CY.running||CY.done)) return;
+  const names={mag:'① Magnetisieren',spray:'② Bespülen',post:'③ Nachmagnetisieren',done:'④ Prüfzyklus abgeschlossen'};
+  let txt=names[CY.phase]||''; if(!txt) return;
+  if(CY.running){ const st={mag:0,spray:CYD.mag,post:CYD.mag+CYD.spray}[CY.phase], du={mag:CYD.mag,spray:CYD.spray,post:CYD.post}[CY.phase]; txt+='  '+fmt(Math.max(0,CY.t-st),1)+' / '+du+' s'; }
+  g.save(); g.font='bold 12px "JetBrains Mono",monospace'; const w=g.measureText(txt).width+22, x=PW/2-w/2+30;
+  g.fillStyle=fl?'rgba(10,6,24,.82)':'rgba(255,255,255,.9)'; g.strokeStyle=CY.phase==='done'?P.ok:P.amber; g.lineWidth=1.5;
+  g.beginPath(); g.roundRect?g.roundRect(x,12,w,26,13):g.rect(x,12,w,26); g.fill(); g.stroke();
+  g.fillStyle=CY.phase==='done'?P.ok:(fl?'#ffd96a':'#7a4a00'); g.fillText(txt,x+11,29); g.restore();
+}
+
+/* ── Zeichnen: Feldvektor (Hodograph) ───────────────────────── */
+function drawVec(B1,B2){
+  const P=pal(), g=vctx, W=VW, H=VH, cx=W/2, cy=H/2, sc=148/8;   // 8 kA/m ≙ Radius
+  g.clearRect(0,0,W,H);
+  const bg=g.createLinearGradient(0,0,0,H); bg.addColorStop(0,P.bg1); bg.addColorStop(1,P.bg2); g.fillStyle=bg; g.fillRect(0,0,W,H);
+  g.strokeStyle=P.grid; g.lineWidth=1;
+  g.beginPath(); g.moveTo(10,cy); g.lineTo(W-10,cy); g.moveTo(cx,10); g.lineTo(cx,H-10); g.stroke();
+  // Fehlerrichtungen (gestrichelt)
+  g.save(); g.setLineDash([3,4]); g.strokeStyle=P.grid;
+  [0,45,90,135].forEach(a=>{ const t=rad(a); g.beginPath(); g.moveTo(cx-Math.cos(t)*140,cy-Math.sin(t)*140); g.lineTo(cx+Math.cos(t)*140,cy+Math.sin(t)*140); g.stroke(); });
+  g.restore();
+  g.font='9px "JetBrains Mono",monospace'; g.fillStyle=P.text; g.textAlign='left';
+  [[0,'0°'],[45,'45°'],[90,'90°'],[135,'135°']].forEach(([a,l])=>{ const t=rad(a); g.fillText(l,cx+Math.cos(t)*138-(a===0?14:0),cy+Math.sin(t)*138+(a===90?-2:3)); });
+  // Feldfenster
+  g.save(); g.setLineDash([5,4]); g.lineWidth=1.4;
+  g.strokeStyle=P.ok; g.beginPath(); g.arc(cx,cy,H_MIN*sc,0,Math.PI*2); g.stroke();
+  g.strokeStyle=P.bad; g.beginPath(); g.arc(cx,cy,H_MAX*sc,0,Math.PI*2); g.stroke(); g.restore();
+  g.fillStyle=P.ok; g.fillText('2 kA/m',cx+4,cy-H_MIN*sc-3); g.fillStyle=P.bad; g.fillText('6,5 kA/m',cx+4,cy-H_MAX*sc-3);
+  g.fillStyle=P.b2; g.fillText('B₂ axial →',W-62,cy-6); g.fillStyle=P.b1; g.fillText('↑ B₁',cx+6,16);
+  // Spur
+  const dur=1.5/T.freq;
+  for(let i=0;i<T.trail.length-1;i++){
+    const a=T.trail[i], b=T.trail[i+1], age=(T.t-a.t)/dur, al=0.85*clamp(1-age*0.7,0,1);
+    g.beginPath(); g.moveTo(cx+a.B2*KA*sc,cy-a.B1*KA*sc); g.lineTo(cx+b.B2*KA*sc,cy-b.B1*KA*sc);
+    g.strokeStyle=light?'rgba(10,155,214,'+al.toFixed(2)+')':'rgba(77,225,255,'+al.toFixed(2)+')'; g.lineWidth=2.2*(1-Math.min(0.6,age*0.4)); g.stroke();
+  }
+  // Vektoren
+  const x2=cx+B2*KA*sc, y2=cy-B1*KA*sc;
+  if(Math.abs(B1)>0.01) drawArrow(g,cx,cy,cx,y2,P.b1,2.6,6);
+  if(Math.abs(B2)>0.01) drawArrow(g,cx,cy,x2,cy,P.b2,2.6,6);
+  drawArrow(g,cx,cy,x2,y2,P.res,3.6,10);
+  g.beginPath(); g.arc(cx,cy,4,0,Math.PI*2); g.fillStyle=P.res; g.fill();
+}
+function drawWave(){
+  const P=pal(), g=wctx, W=WW, H=WH, M=12, cy=H/2, A=H/2-14;
+  g.clearRect(0,0,W,H);
+  const bg=g.createLinearGradient(0,0,0,H); bg.addColorStop(0,P.bg1); bg.addColorStop(1,P.bg2); g.fillStyle=bg; g.fillRect(0,0,W,H);
+  const Y=h=>cy-(h/8)*A;
+  g.strokeStyle=P.grid; g.lineWidth=1; g.beginPath(); g.moveTo(M,cy); g.lineTo(W-M,cy); g.stroke();
+  g.save(); g.setLineDash([5,4]);
+  [[H_MIN,P.ok],[H_MAX,P.bad]].forEach(([h,c])=>{ g.strokeStyle=c; g.globalAlpha=.7; [1,-1].forEach(s=>{ g.beginPath(); g.moveTo(M,Y(s*h)); g.lineTo(W-M,Y(s*h)); g.stroke(); }); });
+  g.restore();
+  g.font='9px "JetBrains Mono",monospace'; g.fillStyle=P.text; g.textAlign='left'; g.fillText('kA/m',M,12); g.fillText('2',M,Y(H_MIN)-3); g.fillText('6,5',M,Y(H_MAX)-3);
+  const span=2.5/T.freq, N=520, mid=T.t;
+  const draw=(col,fn)=>{ g.beginPath(); g.strokeStyle=col; g.lineWidth=2.2;
+    for(let i=0;i<=N;i++){ const ts=mid-span/2+i/N*span, x=M+i/N*(W-2*M), y=Y(fn(ts)*KA); if(i===0) g.moveTo(x,y); else g.lineTo(x,y); } g.stroke(); };
+  draw(P.b1,ts=>T.ac1?T.amp1*Math.sin(2*Math.PI*T.freq*ts+rad(T.phi1)):T.amp1);
+  draw(P.b2,ts=>T.ac2?T.amp2*Math.sin(2*Math.PI*T.freq*ts+rad(T.phi2)):T.amp2);
+  g.strokeStyle=P.text; g.globalAlpha=.5; g.beginPath(); g.moveTo(W/2,6); g.lineTo(W/2,H-6); g.stroke(); g.globalAlpha=1;
+  g.fillStyle=P.b1; g.fillText('B₁',W-M-18,24); g.fillStyle=P.b2; g.fillText('B₂',W-M-18,38);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ENTMAGNETISIEREN (Domänenmodell)
+   ═══════════════════════════════════════════════════════════════ */
+const MX=80, NWD=DW-2*MX, COLS=15, ROWS=12, cellW=NWD/COLS, cellH=DH/ROWS, NL=Math.min(cellW,cellH)*0.36;
+let dMode='dc', dMethod='ac', showHeat=true, needles=[], frameN=0;
+const NP={strength:4000,inertia:0.45,damp:0.88,coercivity:2.0,magLen:55,magAngle:0,skinDepth:2};
+const ND={decayRate:0.18,startMult:15,pulseFactor:0.85,pulseDur:0.28,distSpeed:60};
+const hand={x:0,y:0,on:false};
+const dm={active:false,phase:0,amp:1,pulseTimer:0,pulsePolarity:1,pulseOn:true,pulseAmp:1,barX:0};
+const bm={active:false,timer:0,duration:1.5};
+const dmColors={ac:'#1d6fa4',pulse:'#7b3fa0',distance:'#2e7d32'};
+const dmInfos={
+  ac:'<b>AC-Amplitudenregelung:</b> gleichmäßige Feldabnahme. Schnelles Abklingen lässt Restfeld zurück.',
+  pulse:'<b>Puls-Entmagnetisierung:</b> alternierende DC-Pulse. Ein grober Abklingfaktor hinterlässt Remanenz.',
+  distance:'<b>Abstandsmethode:</b> Ein Balken fährt seitlich über das Bauteil hinaus, das Feld wirkt lokal. Langsam bedeutet viele Zyklen und damit gutes Ergebnis.'
+};
+function rrect(x,y,w,h,r){ const g=dctx; g.beginPath(); g.moveTo(x+r,y); g.lineTo(x+w-r,y); g.arcTo(x+w,y,x+w,y+r,r); g.lineTo(x+w,y+h-r); g.arcTo(x+w,y+h,x+w-r,y+h,r); g.lineTo(x+r,y+h); g.arcTo(x,y+h,x,y+h-r,r); g.lineTo(x,y+r); g.arcTo(x,y,x+r,y,r); g.closePath(); }
+function dipole(nx,ny,mx,my,ar,str,hl){
+  const npx=mx+Math.cos(ar)*hl, npy=my+Math.sin(ar)*hl, spx=mx-Math.cos(ar)*hl, spy=my-Math.sin(ar)*hl;
+  const dxn=nx-npx, dyn=ny-npy, rn=Math.hypot(dxn,dyn)+0.5, dxs=nx-spx, dys=ny-spy, rs=Math.hypot(dxs,dys)+0.5;
+  const bx=str*(dxn/rn**3-dxs/rs**3), by=str*(dyn/rn**3-dys/rs**3); return {bx,by,m:Math.hypot(bx,by)};
+}
+function springTo(n,ta,sk,dt){
+  let d=ta-n.a; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI;
+  n.w+=(sk*Math.sin(d)*dt)/NP.inertia; n.w*=Math.exp(-((1-NP.damp)*14)*dt); n.a+=n.w*dt;
+}
+const isActive=n=>dMode==='dc'||n.distEdge<NP.skinDepth;
+function initNeedles(fromRem){
+  needles=[]; const f=fromRem?clamp(REM.pct/100,0,1):0;
+  for(let i=0;i<COLS*ROWS;i++){
+    const col=i%COLS, row=Math.floor(i/COLS);
+    let a=(Math.random()*2-1)*Math.PI;
+    if(fromRem && Math.random()<f) a=REM.ang+(Math.random()-0.5)*0.5;
+    needles.push({x:MX+(col+0.5)*cellW, y:(row+0.5)*cellH, a, w:0, fa:a, distEdge:Math.min(col,COLS-1-col,row,ROWS-1-row), cMult:Math.exp((Math.random()-0.5)*1.6)});
+  }
+  updateActiveCount(); residualUpdate(true);
+}
+function updateActiveCount(){ const ac=needles.filter(isActive).length; $('dActive').textContent=ac+' / '+needles.length; }
+function showLive(txt,col){ const e=$('dmLive'); e.textContent=txt; e.style.color=col; }
+function endDemag(){ dm.active=false; $('dStart').textContent='▶ Start'; $('dStart').disabled=false; $('dStop').style.display='none'; $('dStopHint').style.display='none'; showLive('',''); }
+function startDemag(){
+  dm.active=true; dm.phase=0; dm.amp=1;
+  if(dMethod==='pulse'){ dm.pulseTimer=0; dm.pulsePolarity=1; dm.pulseOn=true; dm.pulseAmp=1; }
+  if(dMethod==='distance') dm.barX=-MX*0.5;
+  hand.on=false; bm.active=false;
+  $('dStart').textContent='⟳ Läuft…'; $('dStart').disabled=true; $('dStop').style.display=''; $('dStopHint').style.display='';
+  showLive({ac:'AC-AMPLITUDE',pulse:'PULS',distance:'ABSTAND-BALKEN'}[dMethod]+' AKTIV',dmColors[dMethod]);
+}
+function stopDemag(){ dm.active=false; needles.forEach(n=>{ n.fa=n.a; n.w=0; }); endDemag(); }
+function startBtnMag(){ if(dm.active) return; bm.active=true; bm.timer=0; hand.on=false; $('dMagBtn').disabled=true; $('dMagBtn').textContent='⟳ Magnetisiere…'; showLive('MAGNETISIERUNG AKTIV','#1d6fa4'); }
+let lastRes={pct:0,ang:0};
+function residualUpdate(force){
+  const act=needles.filter(isActive); if(!act.length) return;
+  let mx=0,my=0; act.forEach(n=>{ mx+=Math.cos(n.fa); my+=Math.sin(n.fa); });
+  const pct=Math.round(Math.hypot(mx,my)/act.length*100), ang=Math.atan2(my,mx);
+  const col=pct<10?'#27ae60':pct<25?'#f39c12':pct<55?'#e67e22':'#e74c3c';
+  const lbl=pct<10?'Entmagnetisiert ✓':pct<25?'Schwach magnetisiert':pct<55?'Restmagnetisierung ⚠':'Magnetisiert ✗';
+  $('rBar').style.width=pct+'%'; $('rBar').style.background=col; $('rPct').textContent=pct+' %'; $('rPct').style.color=col;
+  $('rLbl').textContent=lbl; $('rLbl').style.color=col; $('rLbl').style.background=col+'22';
+  $('rAng').textContent=Math.round(ang*180/Math.PI)+'°'; $('rMt').textContent=fmt(pct*MT_PER_PCT,2)+' mT';
+  $('cNd').style.background=col; $('cNd').style.transform='translate(-50%,-100%) rotate('+ang+'rad)';
+  if(tab==='demag'||force){ REM.pct=pct; REM.ang=ang; }
+  lastRes={pct,ang};
+}
+
+function stepDemag(dt){
+  frameN++;
+  if(bm.active){
+    bm.timer+=dt; const ta=NP.magAngle*Math.PI/180, fA=NP.coercivity*25;
+    needles.forEach(n=>{ if(isActive(n)){ springTo(n,ta,Math.min((fA/(NP.coercivity*n.cMult))*6,40),dt); n.fa=ta; } else springTo(n,n.fa,1.4,dt); });
+    if(bm.timer>=bm.duration){ bm.active=false; needles.forEach(n=>{ n.fa=n.a; n.w*=0.3; }); $('dMagBtn').disabled=false; $('dMagBtn').textContent='⚡ Jetzt magnetisieren'; showLive('',''); }
+  } else if(dm.active){
+    if(dMethod==='ac'){
+      dm.phase+=dt*13; dm.amp=Math.max(0,dm.amp-ND.decayRate*dt);
+      if(dm.amp<=0){ needles.forEach(n=>{ n.fa=n.a; n.w*=0.2; }); endDemag(); }
+      const fA=NP.coercivity*ND.startMult*dm.amp;
+      needles.forEach(n=>{ const effH=NP.coercivity*n.cMult;
+        if(fA>effH){ const ph=(n.x/DW*2.1+n.y/DH*1.4)*Math.PI, ta=Math.atan2(Math.sin(dm.phase+ph),Math.cos(dm.phase+ph)); springTo(n,ta,Math.min(fA/effH*5,30),dt); n.fa=ta; }
+        else springTo(n,n.fa,1.5,dt); });
+    } else if(dMethod==='pulse'){
+      dm.pulseTimer+=dt; const fA=NP.coercivity*ND.startMult*dm.pulseAmp, ta=dm.pulsePolarity>0?0:Math.PI;
+      if(dm.pulseOn){
+        needles.forEach(n=>{ const effH=NP.coercivity*n.cMult; if(fA>effH){ springTo(n,ta,Math.min((fA/effH)*6,40),dt); n.fa=ta; } else springTo(n,n.fa,1.5,dt); });
+        if(dm.pulseTimer>=ND.pulseDur){ dm.pulseTimer=0; dm.pulseOn=false; dm.pulseAmp*=ND.pulseFactor; dm.pulsePolarity*=-1;
+          if(dm.pulseAmp*ND.startMult<0.25){ needles.forEach(n=>{ n.fa=n.a; n.w*=0.1; }); endDemag(); } }
+      } else { needles.forEach(n=>springTo(n,n.fa,1.5,dt)); if(dm.pulseTimer>=ND.pulseDur*0.3){ dm.pulseOn=true; dm.pulseTimer=0; } }
+    } else if(dMethod==='distance'){
+      dm.phase+=dt*13; dm.barX+=ND.distSpeed*dt;
+      const sigma=110, baseStr=NP.coercivity*ND.startMult, exitMargin=sigma*3.5;
+      if(dm.barX>(DW-MX)+exitMargin){ needles.forEach(n=>{ n.fa=n.a; n.w*=0.1; }); endDemag(); }
+      needles.forEach(n=>{ const dx=n.x-dm.barX, fA=baseStr*Math.exp(-(dx*dx)/(2*sigma*sigma)), effH=NP.coercivity*n.cMult;
+        if(fA>effH){ const ta=Math.atan2(Math.sin(dm.phase),Math.cos(dm.phase)); springTo(n,ta,Math.min((fA/effH)*5,30),dt); n.fa=ta; }
+        else springTo(n,n.fa,1.5,dt); });
+    }
+  } else if(hand.on){
+    needles.forEach(n=>{ if(!isActive(n)){ springTo(n,n.fa,1.4,dt); return; }
+      const ar=NP.magAngle*Math.PI/180, {bx,by,m}=dipole(n.x,n.y,hand.x,hand.y,ar,NP.strength,NP.magLen), effH=NP.coercivity*n.cMult;
+      if(m>effH){ const ta=Math.atan2(by,bx); springTo(n,ta,Math.min((m/effH)*5,38),dt); n.fa=ta; } else springTo(n,n.fa,1.4,dt); });
+  } else needles.forEach(n=>springTo(n,n.fa,1.4,dt));
+  if(frameN%8===0) residualUpdate();
+}
+
+function drawDemag(){
+  const P=pal(), g=dctx, W=DW, H=DH;
+  g.fillStyle=P.dmBg; g.fillRect(0,0,W,H);
+  g.fillStyle='rgba(120,150,190,0.12)'; g.fillRect(0,0,MX,H); g.fillRect(W-MX,0,MX,H);
+  g.save(); g.setLineDash([5,4]); g.strokeStyle='rgba(60,120,190,0.30)'; g.lineWidth=1.2;
+  g.beginPath(); g.moveTo(MX,0); g.lineTo(MX,H); g.stroke(); g.beginPath(); g.moveTo(W-MX,0); g.lineTo(W-MX,H); g.stroke(); g.setLineDash([]);
+  g.fillStyle='rgba(90,140,200,0.5)'; g.font='bold 9px Arial'; g.textAlign='center'; g.textBaseline='middle';
+  g.save(); g.translate(MX/2,H/2); g.rotate(-Math.PI/2); g.fillText('Überstand links',0,0); g.restore();
+  g.save(); g.translate(W-MX/2,H/2); g.rotate(Math.PI/2); g.fillText('Überstand rechts',0,0); g.restore(); g.restore();
+  if(dMode==='ac'&&!dm.active&&!bm.active){
+    const sd=NP.skinDepth, ix=MX+sd*cellW, iy=sd*cellH, iw=NWD-2*sd*cellW, ih=H-2*sd*cellH;
+    if(iw>0&&ih>0){ g.fillStyle='rgba(100,140,200,0.10)'; g.fillRect(ix,iy,iw,ih); g.save(); g.setLineDash([5,4]); g.strokeStyle='rgba(60,130,200,0.45)'; g.lineWidth=1.5; g.strokeRect(ix,iy,iw,ih); g.setLineDash([]);
+      g.fillStyle='rgba(80,150,220,0.7)'; g.font='bold 10px Arial'; g.textAlign='center'; g.textBaseline='top'; g.fillText('Skineffekt — kein Feld im Kern',W/2,iy+5); g.restore(); }
+  }
+  if(showHeat&&hand.on&&!dm.active&&!bm.active){
+    const R=Math.max(70,NP.magLen*2.6), pa=Math.min(0.62,0.16+NP.strength/9000), gr=g.createRadialGradient(hand.x,hand.y,0,hand.x,hand.y,R);
+    gr.addColorStop(0,'rgba(255,150,20,'+pa+')'); gr.addColorStop(0.55,'rgba(255,150,20,'+(pa*0.45)+')'); gr.addColorStop(1,'rgba(255,150,20,0)');
+    g.save(); g.fillStyle=gr; g.beginPath(); g.arc(hand.x,hand.y,R,0,2*Math.PI); g.fill(); g.restore();
+  }
+  if(dm.active&&dMethod==='distance'){
+    const baseStr=NP.coercivity*ND.startMult;
+    needles.forEach(n=>{ const dx=n.x-dm.barX, fA=baseStr*Math.exp(-(dx*dx)/(2*110*110)), it=Math.min(fA/(baseStr*0.8),1); if(it>0.03){ g.fillStyle='rgba(46,160,60,'+(it*0.2)+')'; g.fillRect(n.x-cellW/2,n.y-cellH/2,cellW,cellH); } });
+  }
+  g.fillStyle=P.dmDot; for(let r=0;r<=ROWS;r++) for(let c=0;c<=COLS;c++){ g.beginPath(); g.arc(MX+c*cellW,r*cellH,1.2,0,Math.PI*2); g.fill(); }
+  needles.forEach(n=>{
+    const active=isActive(n)||dm.active||bm.active, ca=Math.cos(n.a), sa=Math.sin(n.a), tx=n.x+ca*NL, ty=n.y+sa*NL, bx2=n.x-ca*NL, by2=n.y-sa*NL;
+    const al=NL*0.4, aw=NL*0.19, px=-sa*aw, py=ca*aw;
+    g.globalAlpha=active?1:0.25;
+    g.beginPath(); g.moveTo(n.x,n.y); g.lineTo(bx2,by2); g.strokeStyle='#2d6da8'; g.lineWidth=2.2; g.lineCap='round'; g.stroke();
+    g.beginPath(); g.moveTo(n.x,n.y); g.lineTo(tx,ty); g.strokeStyle='#c03030'; g.lineWidth=2.2; g.stroke();
+    g.beginPath(); g.moveTo(tx,ty); g.lineTo(tx-ca*al+px,ty-sa*al+py); g.lineTo(tx-ca*al-px,ty-sa*al-py); g.closePath(); g.fillStyle='#c03030'; g.fill();
+    g.beginPath(); g.arc(n.x,n.y,2.1,0,Math.PI*2); g.fillStyle=light?'#253040':'#cfd8e2'; g.fill(); g.globalAlpha=1;
+  });
+  if(bm.active){
+    const pr=bm.timer/bm.duration, ar=NP.magAngle*Math.PI/180; g.save(); g.globalAlpha=0.2*(1-pr*0.5); g.translate(W/2,H/2); g.rotate(ar);
+    g.beginPath(); g.moveTo(-W*0.35,0); g.lineTo(W*0.35,0); g.strokeStyle='#2a7fd0'; g.lineWidth=6; g.lineCap='round'; g.stroke();
+    g.beginPath(); g.moveTo(W*0.35,0); g.lineTo(W*0.35-28,-14); g.lineTo(W*0.35-28,14); g.closePath(); g.fillStyle='#2a7fd0'; g.fill(); g.restore();
+  }
+  if(hand.on&&!dm.active&&!bm.active){
+    const ar=NP.magAngle*Math.PI/180, hl=NP.magLen, bh=19;
+    g.save(); g.translate(hand.x,hand.y); g.rotate(ar); g.shadowColor='rgba(0,0,0,0.30)'; g.shadowBlur=12; g.shadowOffsetY=5;
+    g.fillStyle='#1760a0'; rrect(-hl,-bh/2,hl,bh,4); g.fill(); g.fillStyle='#bf2828'; rrect(0,-bh/2,hl,bh,4); g.fill(); g.shadowBlur=0;
+    g.beginPath(); g.moveTo(0,-bh/2); g.lineTo(0,bh/2); g.strokeStyle='rgba(255,255,255,0.65)'; g.lineWidth=1.8; g.stroke();
+    g.fillStyle='rgba(255,255,255,0.95)'; g.font='bold 10px Arial'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('N',hl*0.6,0); g.fillText('S',-hl*0.6,0); g.restore();
+  }
+  if(dm.active){
+    if(dMethod==='ac'){
+      const r=H*0.26*dm.amp; g.save(); g.globalAlpha=0.12; for(let i=0;i<3;i++){ g.beginPath(); g.arc(W/2,H/2,r*(0.4+i*0.3),0,Math.PI*2); g.strokeStyle='#3a8be0'; g.lineWidth=2+i*2; g.stroke(); }
+      g.globalAlpha=0.08; g.font='bold 48px Arial'; g.textAlign='center'; g.textBaseline='middle'; g.fillStyle='#3a8be0'; g.fillText('〜 AC',W/2,H/2); g.restore();
+    } else if(dMethod==='pulse'){
+      const aLen=Math.max(20,100*dm.pulseAmp), col=dm.pulsePolarity>0?'#bf2828':'#1760a0';
+      g.save(); g.globalAlpha=dm.pulseOn?0.55:0.15; g.translate(W/2,H/2); if(dm.pulsePolarity<0) g.scale(-1,1);
+      g.beginPath(); g.moveTo(-aLen,0); g.lineTo(aLen,0); g.strokeStyle=col; g.lineWidth=7; g.lineCap='round'; g.stroke();
+      g.beginPath(); g.moveTo(aLen,0); g.lineTo(aLen-22,-11); g.lineTo(aLen-22,11); g.closePath(); g.fillStyle=col; g.fill(); g.restore();
+      g.save(); g.globalAlpha=0.7; g.font='bold 11px Arial'; g.textAlign='center'; g.fillStyle=P.label; g.fillText(dm.pulsePolarity>0?'→ Puls (+)':'← Puls (−)',W/2,H/2-110); g.fillText('Amplitude: '+Math.round(dm.pulseAmp*100)+' %',W/2,H/2-94); g.restore();
+    } else {
+      const bx=dm.barX, bw=30, sigma=110; g.save();
+      const grd=g.createLinearGradient(bx-sigma*3,0,bx+sigma*3,0); grd.addColorStop(0,'rgba(46,160,60,0)'); grd.addColorStop(0.3,'rgba(46,160,60,0.06)'); grd.addColorStop(0.5,'rgba(46,160,60,0.16)'); grd.addColorStop(0.7,'rgba(46,160,60,0.06)'); grd.addColorStop(1,'rgba(46,160,60,0)');
+      g.fillStyle=grd; g.fillRect(bx-sigma*3,0,sigma*6,H);
+      g.shadowColor='rgba(0,0,0,0.35)'; g.shadowBlur=14; g.shadowOffsetX=4; g.fillStyle='#1760a0'; g.fillRect(bx-bw,0,bw,H); g.fillStyle='#bf2828'; g.fillRect(bx,0,bw,H); g.shadowBlur=0;
+      g.strokeStyle='rgba(255,255,255,0.6)'; g.lineWidth=2; g.beginPath(); g.moveTo(bx,0); g.lineTo(bx,H); g.stroke();
+      g.fillStyle='rgba(255,255,255,0.9)'; g.font='bold 10px Arial'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('N',bx+bw*0.6,H/2); g.fillText('S',bx-bw*0.6,H/2); g.fillText('~',bx,H*0.25); g.fillText('~',bx,H*0.75);
+      const exitX=(W-MX)+sigma*3.5, total=exitX+MX*0.5, pr=Math.min((bx+MX*0.5)/total,1);
+      g.globalAlpha=0.8; g.font='bold 10px Arial'; g.fillStyle='#2e9d3c'; g.fillText('↔ '+(bx<MX?'Einfahren…':bx<W-MX?'Über Bauteil…':'Ausfahren…')+'  '+Math.round(pr*100)+' %',W/2,H-30); g.restore();
+    }
+    if(dMethod!=='distance'){
+      const amp=dMethod==='pulse'?dm.pulseAmp:dm.amp; g.save(); g.fillStyle='rgba(60,120,190,0.15)'; g.fillRect(20,H-22,W-40,6);
+      const bww=(W-40)*amp, gr=g.createLinearGradient(20,0,20+bww,0); gr.addColorStop(0,'rgba(29,111,164,0.8)'); gr.addColorStop(1,'rgba(191,40,40,0.8)'); g.fillStyle=gr; g.fillRect(20,H-22,bww,6);
+      g.fillStyle=P.text; g.font='bold 9px Arial'; g.textAlign='left'; g.fillText('Feldamplitude: '+Math.round(amp*100)+' %',20,H-28); g.restore();
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Anzeige: Auswertung, Prüfablauf
+   ═══════════════════════════════════════════════════════════════ */
+function setBox(id,cls){ const b=$(id); b.classList.remove('warn','ok'); if(cls) b.classList.add(cls); }
+function buildBars(){ $('cbars').innerHTML=CR.map((c,i)=>'<div class="cbar" id="cb'+i+'"><div class="nm">'+c.tag+'</div><div class="tr"><i id="cbf'+i+'"></i><b id="cbm'+i+'"></b></div><div class="pc" id="cbp'+i+'">0 %</div></div>').join(''); }
+
+function updateTestUI(){
+  const an=AN, mT=REM.pct*MT_PER_PCT, remOK=REM.pct<=REM_LIMIT_PCT;
+  const hOK=an.Hpk>=H_MIN&&an.Hpk<=H_MAX;
+  $('partSub').textContent=(T.fluor?'fluoreszierend · UV-A · abgedunkelt':'Farbkontrast · Weißlicht')+' · '+(T.on?'Feld an':'Feld aus');
+  $('fieldSub').textContent=(T.ac1?'B₁ AC':'B₁ DC')+' · '+(T.ac2?'B₂ AC':'B₂ DC');
+  $('evalSub').textContent=T.preset==='frei'?'freie Einstellung':'';
+  $('hVal').textContent=fmt(an.Hpk,1)+' kA/m';
+  $('hNeedle').style.left=clamp(an.Hpk/8*100,1,99)+'%';
+  $('stHt').innerHTML=fmt(an.Hpk,1)+' kA/m<small>Fenster 2 – 6,5</small>'; setBox('stHtBox',hOK?'ok':'warn');
+  $('stSens').innerHTML=Math.round(an.sens*100)+' %<small>Prüfmittel × Beleuchtung × Oberfläche</small>'; setBox('stSensBox',an.sens>=0.8?'ok':'warn');
+  $('stRef').innerHTML=an.refN+' / 3<small>Anzeigen am Prüfkörper</small>'; setBox('stRefBox',an.refN>=2?'ok':'warn');
+  $('stLight').innerHTML=(an.lightOK?'i. O.':'ungenügend')+'<small>'+an.lightTxt+'</small>'; setBox('stLightBox',an.lightOK?'ok':'warn');
+  $('stCov').innerHTML=an.covN+' / '+CR.length+'<small>mit aktueller Feldkonfiguration</small>'; setBox('stCovBox',an.covN===CR.length?'ok':'warn');
+  $('stRem').innerHTML=fmt(mT,2)+' mT<small>Grenzwert 0,30 mT</small>'; setBox('stRemBox',remOK?'ok':'warn');
+  CR.forEach((c,i)=>{ const v=clamp(c.vis,0,1); $('cbf'+i).style.width=(v*100)+'%'; $('cbf'+i).style.background=v>=VIS?'var(--green)':'var(--amber)';
+    $('cbm'+i).style.left=(clamp(c.cov,0,1)*100)+'%'; $('cbp'+i).textContent=Math.round(v*100)+' %'; $('cb'+i).className='cbar'+(v>=VIS?' hit':''); });
+
+  // Hinweis
+  const c=$('callout'), missing=CR.filter(x=>x.cov<VIS);
+  let cls='callout', html='';
+  if(CY.running){ cls='callout';
+    html={mag:'<b>① Magnetisieren.</b> Das Feld baut sich auf, noch ohne Prüfmittel. Stärke und Richtung lassen sich live ändern.',
+          spray:'<b>② Bespülen.</b> Das Prüfmittel strömt über die Fläche; das Pulver sammelt sich an den Streufeldern der Fehler (aktuell '+CR.filter(x=>x.vis>=VIS).length+' von '+CR.length+' sichtbar).',
+          post:'<b>③ Nachmagnetisieren.</b> Das Feld bleibt eingeschaltet, damit sich das Pulver an den Anzeigen festsetzt und nicht mehr abfließt.'}[CY.phase]||''; }
+  else if(!T.on && !CY.done){ cls='callout'; html='<b>Feld ist aus.</b> Ohne Magnetisierung entsteht kein Streufluss, und das Pulver bleibt nicht haften. Starte den Prüfzyklus ▶ oder schalte das Feld manuell ein und bringe das Prüfmittel auf, solange es wirkt.'; }
+  else if(an.Hpk<H_MIN){ cls='callout bad'; html='<b>Feld zu schwach.</b> Die Tangentialfeldstärke von '+fmt(an.Hpk,1)+' kA/m liegt unter 2 kA/m. Der Streufluss reicht für eine Pulveranzeige nicht aus.'; }
+  else if(an.Hpk>H_MAX){ cls='callout bad'; html='<b>Feld zu stark.</b> Über 6,5 kA/m ('+fmt(an.Hpk,1)+' kA/m) bleibt Pulver auch an Rauigkeiten und Kanten haften. Die Untergrundanzeigen überdecken echte Fehler.'; }
+  else if(!an.lightOK){ cls='callout bad'; html='<b>Beleuchtung ungenügend.</b> '+(T.fluor?'Auf der Prüffläche sind ≥ 10 W/m² UV-A und höchstens 20 lx Umgebungslicht nötig.':'Für den Farbkontrast sind ≥ 500 lx Weißlicht nötig.')+' Die Anzeigen sind sonst kaum zu erkennen.'; }
+  else if(!an.concOK){ cls='callout bad'; html='<b>Konzentration außerhalb des Bereichs.</b> Sollwert '+fmt(an.rng[0],2)+'–'+fmt(an.rng[1],2)+' ml/100 ml. '+(an.conc<an.rng[0]?'Zu dünne Suspension bildet nur schwache Anzeigen.':'Zu dichte Suspension erzeugt hellen Untergrund.'); }
+  else if(!T.clean){ cls='callout bad'; html='<b>Oberfläche verschmutzt.</b> Öl und Zunder binden Pulver und verdecken Anzeigen. Erst reinigen.'; }
+  else if(!(T.spray||T.sprayed)){ cls='callout bad'; html='<b>Kein Prüfmittel aufgebracht.</b> Pulver muss während der Magnetisierung auf die Prüffläche gelangen.'; }
+  else if(missing.length){
+    cls='callout bad';
+    const why=missing.map(x=>x.depth>0?x.tag+' (Wechselfeld dringt nicht ein, Gleichfeldanteil nötig)':x.tag+' (kein Feld senkrecht zum Fehler)').join('; ');
+    html='<b>Nicht erfassbar: '+missing.length+' von '+CR.length+' Fehlerlagen.</b> '+why+'.';
+  }
+  else if(an.bg>0.35){ cls='callout bad'; html='<b>Hoher Untergrund.</b> Feldstärke und Konzentration so wählen, dass die Fehler vom Untergrund getrennt bleiben.'; }
+  else { cls='callout good'; html='<b>Alle Fehlerlagen werden angezeigt.</b> Die Feldrichtungen decken alle Risse ab, und Prüfmittel und Beleuchtung sind in Ordnung. '+(remOK?'':'Danach unbedingt entmagnetisieren: Restfeld '+fmt(mT,2)+' mT.'); }
+  c.className=cls; c.innerHTML=html;
+  const b=$('badge'); b.innerHTML='<span class="dot"></span>'+(T.on?'FELD AN':'FELD AUS');
+}
+
+function buildSteps(){
+  const an=AN||analyse(), mT=REM.pct*MT_PER_PCT, remOK=REM.pct<=REM_LIMIT_PCT;
+  const hOK=an.Hpk>=H_MIN&&an.Hpk<=H_MAX, visN=CR.filter(c=>c.vis>=VIS).length, covN=an.covN;
+  const prepOK=an.concOK&&an.lightOK&&an.refN>=2;
+  const evalOK=T.sprayed&&covN>0&&visN>=covN&&an.bg<=0.35;
+  return [
+    {t:'Prüfling vorbereiten', val:T.clean?'sauber':'verschmutzt', st:T.clean?'ok':'warn',
+     d:'Oberfläche reinigen, entfetten und Zunder entfernen. Öl und Schmutz binden Pulver und verdecken Anzeigen.', fix:'Prüffläche reinigen (Schalter „Oberfläche“).'},
+    {t:'Prüfmittel und Beleuchtung kontrollieren', val:'Prüfkörper '+an.refN+' / 3', st:prepOK?'ok':'warn',
+     d:'Konzentration (fluoreszierend 0,1–0,4, schwarz/weiß 1,2–2,4 ml/100 ml), UV-A ≥ 10 W/m² bei ≤ 20 lx Umgebungslicht bzw. Weißlicht ≥ 500 lx. Am Prüfkörper müssen mindestens 2 von 3 Anzeigen erscheinen.',
+     fix:!an.concOK?'Konzentration in den Sollbereich bringen.':(!an.lightOK?'Beleuchtung anpassen.':'Prüfmittel oder Aufbau verbessern, bis der Prüfkörper ≥ 2 Anzeigen zeigt.')},
+    {t:'Magnetisierungsfeld einstellen', val:fmt(an.Hpk,1)+' kA/m', st:hOK?'ok':'warn',
+     d:'Tangentialfeldstärke 2–6,5 kA/m (Spitze): darunter zu wenig Streufluss, darüber Untergrundanzeigen.', fix:an.Hpk<H_MIN?'Stromamplitude erhöhen.':'Stromamplitude verringern.'},
+    {t:'Feldrichtung senkrecht zum Fehler', val:covN+' / '+CR.length+' erfassbar', st:covN===CR.length?'ok':'warn',
+     d:'Nur die Feldkomponente senkrecht zum Fehler erzeugt Streufluss. Deshalb mit zwei Richtungen prüfen, z. B. umlaufend und axial. Wechselfeld erfasst nur oberflächennahe Fehler, Gleichfeld dringt tiefer ein.',
+     fix:'Zweites Feld zuschalten oder einen Gleichfeldanteil für Fehler unter der Oberfläche verwenden (Voreinstellung „Kombination“).'},
+    {t:'Magnetisieren · Bespülen · Nachmagnetisieren', val:CY.running?({mag:'Magnetisieren',spray:'Bespülen',post:'Nachmagnetisieren'}[CY.phase]||'–'):((CY.done||T.sprayed)?'abgeschlossen':'offen'), st:(CY.done||(!CY.running&&T.sprayed))?'ok':'warn',
+     d:'Im Echtzeit-Zyklus: zuerst magnetisieren, dann die Prüffläche mit Prüfmittel bespülen und danach bei eingeschaltetem Feld nachmagnetisieren, damit sich das Pulver an den Streufeldern festsetzt. Erst danach das Feld abschalten.',
+     fix:'Prüfzyklus starten.'},
+    {t:'Anzeigen auswerten', val:EV.on?(EV.rec.length+' / '+visN+' erfasst'):'offen', st:(EV.on&&visN>0&&EV.rec.length>=visN)?'ok':'warn',
+     d:'Jede erkennbare Anzeige im Bild anklicken: Sie wird mit Lage und Länge in die Befundliste übernommen. Die Liste muss alle angezeigten Fehler enthalten.',
+     fix:!T.sprayed?'Erst den Prüfzyklus durchführen.':(!EV.on?'Auf „Auswerten“ klicken und die Anzeigen anklicken.':'Noch nicht erfasste Anzeigen (gestrichelte Ringe) anklicken.')},
+    {t:'Entmagnetisieren', val:fmt(mT,2)+' mT', st:remOK?'ok':'warn',
+     d:'Restmagnetismus kann Pulver binden, Messungen stören und Zerspanung oder Schweißen beeinträchtigen. Typische Forderung: ≤ 0,3 mT.',
+     fix:'Im Reiter „Entmagnetisieren“ ein langsam abklingendes Wechselfeld oder die Abstandsmethode verwenden.'},
+    {t:'Dokumentieren und reinigen', val:EV.docDone?'Befund erstellt':'offen', st:EV.docDone?'ok':'warn',
+     d:'Befundliste abschließen, Anzeigen protokollieren, Prüfmittel entfernen, Bauteil kennzeichnen und freigeben.',
+     fix:!EV.on?'Zuerst auswerten, dann „Befund abschließen“ klicken.':'Alle Anzeigen erfassen und „Befund abschließen“ klicken.'}
+  ];
+}
+let stepsKey='';
+function renderSteps(){
+  const steps=buildSteps(), key=steps.map(s=>s.st+s.val).join('|');
+  const firstWarn=steps.findIndex(x=>x.st==='warn'), done=steps.filter(x=>x.st==='ok').length;
+  $('stepsCount').textContent=done+' von '+steps.filter(x=>x.st!=='idle').length+' prüfbaren Schritten erfüllt';
+  if(key===stepsKey) return; stepsKey=key;
+  $('steps').innerHTML=steps.map((x,i)=>'<div class="step '+x.st+(i===firstWarn?' cur':'')+'"><div class="ic">'+(x.st==='ok'?'✓':(x.st==='warn'?'!':(i+1)))+'</div><div><h4><span>'+(i+1)+'. '+x.t+'</span><span class="val">'+x.val+'</span></h4><p>'+x.d+'</p>'+(x.st==='warn'&&x.fix?'<p class="fix">'+x.fix+'</p>':'')+'</div></div>').join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Bedienung
+   ═══════════════════════════════════════════════════════════════ */
+function fillRange(inp){ inp.style.setProperty('--p',((inp.value-inp.min)/(inp.max-inp.min)*100)+'%'); }
+const PRESETS={
+  durchf:{amp1:0.8,amp2:0,  ac1:true, ac2:true,phi1:0,phi2:90,name:'Stromdurchflutung · umlaufendes Feld'},
+  joch:  {amp1:0,  amp2:0.8,ac1:true, ac2:true,phi1:0,phi2:90,name:'Joch / Spule · axiales Feld'},
+  dreh:  {amp1:0.8,amp2:0.8,ac1:true, ac2:true,phi1:0,phi2:90,name:'Drehfeld · B₁ + B₂ AC, 90° versetzt'},
+  kombi: {amp1:0.7,amp2:0.7,ac1:false,ac2:true,phi1:0,phi2:0, name:'Kombination · B₁ DC + B₂ AC'}
+};
+function setConcUI(){
+  const s=$('conc'), fl=T.fluor;
+  if(fl){ s.min=0; s.max=1; s.step=0.01; s.value=T.concFl; $('cV').textContent=fmt(T.concFl,2)+' ml/100 ml'; $('cNote').textContent='Soll 0,1–0,4 ml/100 ml (Absetzvolumen)'; }
+  else { s.min=0.2; s.max=4; s.step=0.1; s.value=T.concCol; $('cV').textContent=fmt(T.concCol,1)+' ml/100 ml'; $('cNote').textContent='Soll 1,2–2,4 ml/100 ml (Absetzvolumen)'; }
+  const l=$('lux');
+  if(fl){ l.min=0; l.max=300; l.step=5; l.value=T.ambFl; $('luxLbl').textContent='Umgebungslicht'; $('luxV').textContent=T.ambFl+' lx'; $('luxNote').textContent='Soll ≤ 20 lx bei UV-Prüfung'; }
+  else { l.min=0; l.max=1000; l.step=10; l.value=T.whiteCol; $('luxLbl').textContent='Weißlicht auf der Prüffläche'; $('luxV').textContent=T.whiteCol+' lx'; $('luxNote').textContent='Soll ≥ 500 lx'; }
+  $('uv').disabled=!fl; $('uvRow').style.opacity=fl?1:0.4;
+  document.querySelectorAll('#typeSeg button').forEach(b=>b.classList.toggle('sel',(b.dataset.t==='fl')===fl));
+  document.querySelectorAll('input[type=range]').forEach(fillRange);
+}
+function syncControls(){
+  $('a1').value=T.amp1; $('a1V').textContent=fmt(T.amp1,2); $('a2').value=T.amp2; $('a2V').textContent=fmt(T.amp2,2);
+  $('p1').value=T.phi1; $('p1V').textContent=T.phi1+'°'; $('p2').value=T.phi2; $('p2V').textContent=T.phi2+'°';
+  $('fr').value=T.freq; $('frV').textContent=fmt(T.freq,1)+' Hz'; $('uv').value=T.uv; $('uvV').textContent=T.uv+' W/m²';
+  [['dcac1',T.ac1],['dcac2',T.ac2]].forEach(([id,ac])=>document.querySelectorAll('#'+id+' button').forEach(b=>b.classList.toggle('sel',(b.dataset.v==='ac')===ac)));
+  $('p1Row').style.opacity=T.ac1?1:0.4; $('p1').disabled=!T.ac1; $('p2Row').style.opacity=T.ac2?1:0.4; $('p2').disabled=!T.ac2;
+  document.querySelectorAll('#presets button').forEach(b=>b.classList.toggle('sel',b.dataset.p===T.preset));
+  $('presetName').textContent=T.preset==='frei'?'freie Einstellung':PRESETS[T.preset].name;
+  setConcUI();
+  document.querySelectorAll('input[type=range]').forEach(fillRange);
+}
+function applyPreset(k){ Object.assign(T,PRESETS[k]); T.preset=k; syncControls(); }
+function free(){ T.preset='frei'; document.querySelectorAll('#presets button').forEach(b=>b.classList.remove('sel')); $('presetName').textContent='freie Einstellung'; }
+$('presets').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) applyPreset(b.dataset.p); });
+[['a1','amp1','a1V',v=>fmt(v,2)],['a2','amp2','a2V',v=>fmt(v,2)],['p1','phi1','p1V',v=>v+'°'],['p2','phi2','p2V',v=>v+'°'],['fr','freq','frV',v=>fmt(v,1)+' Hz']].forEach(([id,key,lab,f])=>{
+  $(id).addEventListener('input',()=>{ T[key]=parseFloat($(id).value); $(lab).textContent=f(T[key]); fillRange($(id)); if(id!=='fr') free(); });
+});
+[['dcac1','ac1'],['dcac2','ac2']].forEach(([id,key])=>$(id).addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; T[key]=b.dataset.v==='ac'; free(); syncControls(); }));
+$('typeSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; T.fluor=b.dataset.t==='fl'; setConcUI(); washAll(); });
+$('conc').addEventListener('input',()=>{ const v=parseFloat($('conc').value); if(T.fluor){ T.concFl=v; $('cV').textContent=fmt(v,2)+' ml/100 ml'; } else { T.concCol=v; $('cV').textContent=fmt(v,1)+' ml/100 ml'; } fillRange($('conc')); });
+$('uv').addEventListener('input',()=>{ T.uv=parseInt($('uv').value,10); $('uvV').textContent=T.uv+' W/m²'; fillRange($('uv')); });
+$('lux').addEventListener('input',()=>{ const v=parseInt($('lux').value,10); if(T.fluor) T.ambFl=v; else T.whiteCol=v; $('luxV').textContent=v+' lx'; fillRange($('lux')); });
+function tog(id,key,onTxt,offTxt){ $(id).addEventListener('click',()=>{ T[key]=!T[key]; $(id).classList.toggle('on',T[key]); $(id).setAttribute('aria-pressed',T[key]); if(onTxt) $(id).textContent=T[key]?onTxt:offTxt; }); }
+tog('btnSpray','spray'); tog('btnFlines','flines'); tog('btnClean','clean','Oberfläche sauber','Oberfläche verschmutzt');
+function washAll(){ ALLC.forEach(c=>{ c.acc=0; c.vis=0; }); T.sprayed=false; EV.on=false; evReset(); }
+$('btnWash').addEventListener('click',washAll);
+$('btnField').addEventListener('click',()=>{ T.on=!T.on; syncToggles(); });
+
+/* Reiter */
+function setTab(t){
+  tab=t; document.body.dataset.tab=t; lastT=performance.now();
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('sel',b.dataset.tab===t));
+  if(t==='demag'){ if(CY.running) abortCycle(); if(T.on){ T.on=false; syncToggles(); } if(REM.dirty){ initNeedles(true); REM.dirty=false; } }
+  stepsKey='';
+}
+$('tabs').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) setTab(b.dataset.tab); });
+
+/* Demag-Bedienelemente */
+function setDMode(m){
+  dMode=m; document.querySelectorAll('#dType button').forEach(b=>b.classList.toggle('sel',b.dataset.m===m));
+  $('d_skinRow').style.display=m==='ac'?'':'none';
+  $('dInfo').innerHTML=m==='dc'?'<b>DC:</b> Das Magnetfeld durchdringt den gesamten Querschnitt. Oberflächen- und Volumenfehler sind nachweisbar.':'<b>AC:</b> Der Skineffekt begrenzt das Feld auf die Oberfläche. Nur Oberflächenfehler sind nachweisbar.';
+  $('dmMode').textContent=m==='dc'?'DC: gesamter Querschnitt · Maus = Magnet':'AC: nur Randbereich (Skineffekt) · Maus = Magnet';
+  updateActiveCount(); residualUpdate();
+}
+$('dType').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) setDMode(b.dataset.m); });
+[['d_hc','coercivity','d_hcV',v=>fmt(v,1)],['d_ang','magAngle','d_angV',v=>v+'°'],['d_len','magLen','d_lenV',v=>v+' px'],['d_skin','skinDepth','d_skinV',v=>v],['d_str','strength','d_strV',v=>v],['d_in','inertia','d_inV',v=>fmt(v,2)],['d_da','damp','d_daV',v=>fmt(v,2)]].forEach(([id,key,lab,f])=>{
+  $(id).addEventListener('input',()=>{ NP[key]=parseFloat($(id).value); $(lab).textContent=f(NP[key]); fillRange($(id)); if(key==='skinDepth') updateActiveCount(); });
+});
+function setDMeth(m){
+  dMethod=m; document.querySelectorAll('#dMeth button').forEach(b=>b.classList.toggle('sel',b.dataset.m===m));
+  ['ac','pulse','distance'].forEach(k=>$('dp_'+k).style.display=k===m?'':'none');
+  $('dMethInfo').innerHTML=dmInfos[m];
+}
+$('dMeth').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) setDMeth(b.dataset.m); });
+[['s_decayRate','decayRate','v_decayRate',v=>fmt(v,2)],['s_pulseFactor','pulseFactor','v_pulseFactor',v=>fmt(v,2)],['s_pulseDur','pulseDur','v_pulseDur',v=>fmt(v,2)+' s'],['s_distSpeed','distSpeed','v_distSpeed',v=>v+' px/s']].forEach(([id,key,lab,f])=>{
+  $(id).addEventListener('input',()=>{ ND[key]=parseFloat($(id).value); $(lab).textContent=f(ND[key]); fillRange($(id)); });
+});
+['ac','pulse','distance'].forEach(k=>$('s_sm_'+k).addEventListener('input',()=>{ ND.startMult=parseFloat($('s_sm_'+k).value); $('v_sm_'+k).textContent=ND.startMult; fillRange($('s_sm_'+k)); }));
+$('dStart').addEventListener('click',startDemag); $('dStop').addEventListener('click',stopDemag); $('dMagBtn').addEventListener('click',startBtnMag);
+$('dHeat').addEventListener('click',()=>{ showHeat=!showHeat; $('dHeat').classList.toggle('on',showHeat); $('dHeat').setAttribute('aria-pressed',showHeat); });
+$('dReset').addEventListener('click',()=>{ dm.active=false; bm.active=false; endDemag(); $('dMagBtn').disabled=false; $('dMagBtn').textContent='⚡ Jetzt magnetisieren'; initNeedles(false); REM.pct=lastRes.pct; REM.ang=lastRes.ang; });
+function mpos(cx,cy){ const r=cvDemag.getBoundingClientRect(); hand.x=(cx-r.left)*(DW/r.width); hand.y=(cy-r.top)*(DH/r.height); hand.on=true; }
+cvDemag.addEventListener('mousemove',e=>mpos(e.clientX,e.clientY)); cvDemag.addEventListener('mouseleave',()=>{ hand.on=false; }); cvDemag.addEventListener('mouseenter',()=>{ hand.on=true; });
+cvDemag.addEventListener('touchstart',e=>{ e.preventDefault(); const t=e.touches[0]; mpos(t.clientX,t.clientY); },{passive:false});
+cvDemag.addEventListener('touchmove',e=>{ e.preventDefault(); const t=e.touches[0]; mpos(t.clientX,t.clientY); },{passive:false});
+cvDemag.addEventListener('touchend',()=>{ hand.on=false; });
+window.addEventListener('resize',()=>{ setupCanvases(); });
+
+/* Legende */
+function legend(){ $('partLegend').innerHTML='<span><i style="background:#2266cc"></i>B₁ umlaufend</span><span><i style="background:#cc6600"></i>B₂ axial</span><span><i style="background:#d6249f"></i>resultierendes Feld</span><span><i style="background:#b6ff3c"></i>Pulveranzeige (UV-A)</span><span><i style="background:#111"></i>Pulveranzeige (Farbkontrast)</span>'; }
+
+/* ═══ Auswertung: Anzeigen anklicken → Befundliste ═══ */
+const EV={on:false, sel:-1, rec:[], docDone:false, msg:'', msgT:0, result:null};
+const MM_PER_PX=0.25;
+const isVisible=c=>c.vis>=VIS;
+const lenOf=c=>c.len*MM_PER_PX*(0.7+0.3*clamp(c.vis,0,1));
+function evReset(){ EV.rec=[]; EV.docDone=false; EV.result=null; EV.sel=-1; EV.msg=''; }
+function drawEvalOverlay(g,fl){
+  if(!EV.on) return;
+  const now=performance.now()/1000;
+  g.save(); g.textAlign='center';
+  CR.forEach((c,i)=>{
+    if(!isVisible(c)) return;
+    const rec=EV.rec.indexOf(i), th=rad(c.ang);
+    if(rec<0){                                         // noch nicht erfasst: Aufforderung zum Anklicken
+      g.strokeStyle=fl?'rgba(255,230,120,'+(0.45+0.4*Math.sin(now*4)).toFixed(2)+')':'rgba(122,74,0,'+(0.45+0.4*Math.sin(now*4)).toFixed(2)+')'; g.lineWidth=1.8; g.setLineDash([5,4]);
+      g.beginPath(); g.arc(c.x,c.y,c.len/2+12,0,7); g.stroke(); g.setLineDash([]);
+    } else {
+      const col=fl?'#7dffa0':'#187a32';
+      g.strokeStyle=col; g.lineWidth=2; g.beginPath(); g.arc(c.x,c.y,c.len/2+12,0,7); g.stroke();
+      g.fillStyle=fl?'rgba(10,6,24,.88)':'rgba(255,255,255,.94)'; g.beginPath(); g.arc(c.x,c.y-c.len/2-24,12,0,7); g.fill(); g.stroke();
+      g.fillStyle=col; g.font='bold 11px "JetBrains Mono",monospace'; g.fillText(String(rec+1),c.x,c.y-c.len/2-20);
+      g.font='10px "JetBrains Mono",monospace'; g.fillText(fmt(lenOf(c),1)+' mm',c.x,c.y+c.len/2+18);
+    }
+  });
+  if(EV.msg && now-EV.msgT<2.2){ g.font='bold 12px "JetBrains Mono",monospace'; const w=g.measureText(EV.msg).width+22; g.fillStyle=fl?'rgba(10,6,24,.9)':'rgba(255,255,255,.95)'; g.strokeStyle=fl?'#ff9a92':'#b0241a'; g.lineWidth=1.5; g.beginPath(); g.rect(PW/2-w/2,PH-40,w,26); g.fill(); g.stroke(); g.fillStyle=fl?'#ff9a92':'#b0241a'; g.fillText(EV.msg,PW/2,PH-22); }
+  g.restore();
+}
+function evVerdict(){
+  const an=AN, hOK=an.Hpk>=H_MIN&&an.Hpk<=H_MAX, valid=hOK&&an.lightOK&&an.concOK&&T.clean&&an.refN>=2;
+  const missing=CR.map((c,i)=>({c,i})).filter(o=>EV.rec.indexOf(o.i)<0);
+  return {valid,hOK,missing,found:CR.length-missing.length};
+}
+function renderEval(){
+  const tb=document.querySelector('#evTable tbody'), sm=$('evSummary'), can=T.sprayed||CY.done;
+  const vis=CR.filter(isVisible).length, rec=EV.rec.length;
+  $('btnEval').disabled=CY.running||!can;
+  $('btnEval').textContent=EV.on?'🔍 Auswertung beenden':'🔍 Auswerten';
+  $('evSub').textContent=EV.docDone?'Befund abgeschlossen':(EV.on?'Anzeigen anklicken':(can?'bereit zum Auswerten':'nach dem Prüfzyklus'));
+  $('evProgVal').textContent=rec+' / '+vis; $('evProgBar').style.width=(vis?Math.min(100,rec/vis*100):0)+'%';
+  $('evProgState').textContent=EV.docDone?'Befund erstellt':(EV.on?(rec>=vis&&vis>0?'alle erkennbaren Anzeigen erfasst':'Anzeigen erfasst'):'Anzeigen erfasst');
+  $('btnDoc').disabled=!(EV.on&&!EV.docDone&&vis>0&&rec>=vis);
+  if(!EV.on){ tb.innerHTML=''; sm.className='callout'; sm.textContent=can?'Der Prüfzyklus ist abgeschlossen. Mit „Auswerten“ beginnt die Befundaufnahme: jede Anzeige im Bild anklicken.':'Noch keine Auswertung. Nach dem Prüfzyklus auf „Auswerten“ klicken und dann jede Anzeige im Bild anklicken – so entsteht die Befundliste.'; return; }
+  tb.innerHTML=EV.rec.map((i,k)=>{ const c=CR[i]; if(!c) return ''; return '<tr class="'+(EV.sel===i?'cur':'')+'"><td class="l">'+(k+1)+' · '+c.sh+'</td><td>'+fmt(lenOf(c),1)+' mm</td><td>'+(c.depth>0?'Riss, oberflächennah':'Riss, offen')+'</td><td>nicht zulässig</td></tr>'; }).join('');
+  if(EV.docDone&&EV.result){ const r=EV.result; sm.className='callout '+(r.valid&&r.missing.length===0?'good':'bad');
+    sm.innerHTML=r.html; return; }
+  if(vis===0){ sm.className='callout bad'; sm.innerHTML='<b>Keine Anzeige erkennbar.</b> Das Prüfmittel hat sich nirgends angesammelt – Feldstärke, Feldrichtung, Prüfmittel und Beleuchtung prüfen und neu prüfen.'; }
+  else if(rec<vis){ sm.className='callout'; sm.innerHTML='<b>Befundaufnahme läuft.</b> '+rec+' von '+vis+' erkennbaren Anzeigen erfasst. Die gestrichelten Ringe im Bild zeigen, welche Anzeigen noch fehlen.'; }
+  else { sm.className='callout good'; sm.innerHTML='<b>Alle erkennbaren Anzeigen erfasst.</b> Jetzt „Befund abschließen“, um die Befundliste mit den bekannten Fehlerlagen zu vergleichen.'; }
+}
+function finishDoc(){
+  const v=evVerdict(); let html;
+  if(!v.valid) html='<b>Befund abgeschlossen – Prüfbedingungen nicht erfüllt.</b> '+(!v.hOK?'Feldstärke außerhalb 2–6,5 kA/m. ':'')+(!AN.lightOK?'Beleuchtung ungenügend. ':'')+(!AN.concOK?'Konzentration außerhalb des Bereichs. ':'')+(!T.clean?'Oberfläche verschmutzt. ':'')+(AN.refN<2?'Am Prüfkörper erscheinen weniger als 2 von 3 Anzeigen. ':'')+'Das Ergebnis ist nicht verwertbar.';
+  else if(v.missing.length) html='<b>Befund abgeschlossen – Prüfung unzureichend.</b> '+v.found+' von '+CR.length+' Fehlerlagen erfasst. Nicht angezeigt wurde: '+v.missing.map(o=>o.c.tag).join(', ')+'. Feldrichtung bzw. Feldart ändern (z. B. Kombination mit Gleichfeldanteil) und die Prüfung wiederholen.';
+  else html='<b>Befund abgeschlossen – Prüfung gültig.</b> Alle '+CR.length+' Fehlerlagen wurden angezeigt und erfasst; sämtliche Anzeigen sind rissartig und nicht zulässig. Danach das Bauteil entmagnetisieren.';
+  EV.docDone=true; EV.result={valid:v.valid,missing:v.missing,html};
+}
+$('btnEval').addEventListener('click',()=>{ EV.on=!EV.on; if(EV.on) evReset(); });
+$('btnDoc').addEventListener('click',finishDoc);
+cvPart.addEventListener('click',e=>{
+  if(!EV.on||EV.docDone) return;
+  const r=cvPart.getBoundingClientRect(), x=(e.clientX-r.left)*(PW/r.width), y=(e.clientY-r.top)*(PH/r.height);
+  let best=-1, bd=70; CR.forEach((c,i)=>{ const d=Math.hypot(x-c.x,y-c.y); if(d<bd){ bd=d; best=i; } });
+  if(best<0) return;
+  if(!isVisible(CR[best])){ EV.msg='Hier ist keine Anzeige erkennbar'; EV.msgT=performance.now()/1000; return; }
+  const k=EV.rec.indexOf(best); if(k>=0) EV.rec.splice(k,1); else EV.rec.push(best);
+  EV.sel=best;
+});
+
+/* ═══ Prüfzyklus in Echtzeit ═══ */
+const CY={running:false, phase:'idle', t:0, speed:1, done:false};
+const CYD={mag:3, spray:6, post:4};
+const cyTotal=()=>CYD.mag+CYD.spray+CYD.post;
+function cyPhaseAt(x){ if(x<CYD.mag) return 'mag'; if(x<CYD.mag+CYD.spray) return 'spray'; if(x<cyTotal()) return 'post'; return 'done'; }
+function syncToggles(){ $('btnSpray').classList.toggle('on',T.spray); $('btnSpray').setAttribute('aria-pressed',T.spray); $('btnField').textContent=T.on?'■ Feld ausschalten (manuell)':'▶ Feld einschalten (manuell)'; }
+function setManualEnabled(en){ $('btnField').disabled=!en; $('btnSpray').disabled=!en; }
+function applyPhase(ph){
+  CY.phase=ph; T.on=(ph!=='done'); T.spray=(ph==='spray');       // Feld bleibt bis zum Ende des Nachmagnetisierens an
+  setManualEnabled(!CY.running); syncToggles();
+}
+function startCycle(){
+  washAll(); CY.running=true; CY.done=false; CY.t=0; applyPhase('mag'); $('btnCycle').textContent='■ Zyklus abbrechen';
+}
+function abortCycle(){
+  CY.running=false; CY.done=false; CY.phase='idle'; T.on=false; T.spray=false; setManualEnabled(true); syncToggles(); $('btnCycle').textContent='▶ Prüfzyklus starten';
+}
+function cycleTick(dt){
+  if(!CY.running) return;
+  CY.t+=dt*CY.speed;
+  const ph=cyPhaseAt(CY.t);
+  if(ph!==CY.phase) applyPhase(ph);
+  if(ph==='done'){ CY.running=false; CY.done=true; setManualEnabled(true); syncToggles(); $('btnCycle').textContent='↺ Prüfzyklus wiederholen'; }
+}
+function updateCycleUI(){
+  const total=cyTotal(), names={idle:'bereit',mag:'Magnetisieren läuft',spray:'Bespülen läuft',post:'Nachmagnetisieren läuft',done:'Prüfzyklus abgeschlossen'};
+  const st=$('cyState'); st.textContent=names[CY.phase]; st.className='live-state'+(CY.running?' run':'');
+  if(CY.running){
+    const s0={mag:0,spray:CYD.mag,post:CYD.mag+CYD.spray}[CY.phase], du={mag:CYD.mag,spray:CYD.spray,post:CYD.post}[CY.phase];
+    $('cyClock').innerHTML=fmt(Math.max(0,CY.t-s0),1)+' <small>/ '+du+' s</small>';
+    $('cyBar').style.width=Math.min(100,CY.t/total*100)+'%';
+    $('cySub').textContent='Gesamt '+fmt(CY.t,1)+' / '+total+' s · Zeitraffer '+CY.speed+'× ('+(CY.speed===1?'Echtzeit':'schneller')+')';
+  } else if(CY.done){ $('cyClock').innerHTML=total+' <small>s gesamt</small>'; $('cyBar').style.width='100%'; $('cySub').textContent='Feld aus · Anzeigen bleiben stehen – jetzt auswerten und entmagnetisieren'; }
+  else { $('cyClock').textContent='–'; $('cyBar').style.width='0%'; $('cySub').textContent='Zyklus nicht gestartet – manuelle Bedienung möglich'; }
+  const order=['mag','spray','post','done'], cur=order.indexOf(CY.phase);
+  document.querySelectorAll('#cyTl span').forEach(sp=>{ const i=order.indexOf(sp.dataset.p); sp.className=(CY.phase==='idle')?'':(i<cur||(CY.phase==='done'&&i<=cur)?'done':(i===cur?'cur':'')); });
+  if(EV.on) document.querySelector('#cyTl span[data-p="done"]').className='cur';
+}
+$('btnCycle').addEventListener('click',()=>{ if(CY.running) abortCycle(); else startCycle(); });
+$('cySpeed').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; CY.speed=parseInt(b.dataset.s,10); document.querySelectorAll('#cySpeed button').forEach(x=>x.classList.toggle('sel',x===b)); });
+[['cdMag','mag','cdMagV'],['cdSpr','spray','cdSprV'],['cdPost','post','cdPostV']].forEach(([id,key,lab])=>$(id).addEventListener('input',()=>{ CYD[key]=parseInt($(id).value,10); $(lab).textContent=CYD[key]+' s'; fillRange($(id)); }));
+function setInner(on){
+  T.inner=on; CR=on?CRALL.slice():CRALL.filter(c=>c.depth===0); ALLC=CR.concat(REFS); buildBars(); stepsKey='';
+  const b=$('btnInner'); b.classList.toggle('on',on); b.setAttribute('aria-pressed',on); b.textContent=on?'Innenfehler einbezogen':'ohne Innenfehler';
+}
+$('btnInner').addEventListener('click',()=>setInner(!T.inner));
+
+/* ── Hauptschleife/* ── Hauptschleife ─────────────────────────────────────────── */
+let lastT=performance.now(), lastUI=0;
+function loop(now){
+  const rawDt=Math.min((now-lastT)/1000,0.25), dt=Math.min(rawDt,0.033); lastT=now;
+  if(tab==='test'){
+    cycleTick(rawDt);                                  // Prüfzyklus läuft in echter Zeit, unabhängig von der Bildrate
+    const f=stepTest(dt); drawPart(f.B1,f.B2); drawVec(f.B1,f.B2); drawWave();
+    if(now-lastUI>100){ lastUI=now; updateTestUI(); updateCycleUI(); renderEval(); renderSteps(); }
+  } else {
+    stepDemag(dt); drawDemag();
+    if(now-lastUI>150){ lastUI=now; renderSteps(); $('badge').innerHTML='<span class="dot"></span>'+(dm.active?'ENTMAGNETISIERT…':'DOMÄNENMODELL'); }
+  }
+  requestAnimationFrame(loop);
+}
+
+/* Start */
+legend(); buildBars(); syncControls(); setDMode('dc'); setDMeth('ac'); initNeedles(false);
+document.body.dataset.tab='test';
+AN=analyse(); ready=true;
+T.inner=true; T.on=false; T.spray=false; syncToggles();   // startet nicht von allein: Prüfzyklus per Button
+requestAnimationFrame(loop);
+</script>
+<script id="fit-js">
+window.FIT_CFG={cols:[[0,1,2,7],[3,4,8,9],[5,6,11,10]],template:'1.5fr 1fr 1fr'};
+(function(){
+  /* ═══ Kompakt-Dashboard (wie UT) – reines CSS-Pixel-Layout, KEIN Zoom-Eingriff: Browser-Zoom (Strg +/−) wirkt normal ═══ */
+  var C=window.FIT_CFG||{};
+  var app=document.querySelector('.app'); if(!app) return;
+  var container=app.querySelector(':scope > .layout, :scope > .grid'); if(!container) return;
+  var SIDEW=C.sideW||280, MINCOL=C.minCol||440, MAXK=C.maxCols||3, MAXS=C.maxSide||3,
+      SIDEGROUPS=C.sideGroups===undefined?[0]:C.sideGroups, MANUAL=C.cols||null, TEMPLATE=C.template||null;
+  var GAPS=[8,6,5], TIER=0, root=document.documentElement;
+  function isItem(c){ return c.classList.contains('panel')||c.classList.contains('stage'); }
+  function flat(g){
+    var o=[]; [].slice.call(g.children).forEach(function(ch){
+      if(ch.tagName==='SCRIPT'||ch.tagName==='STYLE') return;
+      if(getComputedStyle(ch).display==='contents'){ o.push.apply(o,flat(ch)); return; }
+      var kids=[].slice.call(ch.children);
+      if(ch.classList.contains('stagegrid') && kids.length>1 && kids.every(function(k){return k.classList.contains('stage');})){
+        var cls=['riss-only','gef-only'].filter(function(q){return ch.classList.contains(q);}), sc=ch.dataset.scn;
+        kids.forEach(function(k){ cls.forEach(function(q){k.classList.add(q);}); if(sc) k.dataset.scn=sc; o.push(k); });
+      } else o.push(ch);
+    }); return o;
+  }
+  var groups=[].slice.call(container.children).filter(function(c){return c.tagName!=='SCRIPT'&&c.tagName!=='STYLE';})
+    .map(function(c){ return isItem(c)?[c]:flat(c); });
+  var all=[]; groups.forEach(function(g,gi){ g.forEach(function(el){ all.push({el:el,g:gi,parent:el.parentElement,next:el.nextSibling}); }); });
+  var grid=null, cols=[], stash=null, curN=0, curSig='', busy=false;
+  function active(){ return window.innerWidth>=1000 && window.innerHeight>=520; }
+  function GAP(){ return GAPS[TIER]; }
+  function ensure(n){
+    if(grid&&curN===n) return;
+    if(!grid){ grid=document.createElement('div'); grid.className='fitgrid'; stash=document.createElement('div'); stash.style.display='none'; container.after(grid); container.after(stash); }
+    grid.textContent=''; cols=[]; curN=n; curSig='';
+    for(var i=0;i<n;i++){ var c=document.createElement('div'); c.className='fcol'; cols.push(c); grid.appendChild(c); }
+  }
+  function partition(hs,K){            /* zusammenhängende Aufteilung mit minimaler Maximalhöhe */
+    var n=hs.length, G=GAP(); if(K<=1||n<=1) return [hs.map(function(_,i){return i;})];
+    K=Math.min(K,n); var pre=[0]; hs.forEach(function(h,i){pre.push(pre[i]+h+G);});
+    var best=[],bestScore=1e12;
+    (function rec(start,k,cut){
+      if(k===1){ var cuts=cut.concat([n]), mx=0, sq=0; for(var j=0;j<cuts.length;j++){ var a=j?cuts[j-1]:0, h=pre[cuts[j]]-pre[a]; mx=Math.max(mx,h); sq+=h*h; }
+        var sc=mx+sq*1e-7; if(sc<bestScore){bestScore=sc;best=cuts;} return; }
+      for(var e=start+1;e<=n-(k-1);e++) rec(e,k-1,cut.concat([e]));
+    })(0,K,[]);
+    var out=[],s=0; best.forEach(function(e){ var a=[]; for(var i=s;i<e;i++) a.push(i); out.push(a); s=e; }); return out;
+  }
+  function colH(ix,list){ var t=0; ix.forEach(function(i){t+=list[i].h+GAP();}); return t; }
+  function setTier(t){ TIER=t; root.classList.remove('d1','d2'); if(t) root.classList.add('d'+t); }
+
+  function layoutOnce(){
+    var W=window.innerWidth, effW=W-26, G=GAP();
+    root.classList.add('fit'); container.style.display='none';
+    var mwrap=document.createElement('div'); mwrap.className='fitgrid'; mwrap.style.cssText='position:absolute;left:-99999px;top:0;display:block;flex:none;visibility:hidden;';
+    var meas=document.createElement('div'); meas.className='fcol'; meas.style.cssText='overflow:visible;height:auto;max-height:none;display:flex;flex-direction:column;';
+    mwrap.appendChild(meas); app.appendChild(mwrap);
+    ensure(1); grid.style.gridTemplateColumns='1fr';
+    var availH=Math.max(300,grid.clientHeight-2), plan, S, K, over=0, tpl;
+    function measure(list,w){ meas.style.width=w+'px'; list.forEach(function(a){meas.appendChild(a.el);}); list.forEach(function(a){a.h=a.el.getBoundingClientRect().height;}); }
+    if(MANUAL){
+      K=MANUAL.length; S=0; ensure(K);
+      plan=MANUAL.map(function(idxs){ return idxs.map(function(i){return all[i];}).filter(Boolean); });
+      var used={}; MANUAL.forEach(function(ix){ix.forEach(function(i){used[i]=1;});});
+      all.forEach(function(a,i){ if(!used[i]) plan[K-1].push(a); });
+      tpl=TEMPLATE||('repeat('+K+',minmax(0,1fr))');
+      plan.forEach(function(c,i){ var w=Math.floor((effW-G*(K-1))/K); measure(c,w); over=Math.max(over,colH(c.map(function(_,j){return j;}),c)-availH); });
+    } else {
+      var side=all.filter(function(a){return SIDEGROUPS.indexOf(a.g)>=0;}), rest=all.filter(function(a){return SIDEGROUPS.indexOf(a.g)<0;});
+      var best=null, sv=[];
+      var sideVis=side.length; if(side.length){ measure(side,SIDEW-6); sideVis=side.filter(function(a){return a.h>1;}).length; }
+      for(var s=(sideVis?1:0); s<=(sideVis?Math.min(MAXS,sideVis):0); s++){
+        if(effW-s*(SIDEW+G)<MINCOL) break;
+        var spart=[], oS=-1e9;
+        if(s){ measure(side,SIDEW-6); sv=side.filter(function(a){return a.h>1;}); spart=partition(sv.map(function(a){return a.h;}),s);
+          oS=Math.max.apply(null,spart.map(function(ix){return colH(ix,sv)-availH;})); }
+        var kmax=Math.max(1,Math.min(MAXK,Math.floor((effW-s*(SIDEW+G)+G)/(MINCOL+G))));
+        for(var k=1;k<=kmax;k++){
+          var mw=Math.floor((effW-s*(SIDEW+G)-G*(k-1))/k)-6;
+          measure(rest,mw);
+          var vv=rest.filter(function(a){return a.h>1;}); if(k>Math.max(1,vv.length)) break;
+          var pp=partition(vv.map(function(a){return a.h;}),k);
+          var hR=pp.map(function(ix){return colH(ix,vv);}), mxR=Math.max.apply(null,hR);
+          var solvable=(k===1&&s>=1&&vv.length<=2), ov=Math.max(0,oS,solvable?0:mxR-availH), left=solvable?0:Math.max(0,availH-mxR);
+          var score=ov>2?(1e6+ov*10):(left*0.5+s*45+k*4+(solvable?25:0));
+          if(!best||score<best.score) best={score:score,S:s,K:k,spart:spart,pp:pp,vv:vv,sv:sv,over:ov,mw:mw};
+        }
+      }
+      S=best.S; K=best.K; over=best.over;
+      ensure(S+K);
+      plan=best.spart.map(function(ix){return ix.map(function(i){return best.sv[i];});}).concat(best.pp.map(function(ix){return ix.map(function(i){return best.vv[i];});}));
+      if(S) side.filter(function(a){return a.h<=1;}).forEach(function(a){plan[0].push(a);});
+      while(plan.length<S+K) plan.push([]);
+      var sw=[]; for(var q=0;q<S;q++) sw.push(SIDEW+'px');
+      tpl=(S?sw.join(' ')+' ':'')+'repeat('+K+',minmax(0,1fr))';
+    }
+    var sig=plan.map(function(c){return c.map(function(a){return all.indexOf(a);}).join(',');}).join('|')+'@'+curN;
+    var inPlan=new Set(); plan.forEach(function(c){c.forEach(function(a){inPlan.add(a);});});
+    if(sig!==curSig){ plan.forEach(function(c,i){ cols[i].replaceChildren.apply(cols[i],c.map(function(a){return a.el;})); }); curSig=sig; }
+    else plan.forEach(function(c,i){ c.forEach(function(a){ if(a.el.parentElement!==cols[i]) cols[i].appendChild(a.el); }); });
+    all.forEach(function(a){ if(!inPlan.has(a)) stash.appendChild(a.el); });
+    mwrap.remove();
+    grid.style.gridTemplateColumns=tpl;
+    window.__fitDbg={S:S,K:K,tier:TIER,over:Math.round(over),availH:availH};
+    return {over:over,S:S,K:K,availH:availH};
+  }
+  function redraw(){ window.__fitSilent=true; window.dispatchEvent(new Event('resize')); window.__fitSilent=false; }
+  function colNat(c){ var t=0,n=0; [].forEach.call(c.children,function(ch){ var h=ch.getBoundingClientRect().height; if(h>0){ t+=h; n++; } }); return t+Math.max(0,n-1)*GAP(); }
+  function isGraphicCol(c){
+    var els=c.querySelectorAll('canvas,svg'); for(var i=0;i<els.length;i++){ var e=els[i]; if(e.closest('button,.icon,.badge,.toggle,summary')) continue; var r=e.getBoundingClientRect(); if(r.width>150&&r.height>60) return true; } return false;
+  }
+  var TEXTMIN=C.textMin||300;
+  function fitWidths(avail){        /* Grafik-Spalten so breit, dass ihre Höhe die Fensterhöhe füllt (Seitenverhältnis bleibt, nichts verzerrt); Rest geht an Text-Spalten */
+    var n=cols.length; if(n<1) return 0;
+    var G=GAP(), availW=window.innerWidth-26-G*(n-1), g=cols.map(isGraphicCol), nG=g.filter(Boolean).length, nT=n-nG;
+    function tpl(w){ return cols.map(function(_,i){ return g[i]?Math.round(w[i])+'px':'minmax('+TEXTMIN+'px,1fr)'; }).join(' '); }
+    if(!nG||n===1){ grid.style.gridTemplateColumns=cols.map(function(){return 'minmax(0,1fr)';}).join(' '); redraw(); }
+    else {
+      var budget=availW-nT*TEXTMIN, w=cols.map(function(_,i){return g[i]?budget/nG:0;}), lo=MINCOL*0.7;
+      for(var it=0; it<7; it++){
+        grid.style.gridTemplateColumns=tpl(w); redraw();
+        var worst=0, nw=w.slice();
+        cols.forEach(function(c,i){ if(!g[i]) return; var h=colNat(c); worst=Math.max(worst,Math.abs(h-avail)/avail); nw[i]=Math.max(lo,Math.min(budget,w[i]*Math.pow(avail/Math.max(150,h),0.95))); });
+        var sum=0; cols.forEach(function(_,i){ if(g[i]) sum+=nw[i]; });
+        if(sum>budget) cols.forEach(function(_,i){ if(g[i]) nw[i]=Math.max(lo,nw[i]*budget/sum); });
+        w=nw; if(worst<0.02) break;
+      }
+      grid.style.gridTemplateColumns=tpl(w); grid.style.justifyContent=nT?'stretch':'center'; redraw();
+    }
+    var mx=0; cols.forEach(function(c){ mx=Math.max(mx,colNat(c)-avail); });
+    var sw=cols.map(function(c){ var hs=[].slice.call(c.querySelectorAll('.panel,.stage')); return hs.length; });
+    /* breite Einstellungsspalten: Regler zweispaltig */
+    cols.forEach(function(c){ var wide=c.getBoundingClientRect().width>=430&&!isGraphicCol(c); [].forEach.call(c.querySelectorAll('.panel'),function(pn){ var k=[].filter.call(pn.children,function(e){return e.classList.contains('ctl-row')||e.classList.contains('field');}).length; pn.classList.toggle('fit2',wide&&k>=3); }); });
+    return mx-5;
+  }
+  function relayout(){
+    if(busy) return; busy=true;
+    try{
+      if(!active()){ restore(); return; }
+      var r=null, mx=0;
+      for(var t=0;t<3;t++){ setTier(t); r=layoutOnce(); redraw(); mx=fitWidths(r.availH-5); if(mx<=0) break; }
+      window.__fitDbg.over=Math.round(Math.max(0,mx)); redraw();
+    } finally { busy=false; }
+  }
+  function restore(){
+    root.classList.remove('fit','d1','d2'); TIER=0;
+    if(!grid) return; container.style.display='';
+    all.forEach(function(a){ if(a.next&&a.next.parentNode===a.parent) a.parent.insertBefore(a.el,a.next); else a.parent.appendChild(a.el); });
+    grid.remove(); stash.remove(); grid=null; stash=null; cols=[]; curN=0; curSig='';
+  }
+  function again(){ clearTimeout(window.__fitA); window.__fitA=setTimeout(function(){ relayout(); },70); }
+  window.addEventListener('resize',function(){ if(window.__fitSilent) return; clearTimeout(window.__fitT); window.__fitT=setTimeout(relayout,90); });
+  document.addEventListener('click',function(e){ if(e.target.closest('button,.toggle,.seg,.tabs,label,summary')) again(); },true);
+  document.addEventListener('change',function(e){ if(e.target.matches('select,input[type=checkbox],input[type=radio]')) again(); },true);
+  window.__fitRelayout=again;
+  relayout();
+  setTimeout(relayout,350);
+})();
+
+</script>
+</body>
+</html>

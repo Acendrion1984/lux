@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Durchstrahlprüf-Simulator · RT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media=\'all\'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
+<style>
+  :root{
+    --bg:#1c1e20; --bg-2:#242628; --panel:#2a2d30; --panel-2:#2f3236;
+    --border:#4a5058; --border-soft:#3a4048; --text:#f0f2f4; --text-dim:#b8bec4; --text-faint:#7a8490;
+    --amber:#ffc94d; --amber-dim:#8a6420; --amber-glow:rgba(255,201,77,.24);
+    --cyan:#4de9d4; --cyan-dim:#1f6a61; --cyan-glow:rgba(77,233,212,.18);
+    --red:#ff6f66; --green:#5fe072; --green-glow:rgba(95,224,114,.55);
+    --mono:'JetBrains Mono',ui-monospace,monospace; --disp:'Space Grotesk',sans-serif; --body:'Inter',sans-serif;
+  }
+  body.light-mode{
+    --bg:#e7ecf2; --bg-2:#dbe3ec; --panel:#f7f9fb; --panel-2:#eaeff4;
+    --border:#7c93a8; --border-soft:#a9bccb; --text:#0c1620; --text-dim:#2b3e4f; --text-faint:#51687a;
+    --amber:#a45f00; --amber-dim:#e0aa4a; --amber-glow:rgba(164,95,0,.16);
+    --cyan:#0a7d6e; --cyan-dim:#bfe9e1; --cyan-glow:rgba(10,125,110,.14);
+    --red:#b0241a; --green:#187a32; --green-glow:rgba(24,122,50,.25);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--body);transition:background .2s,color .2s;}
+  body{min-height:100vh;background:
+      radial-gradient(ellipse 1400px 700px at 10% -5%,#0a1e30 0%,transparent 55%),
+      radial-gradient(ellipse 900px 500px at 95% 5%,#14101e 0%,transparent 50%),
+      var(--bg);}
+  body.light-mode{background:
+      radial-gradient(ellipse 1400px 700px at 10% -5%,#c9d7e4 0%,transparent 55%),
+      radial-gradient(ellipse 900px 500px at 95% 5%,#dcd3e8 0%,transparent 50%),
+      var(--bg);}
+  .app{max-width:1200px;margin:0 auto;padding:14px 12px 48px;}
+  @media(min-width:768px){.app{padding:20px 20px 56px;}}
+  /* FIX: Breite Bildschirme nutzten bislang nur 1200px, Rest blieb leer */
+  @media(min-width:1500px){.app{max-width:1760px;}}
+  @media(min-width:1900px){.app{max-width:2000px;}}
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;margin-bottom:16px;border-bottom:1.5px solid var(--border);flex-wrap:wrap;}
+  .brand-eyebrow{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--cyan);margin:0 0 4px;display:flex;align-items:center;gap:6px;}
+  .brand-eyebrow::before{content:'';display:inline-block;width:18px;height:1.5px;background:var(--cyan);opacity:.8;}
+  h1{font-family:var(--disp);font-weight:700;font-size:20px;margin:0;background:linear-gradient(120deg,var(--text) 60%,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  h1 small{display:block;font-family:var(--body);font-weight:400;font-size:11.5px;color:var(--text-dim);margin-top:2px;-webkit-text-fill-color:var(--text-dim);}
+  @media(min-width:600px){h1{font-size:24px;}h1 small{font-size:12.5px;}}
+  .hdr-right{display:flex;align-items:center;gap:8px;}
+  .badge{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:5px 10px;border:1px solid var(--border);border-radius:20px;color:var(--text-dim);display:flex;align-items:center;gap:6px;}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green-glow);}
+  .theme-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--panel-2);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:.15s;}
+  .theme-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+
+  .grid{display:grid;grid-template-columns:1fr;gap:16px;}
+  @media(min-width:960px){.grid{grid-template-columns:1.3fr .9fr;align-items:start;}}
+  @media(min-width:1500px){.grid{grid-template-columns:1.7fr .9fr;gap:22px;}}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border-soft);border-radius:14px;padding:14px;}
+  .stage-title{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);margin:0 0 10px;display:flex;justify-content:space-between;}
+
+  .stage{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--border-soft);background:#000;}
+  canvas{display:block;width:100%;height:auto;}
+
+  .ctl-row{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .ctl-row label{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--text-dim);display:flex;justify-content:space-between;}
+  .ctl-row label b{color:var(--amber);font-weight:700;}
+  input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:4px;background:var(--panel-2);outline:none;border:1px solid var(--border-soft);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--amber);border:2px solid #1a1200;box-shadow:0 0 8px var(--amber-glow);cursor:pointer;}
+  select{width:100%;background:var(--panel-2);color:var(--text);border:1px solid var(--border-soft);border-radius:8px;padding:8px 10px;font-family:var(--body);font-size:13px;}
+
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;}
+  button{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);cursor:pointer;transition:.15s;}
+  button:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan);}
+  button.primary{background:linear-gradient(120deg,var(--amber-dim),#5c4310);border-color:var(--amber);color:var(--amber);}
+  body.light-mode button.primary{background:linear-gradient(120deg,#f2d9a8,#e0aa4a);color:#4a2f00;}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+  .stat{background:var(--panel-2);border:1px solid var(--border-soft);border-radius:8px;padding:8px 10px;}
+  .stat .k{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);}
+  .stat .v{font-family:var(--disp);font-size:16px;font-weight:700;color:var(--cyan);}
+  .stat .v small{font-size:10px;color:var(--text-dim);font-weight:400;}
+  .stat.warn .v{color:var(--red);}
+  .stat.ok .v{color:var(--green);}
+
+  .gauge{margin-top:12px;}
+  .gauge .bar{position:relative;height:14px;border-radius:7px;background:linear-gradient(90deg,#3a1010 0%, #3a1010 18%, #1a3a20 32%, #12401f 68%, #3a2a10 82%, #3a1010 100%);border:1px solid var(--border-soft);overflow:visible;}
+  body.light-mode .gauge .bar{background:linear-gradient(90deg,#f3caca 0%, #f3caca 18%, #cdeed3 32%, #b9e6c2 68%, #f2e0b9 82%, #f3caca 100%);}
+  .gauge .needle{position:absolute;top:-4px;width:3px;height:22px;background:var(--text);border-radius:2px;transform:translateX(-1.5px);transition:left .2s;}
+  .gauge .lbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--text-faint);margin-top:4px;}
+
+  .callout{margin-top:12px;padding:10px 12px;border-radius:8px;border:1px solid var(--border-soft);background:var(--panel-2);font-size:12px;color:var(--text-dim);}
+  .callout.bad{border-color:#7a2a2a;color:#ffb3ac;}
+  body.light-mode .callout.bad{color:#7a1a12;background:#fbe4e2;}
+  .callout.good{border-color:#245c30;color:#b7f0c0;}
+  body.light-mode .callout.good{color:#0f4a20;background:#e2f5e6;}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--text-dim);}
+
+  /* ═══ RT-Upgrade ═══ */
+  .col{display:flex;flex-direction:column;gap:16px;min-width:0;}
+  .stage-title .sub{color:var(--text-faint);font-weight:400;text-transform:none;letter-spacing:0;font-size:10.5px;}
+  .stage{box-shadow:inset 0 0 0 1px rgba(255,255,255,.05),0 8px 20px -12px rgba(0,0,0,.7);}
+  .panel{box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 10px 28px -14px rgba(0,0,0,.55);}
+  body.light-mode .panel{box-shadow:0 10px 26px -16px rgba(12,31,22,.28);}
+  input[type=range]{background:linear-gradient(90deg,var(--amber) var(--p,40%),var(--panel-2) var(--p,40%));}
+  input[type=range]:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .ctl-row .note{font-size:10.5px;color:var(--text-faint);line-height:1.4;}
+  body.light-mode .ctl-row .note{color:var(--text-dim);}
+  .btnrow button.tog{flex:0 0 auto;}
+  .btnrow button.tog.on{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-glow);}
+  .stats{grid-template-columns:1fr 1fr;}
+  .stat .v{font-size:15px;}
+  .stat .v small{display:block;font-family:var(--mono);font-size:9.5px;color:var(--text-faint);font-weight:500;margin-top:1px;}
+  body.light-mode .stat .v small{color:var(--text-dim);}
+  .stat.full{grid-column:1/-1;}
+  .gauge .bar{background:linear-gradient(90deg,#4a1414 0%,#4a1414 43%,#5a3f12 43%,#5a3f12 50%,#14402a 50%,#14402a 86.9%,#4a1414 87%,#4a1414 100%);}
+  body.light-mode .gauge .bar{background:linear-gradient(90deg,#f3caca 0%,#f3caca 43%,#f2e0b9 43%,#f2e0b9 50%,#bfe9c9 50%,#bfe9c9 86.9%,#f3caca 87%,#f3caca 100%);}
+  .gauge .ticks{position:relative;height:14px;margin-top:4px;font-family:var(--mono);font-size:9px;color:var(--text-faint);}
+  .gauge .ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap;}
+  body.light-mode .gauge .ticks{color:var(--text-dim);}
+  .hint{font-size:11.5px;color:var(--text-faint);line-height:1.5;margin:8px 0 0;}
+  body.light-mode .hint{color:var(--text-dim);}
+  .legend{gap:8px 16px;}
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .legend i{width:10px;height:10px;border-radius:2px;display:inline-block;border:1px solid var(--border);}
+
+  .steps{display:flex;flex-direction:column;}
+  .step{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--border-soft);}
+  .step:first-child{border-top:0;padding-top:2px;}
+  .step .ic{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;border:1.5px solid var(--border);color:var(--text-dim);background:var(--panel-2);}
+  .step.ok .ic{border-color:var(--green);color:var(--green);background:var(--cyan-glow);}
+  .step.warn .ic{border-color:var(--red);color:var(--red);background:rgba(255,111,102,.12);}
+  .step h4{margin:0;font-family:var(--disp);font-size:12.5px;font-weight:600;display:flex;justify-content:space-between;gap:8px;align-items:baseline;}
+  .step h4 .val{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--text-dim);text-align:right;}
+  .step.ok h4 .val{color:var(--green);}
+  .step.warn h4 .val{color:var(--red);}
+  .step p{margin:3px 0 0;font-size:11px;line-height:1.45;color:var(--text-faint);}
+  body.light-mode .step p{color:var(--text-dim);}
+  .step p.fix{color:var(--red);font-weight:500;}
+  .step.cur{background:linear-gradient(90deg,var(--cyan-glow),transparent 70%);margin:0 -6px;padding-left:6px;padding-right:6px;border-radius:8px;}
+
+  .live{margin:2px 0 12px;padding:10px 12px;border:1px solid var(--border-soft);border-radius:10px;background:var(--panel-2);}
+  .live-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:var(--mono);}
+  .live-state{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);}
+  .live-state.run{color:var(--amber);}
+  .live-state.run::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--amber);margin-right:7px;box-shadow:0 0 8px var(--amber);animation:livepulse 1s ease-in-out infinite;}
+  @keyframes livepulse{0%,100%{opacity:1}50%{opacity:.3}}
+  @media(prefers-reduced-motion:reduce){.live-state.run::before{animation:none;}}
+  .live-clock{font-size:13px;font-weight:700;color:var(--text);}
+  .pbar{height:6px;border-radius:3px;background:var(--bg-2);border:1px solid var(--border-soft);margin:8px 0 6px;overflow:hidden;}
+  .pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--amber-dim),var(--amber));}
+  .live-sub{font-family:var(--mono);font-size:10px;color:var(--text-faint);}
+  body.light-mode .live-sub{color:var(--text-dim);}
+
+  .gauge .needle.thin{background:var(--amber);width:2px;height:18px;top:-2px;}
+</style>
+<script src="/shared/zfp-context.js"></script>
+<script id="zfp-offline">
+/* Offline-Fallback: läuft die App ohne Server (file://), fehlt /shared/zfp-context.js – dann wird der Theme-Kontext lokal bereitgestellt. */
+(function(){
+  if(window.ZfPContext) return;
+  var cbs=[], mode=null, KEY='zfp-theme';
+  function store(v){ try{ if(v===undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY,v); }catch(e){} return null; }
+  function init(){ if(mode) return; var s=store(); mode=(s==='light'||s==='dark')?s:((document.body&&(document.body.classList.contains('light-mode')||document.body.classList.contains('light')))?'light':'dark'); }
+  window.ZfPContext={
+    get theme(){ init(); return mode; },
+    onTheme:function(f){ if(typeof f!=='function') return; cbs.push(f); init(); f(mode); },
+    toggleTheme:function(){ init(); mode=mode==='light'?'dark':'light'; store(mode); cbs.forEach(function(f){ try{ f(mode); }catch(e){} }); }
+  };
+})();
+</script>
+
+<style id="fit-css">
+/* ═══ Kompakt-Dashboard (wie UT): kleine Schrift, dichte Panels, alles auf einem Bildschirm ═══ */
+html.fit, html.fit body{height:100%; overflow:hidden;}
+html.fit .app{box-sizing:border-box; display:flex; flex-direction:column; padding:5px 12px 8px; gap:6px; max-width:none; width:100%; height:100vh; height:100dvh; overflow:hidden; zoom:1 !important;}
+html.fit .sfl-bar{display:none;}
+html.fit header.top{margin:0; padding:0 0 4px; flex:0 0 auto; align-items:center; gap:12px; flex-wrap:nowrap;}
+html.fit header.top .brand-eyebrow, html.fit .eyebrow{font-size:9px; margin:0 0 1px;}
+html.fit header.top h1{font-size:21px; line-height:1.05; margin:0;}
+html.fit header.top h1 small, html.fit header.top .title-group > small, html.fit header.top .sub{font-size:11.5px; line-height:1.2;}
+html.fit .badge{font-size:10.5px; padding:3px 9px;}
+html.fit .icon-btn{width:30px; height:30px; font-size:14px;}
+html.fit .fitgrid{flex:1 1 0; min-height:0; display:grid; gap:8px; margin:0; align-items:stretch;}
+html.fit .fcol{display:flex; flex-direction:column; gap:8px; min-height:0; min-width:0; overflow-y:auto; overflow-x:hidden; padding:0 2px 4px 0; scrollbar-width:thin;}
+html.fit .fcol > *{flex:0 0 auto; margin:0 !important;}
+html.fit .panel{padding:8px 10px 9px; border-radius:10px;}
+html.fit .panel h2, html.fit .stage-title, html.fit .panel > .stage-title{margin:0 0 5px; font-size:10.5px; letter-spacing:.07em; line-height:1.25;}
+html.fit .stage-head{gap:4px 10px; flex-wrap:wrap; padding:0 0 4px; margin:0 0 2px;}
+html.fit .ctl-row, html.fit .field{margin:0 0 5px;}
+html.fit .ctl-row label, html.fit .field label{font-size:11.5px; margin:0 0 1px; line-height:1.25;}
+html.fit .ctl-row label .val, html.fit .field label .val{font-size:11.5px;}
+html.fit input[type=range]{margin:1px 0; height:18px;}
+html.fit .hint, html.fit .note, html.fit .ctl-row .note, html.fit .sidebar-note, html.fit .panel .hint{font-size:10.5px; line-height:1.32; margin:2px 0 0;}
+html.fit .btnrow{gap:5px; margin:4px 0;}
+html.fit button, html.fit select{font-size:11.5px; padding:5px 9px;}
+html.fit .callout, html.fit .verdict{font-size:11.5px; line-height:1.4; padding:7px 10px; margin-top:5px; max-height:none; overflow:visible;}
+html.fit .stat{padding:5px 8px;} html.fit .stat .k{font-size:9.5px; line-height:1.2;} html.fit .stat .v{font-size:14.5px;}
+html.fit .stats{gap:5px; grid-template-columns:repeat(3,1fr);}
+html.fit .seg{gap:4px;}
+html.fit .seg button, html.fit .toggle button{padding:6px 5px; min-width:0; white-space:normal; line-height:1.2; font-size:11px;}
+html.fit .seg.mini button{padding:3px 8px; font-size:10.5px;}
+html.fit .toggle{flex-wrap:wrap; padding:5px 8px; margin:0 0 4px;}
+html.fit .legend{font-size:10px; margin-top:4px; gap:3px 12px;}
+html.fit table.res td, html.fit table.res th, html.fit table.ht td, html.fit table.ht th{padding:3px 5px; font-size:10.5px;}
+html.fit .pstep, html.fit .step{padding-top:5px; padding-bottom:5px; gap:8px;}
+html.fit .pstep p, html.fit .step p{font-size:10.5px; line-height:1.38; margin-top:2px;}
+html.fit .pstep h4{font-size:12px;}
+html.fit .frow{padding:3px 0; font-size:11.5px;}
+html.fit .frow .nm small{font-size:10px; line-height:1.25;}
+html.fit .live{padding:8px 11px; margin-bottom:6px;}
+html.fit .live-val{font-size:19px;}
+html.fit .pbar{margin:6px 0 4px;}
+html.fit .stage, html.fit .panel > .stage{margin:0;}
+html.fit .foot{font-size:10.5px; padding-top:3px;}
+html.fit .kv{font-size:11px;}
+html.fit canvas, html.fit svg.view{max-width:100%; height:auto;}
+html.fit .step p, html.fit .pstep p{display:none;}
+html.fit .step.cur p, html.fit .pstep.cur p{display:block;}
+/* Slider-reiche Panels: zwei Regler nebeneinander */
+html.fit .panel.fit2{display:grid; grid-template-columns:1fr 1fr; column-gap:12px; align-content:start;}
+html.fit .panel.fit2 > *{grid-column:1/-1;}
+html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{grid-column:auto; min-width:0;}
+
+/* Grafiken: nur Breite begrenzt, Höhe folgt dem Seitenverhältnis → nie verzerrt */
+html.fit .stage canvas, html.fit .stage svg{max-width:100%; height:auto;}
+/* Kompaktstufen (nur Abstände, Schriftgröße bleibt → Browser-Zoom wirkt normal) */
+html.fit.d1 .fitgrid, html.fit.d1 .fcol{gap:6px;}
+html.fit.d1 .panel{padding:6px 8px 7px;}
+html.fit.d1 .panel h2, html.fit.d1 .stage-title{margin-bottom:3px;}
+html.fit.d1 .ctl-row, html.fit.d1 .field{margin-bottom:3px;}
+html.fit.d1 .hint, html.fit.d1 .note, html.fit.d1 .panel .hint{margin-top:1px; line-height:1.25;}
+html.fit.d1 .stat{padding:3px 7px;} html.fit.d1 .stats{gap:4px;}
+html.fit.d1 .toggle{padding:3px 7px; margin-bottom:3px;}
+html.fit.d1 .seg button, html.fit.d1 .toggle button{padding:4px 4px;}
+html.fit.d1 button, html.fit.d1 select{padding:3px 8px;}
+html.fit.d1 .callout, html.fit.d1 .verdict{padding:5px 8px; margin-top:3px; line-height:1.3;}
+html.fit.d1 .pstep, html.fit.d1 .step{padding-top:3px; padding-bottom:3px;}
+html.fit.d1 .legend{margin-top:2px;} html.fit.d1 .btnrow{margin:2px 0;}
+html.fit.d1 header.top{padding-bottom:2px;}
+html.fit.d2 .fitgrid, html.fit.d2 .fcol{gap:4px;}
+html.fit.d2 .panel{padding:4px 7px 5px; border-radius:8px;}
+html.fit.d2 .panel h2, html.fit.d2 .stage-title{margin-bottom:2px; font-size:10px;}
+html.fit.d2 .ctl-row, html.fit.d2 .field{margin-bottom:1px;}
+html.fit.d2 input[type=range]{height:14px; margin:0;}
+html.fit.d2 .hint, html.fit.d2 .note, html.fit.d2 .panel .hint{line-height:1.18; font-size:10px; margin-top:0;}
+html.fit.d2 .stat{padding:2px 6px;} html.fit.d2 .stat .v{font-size:13px;} html.fit.d2 .stats{gap:3px;}
+html.fit.d2 .toggle{padding:2px 6px; margin-bottom:2px;}
+html.fit.d2 .seg button, html.fit.d2 .toggle button{padding:3px 3px;}
+html.fit.d2 button, html.fit.d2 select{padding:2px 7px;}
+html.fit.d2 .callout, html.fit.d2 .verdict{padding:3px 7px; margin-top:2px; line-height:1.25;}
+html.fit.d2 .pstep, html.fit.d2 .step{padding-top:2px; padding-bottom:2px;}
+html.fit.d2 header.top h1{font-size:19px;} html.fit.d2 header.top h1 small{display:none;}
+html.fit.d2 .legend{margin-top:1px;} html.fit.d2 .btnrow{margin:1px 0;} html.fit.d2 .live{padding:5px 9px; margin-bottom:3px;}
+
+html.fit .thermal-wrap{align-items:start;}
+html.fit #heat{height:auto !important; align-self:start;}
+html.fit #cbar{height:100%;}
+/* Tabellen: nie rechts abschneiden */
+html.fit .fcol div:has(> table), html.fit .fcol .tablewrap, html.fit .fcol .skiptbl-wrap{overflow-x:auto; max-width:100%;}
+html.fit .fcol table{font-size:10.5px;}
+html.fit .fcol table th, html.fit .fcol table td{padding:3px 4px; white-space:normal;}
+/* alte max-height-Kappen der Einzel-Apps aufheben: Höhe folgt nur dem Seitenverhältnis (keine Seitenbalken) */
+html.fit svg, html.fit .stage svg, html.fit #setup, html.fit #wave, html.fit #chart, html.fit #view{max-height:none !important;}
+html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{min-width:0; overflow:hidden;}
+html.fit .panel.fit2 select, html.fit .panel.fit2 input[type=range]{width:100%; max-width:100%; min-width:0;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="title-group">
+      <p class="brand-eyebrow">SCHAEFFLER · ZFP · SCHWEINFURT</p>
+      <h1>Durchstrahlprüf-Simulator<small>RT · Röntgenaufnahme, Belichtung &amp; Bildgüte (IQI)</small></h1>
+    </div>
+    <div class="hdr-right">
+      <div class="badge"><span class="dot"></span>SIMULATION</div>
+      <button class="theme-btn" id="themeBtn" title="Light/Dark Mode">☀</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <div class="panel">
+        <p class="stage-title"><span>STRAHLENGANG (SEITENANSICHT)</span><span class="sub" id="geomSub">Schweißnaht im Querschnitt · nicht maßstäblich</span></p>
+        <div class="stage"><canvas id="cvGeom"></canvas></div>
+        <p class="stage-title" style="margin-top:14px;"><span>FILM- / DETEKTORBILD</span><span class="sub" id="filmInfo">—</span></p>
+        <div class="stage"><canvas id="cvFilm"></canvas></div>
+        <div class="legend">
+          <span><i style="background:#1b1f23"></i>dunkel = hohe Schwärzung (viel Strahlung)</span>
+          <span><i style="background:#c9d0d6"></i>hell = geringe Schwärzung (viel Material)</span>
+          <span><i style="background:transparent;border-color:var(--cyan)"></i>Auswertehilfe</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <p class="stage-title"><span>DICHTEPROFIL · MESSLINIE QUER ZUM FEHLER</span><span class="sub" id="profInfo">—</span></p>
+        <div class="stage"><canvas id="cvProf"></canvas></div>
+        <p class="hint">Ein Fehler ist erkennbar, wenn sein Dichtesprung die Rauschschwelle (≈ 1,8 · σ der Filmkörnung) überschreitet. Die Messlinie liegt auf dem Film als cyanfarbene Linie.</p>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="panel">
+        <p class="stage-title"><span>STRAHLPARAMETER</span></p>
+
+        <div class="row2">
+          <div class="ctl-row">
+            <label>Prüfobjekt</label>
+            <select id="objSel">
+              <option value="weld" selected>Schweißnaht (Stumpfnaht)</option>
+              <option value="solid">Vollmaterial (Platte, Schmiedeteil)</option>
+              <option value="cast">Gussteil mit Dickensprung</option>
+            </select>
+          </div>
+          <div class="ctl-row">
+            <label>Werkstoff</label>
+            <select id="matSel">
+              <option value="stahl" selected>Stahl</option>
+              <option value="alu">Aluminium</option>
+            </select>
+          </div>
+        </div>
+        <div class="ctl-row">
+          <label>Röhrenspannung <b id="kvV">140 kV</b></label>
+          <input type="range" id="kv" min="60" max="300" value="140" step="5">
+        </div>
+        <div class="ctl-row">
+          <label>Belichtungswert (mA·min) <b id="mavV">15</b></label>
+          <input type="range" id="mav" min="1" max="40" value="15" step="1">
+        </div>
+        <div class="ctl-row">
+          <label>Wandstärke <b id="thickV">20 mm</b></label>
+          <input type="range" id="thick" min="5" max="60" value="20" step="1">
+        </div>
+        <div class="ctl-row">
+          <label>Fokus-Film-Abstand (SFD) <b id="sfdV">700 mm</b></label>
+          <input type="range" id="sfd" min="300" max="1200" value="700" step="10">
+        </div>
+        <div class="ctl-row">
+          <label>Brennfleckgröße <b id="focV">1,5 mm</b></label>
+          <input type="range" id="foc" min="0.4" max="4" value="1.5" step="0.1">
+        </div>
+        <div class="ctl-row">
+          <label>Röhrenstrom <b id="maV">5 mA</b></label>
+          <input type="range" id="ma" min="1" max="20" value="5" step="1">
+          <div class="note" id="timeNote"></div>
+        </div>
+        <div class="row2">
+          <div class="ctl-row">
+            <label>Filmsystem</label>
+            <select id="filmSel">
+              <option value="fein">fein (hohe Auflösung)</option>
+              <option value="mittel" selected>mittel</option>
+              <option value="grob">grob (schnell)</option>
+            </select>
+          </div>
+          <div class="ctl-row">
+            <label>Prüfklasse</label>
+            <select id="classSel">
+              <option value="A" selected>A · Grundtechnik</option>
+              <option value="B">B · verbessert</option>
+            </select>
+          </div>
+        </div>
+        <div class="ctl-row">
+          <label>Fehlerart</label>
+          <select id="defect">
+            <option value="pore">Poren (Gas-/Lunkerporosität)</option>
+            <option value="crack">Riss (planar, strahlrichtungskritisch)</option>
+            <option value="inclusion">Schlackeneinschluss</option>
+            <option value="none">Fehlerfrei</option>
+          </select>
+        </div>
+        <div class="ctl-row" id="angRow" style="display:none;">
+          <label>Rissebene zur Strahlrichtung <b id="angV">2°</b></label>
+          <input type="range" id="ang" min="0" max="45" value="2" step="1">
+          <div class="note">0° = Rissebene parallel zum Strahl (gut sichtbar) · 45° = schräg (unsichtbar)</div>
+        </div>
+
+        <div class="row2">
+          <div class="ctl-row">
+            <label>Zeitraffer</label>
+            <select id="speedSel">
+              <option value="1">1× (Echtzeit)</option>
+              <option value="10">10×</option>
+              <option value="60" selected>60×</option>
+            </select>
+          </div>
+          <div class="ctl-row">
+            <label>Leuchtkasten-Kontrast <b id="ctrV">2,4×</b></label>
+            <input type="range" id="ctr" min="1" max="4" value="2.4" step="0.1">
+          </div>
+        </div>
+
+        <div class="live" id="live">
+          <div class="live-top"><span class="live-state" id="expState">bereit</span><span class="live-clock" id="expClock">–</span></div>
+          <div class="pbar"><i id="expBar"></i></div>
+          <div class="live-sub" id="expSub">–</div>
+        </div>
+
+        <div class="btnrow" style="margin-bottom:6px;">
+          <button class="primary" id="btnExpose">■ Belichtung stoppen</button>
+          <button class="tog on" id="btnAid" aria-pressed="true">Auswertehilfe</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <p class="stage-title"><span>AUSWERTUNG</span><span class="sub" id="clsInfo"></span></p>
+        <div class="stats">
+          <div class="stat" id="stDensBox"><div class="k">Filmschwärzung D</div><div class="v" id="stDens">–</div></div>
+          <div class="stat" id="stExpoBox"><div class="k">Belichtung</div><div class="v" id="stExpo">–</div></div>
+          <div class="stat" id="stIqiBox"><div class="k">IQI-Erkennbarkeit</div><div class="v" id="stIqi">–</div></div>
+          <div class="stat" id="stDefBox"><div class="k">Fehler erkennbar</div><div class="v" id="stDef">–</div></div>
+          <div class="stat" id="stUBox"><div class="k">Gesamtunschärfe U</div><div class="v" id="stU">–</div></div>
+          <div class="stat" id="stSnrBox"><div class="k">Fehlerkontrast / Rauschen</div><div class="v" id="stSnr">–</div></div>
+        </div>
+
+        <div class="gauge">
+          <div class="bar"><div class="needle" id="needle" style="left:50%"></div><div class="needle thin" id="needle2" style="left:50%;display:none"></div></div>
+          <div class="ticks"><span style="left:0%">0</span><span style="left:43.5%">2,0</span><span style="left:50%">2,3</span><span style="left:87%">4,0</span><span style="left:99%">4,6</span></div>
+          <div class="lbl" style="justify-content:center;gap:18px;"><span>zu hell</span><span>Sollbereich</span><span>zu dunkel</span></div>
+        </div>
+
+        <div class="callout" id="callout"></div>
+      </div>
+
+      <div class="panel">
+        <p class="stage-title"><span>PRÜFABLAUF</span><span class="sub" id="stepsCount">—</span></p>
+        <div class="steps" id="steps"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const cvGeom=$('cvGeom'), gctx=cvGeom.getContext('2d');
+const cvFilm=$('cvFilm'), fctx=cvFilm.getContext('2d');
+const cvProf=$('cvProf'), pctx=cvProf.getContext('2d');
+const GEOM_W=900, GEOM_H=270, FILM_W=900, FILM_H=320, PROF_W=900, PROF_H=170;
+
+function hiDPI(canvas, ctx, cw, ch){
+  const dpr = Math.max(1, window.devicePixelRatio||1);
+  canvas.width = cw*dpr; canvas.height = ch*dpr;
+  canvas.style.aspectRatio = (cw/ch);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+function setupCanvases(){ hiDPI(cvGeom,gctx,GEOM_W,GEOM_H); hiDPI(cvFilm,fctx,FILM_W,FILM_H); hiDPI(cvProf,pctx,PROF_W,PROF_H); }
+setupCanvases();
+
+/* ── Hilfsfunktionen ─────────────────────────────────────── */
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const fmt=(n,d=1)=>Number(n).toFixed(d).replace('.',',');
+function erf(x){ const s=x<0?-1:1; x=Math.abs(x); const t=1/(1+0.3275911*x);
+  const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x); return s*y; }
+function rngSeed(seed){ let s=seed%2147483647; if(s<=0) s+=2147483646; return ()=>{ s=s*16807%2147483647; return (s-1)/2147483646; }; }
+function makeValueNoise(seed,size){
+  const r=rngSeed(seed); const grid=new Float32Array(size*size); for(let i=0;i<grid.length;i++) grid[i]=r();
+  return (x,y)=>{ x=((x%1)+1)%1; y=((y%1)+1)%1;
+    const gx=x*(size-1), gy=y*(size-1), x0=Math.floor(gx), y0=Math.floor(gy), x1=Math.min(size-1,x0+1), y1=Math.min(size-1,y0+1);
+    const fx=gx-x0, fy=gy-y0, sx=fx*fx*(3-2*fx), sy=fy*fy*(3-2*fy);
+    const a=grid[y0*size+x0]+(grid[y0*size+x1]-grid[y0*size+x0])*sx, b=grid[y1*size+x0]+(grid[y1*size+x1]-grid[y1*size+x0])*sx;
+    return a+(b-a)*sy; };
+}
+const noiseLo=makeValueNoise(71,6), noiseMid=makeValueNoise(133,20);
+const fbm=(x,y)=>noiseLo(x,y)*0.6+noiseMid(x,y)*0.4;
+
+/* Filmkorn: statisch, damit das Bild nicht flackert */
+const GRAIN=(()=>{ const r=rngSeed(9001), a=new Float32Array(FILM_W*FILM_H), b=new Float32Array(((FILM_W>>1)+1)*((FILM_H>>1)+1));
+  const g=()=>(r()+r()+r()+r()-2)/0.577; for(let i=0;i<a.length;i++) a[i]=g(); for(let i=0;i<b.length;i++) b[i]=g();
+  return {a,b,bw:(FILM_W>>1)+1}; })();
+const grainAt=(x,y)=>0.62*GRAIN.a[y*FILM_W+x]+0.78*GRAIN.b[(y>>1)*GRAIN.bw+(x>>1)];
+
+/* ── Konstanten / Katalog ────────────────────────────────── */
+const WIRES_STD=[3.2,2.5,2.0,1.6,1.25,1.0,0.8,0.63,0.5,0.4,0.32,0.25,0.2,0.16,0.125,0.1,0.08,0.063];
+const FILMS={ fein:{name:'fein',speed:0.45,sigma:0.018,ui:0.8}, mittel:{name:'mittel',speed:1.0,sigma:0.030,ui:1.0}, grob:{name:'grob',speed:2.4,sigma:0.055,ui:1.25} };
+const CLASSES={ A:{ratio:0.025,fmin:7.5,dmin:2.0}, B:{ratio:0.015,fmin:15,dmin:2.3} };
+const MATS={ stahl:{name:'Stahl',k:1,wire:'FE',kvA:120,kvB:5}, alu:{name:'Aluminium',k:0.45,wire:'AL',kvA:50,kvB:2.5} };
+const OBJS={ weld:'Schweißnaht', solid:'Vollmaterial', cast:'Gussteil' };
+const K_VIS=1.8;
+const DG=1.7;                    // Anzeigenverstärkung: kräftigerer Dichtesprung der Fehler (größere/dichtere Hohlräume)                 // Erkennbarkeitsschwelle: ΔD ≥ K·σ
+const MM=0.2;                    // Film: 1 px = 0,2 mm
+const PLATE={x0:110,x1:790,y0:26,y1:294}, WELD_X=450, CAP_H=1.8, CAP_W=6.5;
+const IQI={x0:388,x1:512,y0:46,pitch:16};
+const Y_DEF=210, X_DEF=456, STEP_X=590;
+const PORES=[[0,-7,2.4],[1.6,-3.5,1.8],[-1.4,0,2.0],[0.9,3.4,1.3],[-0.8,7.0,1.6],[2.0,9.5,1.1]];   // mm: x, y, Ø
+const crackPoly=(()=>{ const r=rngSeed(555), p=[]; for(let i=0;i<=12;i++){ const t=i/12; p.push([X_DEF+Math.sin(t*6)*3+(r()-0.5)*7*(0.4+Math.sin(t*3.4)*0.6), Y_DEF-56+t*112]); } return p; })();
+const slagPoly=(()=>{ const r=rngSeed(321), p=[]; for(let i=0;i<=8;i++){ const t=i/8; p.push([X_DEF+(r()-0.5)*9+Math.sin(t*4)*3, Y_DEF-30+t*60]); } return p; })();
+
+/* ── Eingabeelemente ─────────────────────────────────────── */
+const kvEl=$('kv'), mavEl=$('mav'), thickEl=$('thick'), sfdEl=$('sfd'), focEl=$('foc'), angEl=$('ang');
+const filmSel=$('filmSel'), classSel=$('classSel'), defectSel=$('defect'), objSel=$('objSel'), matSel=$('matSel');
+const btnExpose=$('btnExpose'), btnAid=$('btnAid');
+const maEl=$('ma'), speedSel=$('speedSel'), ctrEl=$('ctr');
+let showAid=true, drawQueued=false, ready=false, light=false, rafLive=null, lastDraw=0, geomKey='', uiTick=0;
+// Echtzeit-Belichtung: Dosis (mA·min) läuft mit der Röhrenstrom-Rate hoch
+const EXP={running:false, partial:true, idle:true, dose:0, elapsed:0, last:0};   // idle: noch nicht belichtet – startet nicht von allein
+function doseNow(){ const full=+mavEl.value; return EXP.partial?Math.min(EXP.dose,full):full; }
+
+function setTheme(mode){
+  light = mode==='light';
+  document.body.classList.toggle('light-mode',light);
+  $('themeBtn').textContent = light ? '☾' : '☀';
+  if(ready) draw();
+}
+const ctxTheme = window.ZfPContext || (()=>{ let cb=()=>{}, mode='dark'; return { onTheme(f){cb=f; f(mode);}, toggleTheme(){ mode=mode==='light'?'dark':'light'; cb(mode);} }; })();
+ctxTheme.onTheme(setTheme);
+$('themeBtn').addEventListener('click',()=>{ ctxTheme.toggleTheme(); if(ready) draw(); });
+
+/* ── Physikmodell ────────────────────────────────────────── */
+function model(){
+  const kv=+kvEl.value, mavFull=+mavEl.value, mav=doseNow(), ma=+maEl.value, t=+thickEl.value, sfd=+sfdEl.value, fs=+focEl.value, ang=+angEl.value;
+  const film=FILMS[filmSel.value], cls=CLASSES[classSel.value], type=defectSel.value;
+  const mat=MATS[matSel.value], obj=objSel.value;
+  const mu=Math.max(0.012,0.145-kv*0.00035)*mat.k;            // 1/mm, sinkt mit kV, werkstoffabhängig
+  const transmission=Math.exp(-mu*t);
+  const intensity=(mav*640000)/(sfd*sfd);                       // Abstandsquadratgesetz
+  const dFree=intensity*0.9*film.speed;
+  const dRate=(640000/(sfd*sfd))*0.9*film.speed*transmission*ma;   // Schwärzungszuwachs je Minute (unbegrenzt)
+  const density=clamp(dFree*transmission,0,4.6);
+  const dFreeC=clamp(dFree,0,4.6);
+  const G=density<=0.05?0.05:Math.min(4.2,1.7*density)*(density>4?Math.max(0.2,1-(density-4)/1.2):1);   // Filmgradient
+  const sigma=film.sigma*(0.75+0.12*density);                   // Körnigkeit σ_D
+  const b=t/2, Ug=fs*b/Math.max(1,sfd-b), Ui=(0.08+0.0007*kv)*film.ui, U=Math.hypot(Ug,Ui), s=U*0.5;
+  const fSrc=sfd-t, fMin=cls.fmin*fs*Math.pow(t,2/3), geomOK=fSrc>=fMin;
+  const kvMax=mat.kvA+mat.kvB*t, kvOK=kv<=kvMax;
+  const densThin=obj==='cast'?clamp(dFree*Math.exp(-mu*t*0.8),0,4.6):density;   // dünner Bereich (0,8·t)
+  let expoState='im Sollbereich';
+  if(density<cls.dmin) expoState='unterbelichtet'; else if(Math.max(density,densThin)>4.0) expoState='überbelichtet';
+  const expoOK=expoState==='im Sollbereich';
+
+  // IQI (Drahtsteg, 7 Drähte), Auswahl des Satzes nach Wandstärke
+  const start=t>40?2:(t>12?5:(t>8?9:11));
+  const wireSet=WIRES_STD.slice(start,start+7).map((d,i)=>({d,num:start+1+i}));
+  wireSet.forEach(w=>{ w.dD=0.434*G*mu*w.d; w.eff=w.dD*erf(w.d/(2*s*1.4142)); w.vis=w.eff>=K_VIS*sigma; });
+  let visIdx=-1; for(let i=0;i<wireSet.length;i++){ if(wireSet[i].vis) visIdx=i; else break; }
+  const need=cls.ratio*t; let reqD=WIRES_STD[0]; for(let i=WIRES_STD.length-1;i>=0;i--){ if(WIRES_STD[i]>=need-1e-9){ reqD=WIRES_STD[i]; break; } }
+  let reqIdx=wireSet.findIndex(w=>Math.abs(w.d-reqD)<1e-9); if(reqIdx<0) reqIdx=need>wireSet[0].d?0:wireSet.length-1;
+  const iqiPass=visIdx>=reqIdx;
+
+  // Fehler
+  let defect=null;
+  if(type==='pore'){ const d=PORES[0][2]; defect={type, size:d, dD:DG*0.434*G*mu*d, g:erf(d/(2*s*1.4142))}; }
+  else if(type==='inclusion'){ defect={type, size:2.2, dD:DG*0.434*G*mu*3.0*0.4, g:erf(2.2/(2*s*1.4142))}; }
+  else if(type==='crack'){ const w=0.12, th=Math.max(0.3,ang), path=Math.min(6,w/Math.sin(th*Math.PI/180)); defect={type, size:w, path, dD:DG*0.434*G*mu*path, g:erf(w/(2*s*1.4142))}; }
+  if(defect){ defect.eff=defect.dD*defect.g; defect.snr=defect.eff/sigma; }
+  const defVisible=!!defect && expoOK && defect.eff>=K_VIS*sigma;
+  return {obj,mat,densThin,kv,mav,mavFull,ma,dRate,t,sfd,fs,ang,film,cls,type,mu,transmission,density,dFreeC,G,sigma,b,Ug,Ui,U,s,fSrc,fMin,geomOK,kvMax,kvOK,expoState,expoOK,wireSet,visIdx,reqD,reqIdx,iqiPass,defect,defVisible};
+}
+
+/* ── Pixelmodell des Films ───────────────────────────────── */
+function distPoly(poly,x,y){ let best=1e9; for(let i=0;i<poly.length-1;i++){ const ax=poly[i][0],ay=poly[i][1],bx=poly[i+1][0],by=poly[i+1][1];
+  const dx=bx-ax, dy=by-ay, l2=dx*dx+dy*dy; let u=l2?((x-ax)*dx+(y-ay)*dy)/l2:0; u=clamp(u,0,1); const px=ax+u*dx, py=ay+u*dy; const d=Math.hypot(x-px,y-py); if(d<best) best=d; } return best; }
+
+function prepare(m){
+  const s=m.s, pre={m,pores:[],crack:null,slag:null};
+  if(m.type==='pore') PORES.forEach(p=>{ const d=p[2]; pre.pores.push({x:X_DEF+p[0]/MM, y:Y_DEF+p[1]/MM, d, dD:DG*0.434*m.G*m.mu*d*erf(d/(2*s*1.4142)), sg:Math.hypot(d/2.5,s)}); });
+  if(m.type==='crack') pre.crack={amp:m.defect.eff, sg:Math.hypot(0.12/2.5,s)};
+  if(m.type==='inclusion') pre.slag={amp:m.defect.eff, sg:Math.hypot(2.2/2.5,s)};
+  return pre;
+}
+/* Statische Ebenen einmalig berechnen → Echtzeit-Rendering */
+const NPX=FILM_W*FILM_H;
+const ST=(()=>{ const mott=new Float32Array(NPX), capW=new Float32Array(NPX), capS=new Float32Array(NPX), capC=new Float32Array(NPX), step=new Float32Array(NPX), edge=new Float32Array(NPX), grain=new Float32Array(NPX);
+  for(let y=0;y<FILM_H;y++) for(let x=0;x<FILM_W;x++){ const i=y*FILM_W+x, mt=fbm(x/FILM_W,y/FILM_H)-0.5, xm=(x-WELD_X)*MM; mott[i]=mt;
+    let c=0; if(Math.abs(xm)<4*CAP_W) c=CAP_H*Math.exp(-(xm*xm)/(2*CAP_W*CAP_W))*(1+0.07*Math.sin(y*0.31+mt*9));
+    capW[i]=c+mt*0.8; capS[i]=mt*0.8; capC[i]=mt*1.6;
+    const u=clamp((x-STEP_X)/30,0,1); step[i]=u*u*(3-2*u);
+    edge[i]=Math.min(x-PLATE.x0,PLATE.x1-x,y-PLATE.y0,PLATE.y1-y)*MM; grain[i]=grainAt(x,y); }
+  return {mott,capW,capS,capC,step,edge,grain}; })();
+const thickArr=m=>m.obj==='weld'?ST.capW:(m.obj==='cast'?ST.capC:ST.capS);
+const stepAmp=m=>m.obj==='cast'?-0.2*m.t:0;     // dünner Bereich: 0,8·t
+
+const Dbuf=new Float32Array(NPX); let dKey='';
+function addFeatures(m,pre){
+  const s=m.s;
+  // IQI-Drähte absorbieren → heller (Profil hängt nur von der Zeile ab)
+  m.wireSet.forEach((w,k)=>{ const yc=IQI.y0+k*IQI.pitch, r=Math.ceil((w.d/2+4*s)/MM)+1;
+    for(let y=yc-r;y<=yc+r;y++){ const dy=(y-yc)*MM, v=w.dD*0.5*(erf((dy+w.d/2)/(s*1.4142))-erf((dy-w.d/2)/(s*1.4142))); if(v<1e-4) continue;
+      const row=y*FILM_W; for(let x=IQI.x0;x<=IQI.x1;x++) Dbuf[row+x]-=v; } });
+  // Poren → dunkler
+  pre.pores.forEach(p=>{ const R=Math.ceil(4*p.sg/MM), x0=Math.round(p.x), y0=Math.round(p.y);
+    for(let y=y0-R;y<=y0+R;y++) for(let x=x0-R;x<=x0+R;x++){ const dx=(x-p.x)*MM, dy=(y-p.y)*MM, r2=dx*dx+dy*dy; if(r2>16*p.sg*p.sg) continue; Dbuf[y*FILM_W+x]+=p.dD*Math.exp(-r2/(2*p.sg*p.sg)); } });
+  const line=(poly,amp,sg,mod,xr,yr)=>{ const R=Math.ceil(5*sg/MM);
+    for(let y=Y_DEF-yr;y<=Y_DEF+yr;y++) for(let x=X_DEF-xr;x<=X_DEF+xr;x++){ const d=distPoly(poly,x,y)*MM; if(d>5*sg) continue; Dbuf[y*FILM_W+x]+=amp*(mod?(0.75+0.25*Math.sin(y*0.3)):1)*Math.exp(-d*d/(2*sg*sg)); } };
+  if(pre.crack) line(crackPoly,pre.crack.amp,pre.crack.sg,false,16,62);
+  if(pre.slag) line(slagPoly,pre.slag.amp,pre.slag.sg,true,34,38);
+}
+function computeD(m,pre){
+  const key=[m.kv,m.mav.toFixed(4),m.t,m.sfd,m.fs,m.film.name,m.type,m.ang,m.obj,m.mat.name].join('|');
+  if(key===dKey) return Dbuf; dKey=key;
+  const s=m.s, s5=5*s, mu=m.mu, dens=m.density, free=m.dFreeC, sig=m.sigma, E=ST.edge, C=thickArr(m), SG=ST.step, sa=stepAmp(m), M=ST.mott, Gr=ST.grain;
+  for(let i=0;i<NPX;i++){
+    const dm=E[i]; if(dm<-s5){ Dbuf[i]=free; continue; }
+    let D=dens*Math.exp(-mu*(C[i]+sa*SG[i]))+Gr[i]*sig+M[i]*0.05;
+    if(dm<s5){ const mask=0.5*(1+erf(dm/(s*1.4142))); D=free+(D-free)*mask; }
+    Dbuf[i]=D;
+  }
+  addFeatures(m,pre);
+  return Dbuf;
+}
+/* Leuchtkasten-Kennlinie: Kontrast um D≈2,5, Rest läuft in Schwarz/Weiß */
+let LUT=new Uint8ClampedArray(4096), lutC=-1;
+function buildLUT(c){ for(let i=0;i<4096;i++){ const d=i*4.6/4095; LUT[i]=255/(1+Math.exp(-(2.5-d)*1.6*c)); } lutC=c; }
+
+const off=document.createElement('canvas'); off.width=FILM_W; off.height=FILM_H; const octx=off.getContext('2d');
+const filmImg=octx.createImageData(FILM_W,FILM_H);
+
+function drawFilm(m,pre){
+  const D=computeD(m,pre), c=+ctrEl.value; if(lutC!==c) buildLUT(c);
+  const out=filmImg.data, k=4095/4.6;
+  for(let i=0,j=0;i<NPX;i++,j+=4){ let d=D[i]; d=d<0?0:(d>4.6?4.6:d); const g=LUT[(d*k)|0]; out[j]=g*0.97; out[j+1]=g; out[j+2]=g*1.04; out[j+3]=255; }
+  octx.putImageData(filmImg,0,0);
+  fctx.clearRect(0,0,FILM_W,FILM_H);
+  fctx.drawImage(off,0,0,FILM_W,FILM_H);
+
+  // Filmkante + Orientierungskerbe
+  fctx.strokeStyle='rgba(255,255,255,.22)'; fctx.lineWidth=1; fctx.strokeRect(0.5,0.5,FILM_W-1,FILM_H-1);
+  fctx.fillStyle='rgba(0,0,0,.55)'; fctx.beginPath(); fctx.moveTo(0,0); fctx.lineTo(16,0); fctx.lineTo(0,16); fctx.fill();
+
+  // Bleimarken (Blei absorbiert → erscheint weiß, sobald der Film belichtet ist)
+  const lead=clamp(m.dFreeC/1.5,0,1);
+  if(lead>0){
+    fctx.save(); fctx.globalAlpha=0.92*lead; fctx.shadowColor='rgba(0,0,0,.7)'; fctx.shadowBlur=3; fctx.fillStyle='#fff'; fctx.font='bold 13px "JetBrains Mono",monospace';
+    fctx.fillText('RT-0417',PLATE.x0+14,PLATE.y1-26); fctx.font='10px "JetBrains Mono",monospace';
+    fctx.fillText('ISO 17636-1 · Kl. '+classSel.value,PLATE.x0+14,PLATE.y1-12);
+    fctx.fillText(m.mat.wire+' W'+m.wireSet[0].num+'–'+m.wireSet[6].num,IQI.x1+14,IQI.y0-12);
+    m.wireSet.forEach((w,k)=>{ fctx.fillText(String(w.num),IQI.x0-18,IQI.y0+k*IQI.pitch+3); });
+    fctx.restore();
+  }
+  // Auswertehilfe
+  const tag=(x,y,text,col,font)=>{ fctx.font=font||'10px "JetBrains Mono",monospace'; const w=fctx.measureText(text).width+8; fctx.fillStyle='rgba(6,10,14,.78)'; fctx.fillRect(x-4,y-11,w,15); fctx.fillStyle=col; fctx.fillText(text,x,y); };
+  if(showAid){
+    fctx.save(); fctx.lineWidth=1.4;
+    fctx.strokeStyle='rgba(200,212,224,.38)'; fctx.setLineDash([2,4]); fctx.lineWidth=1; fctx.strokeRect(PLATE.x0+.5,PLATE.y0+.5,PLATE.x1-PLATE.x0,PLATE.y1-PLATE.y0); fctx.setLineDash([]); fctx.lineWidth=1.4;
+    m.wireSet.forEach((w,k)=>{ const y=IQI.y0+k*IQI.pitch; tag(IQI.x1+12,y+4,w.vis?'✓':'✕',w.vis?'#5fe072':'#ff8a82','bold 11px "JetBrains Mono",monospace'); });
+    fctx.strokeStyle='#4de9d4'; fctx.setLineDash([5,4]); fctx.strokeRect(IQI.x0-4,IQI.y0-10,IQI.x1-IQI.x0+8,6*IQI.pitch+20); fctx.setLineDash([]);
+    const sel = m.visIdx>=0 ? 'sichtbar bis W'+m.wireSet[m.visIdx].num+' ('+fmt(m.wireSet[m.visIdx].d,2)+' mm)' : 'kein Draht sichtbar';
+    tag(IQI.x1+38,IQI.y0+6,'IQI:','#4de9d4'); tag(IQI.x1+38,IQI.y0+22,sel,'#4de9d4');
+    const yl=lineY(m);
+    fctx.strokeStyle='#4de9d4'; fctx.beginPath(); fctx.moveTo(330,yl); fctx.lineTo(570,yl); fctx.stroke();
+    fctx.beginPath(); fctx.moveTo(330,yl-5); fctx.lineTo(330,yl+5); fctx.moveTo(570,yl-5); fctx.lineTo(570,yl+5); fctx.stroke();
+    if(m.type!=='none'){
+      fctx.strokeStyle=m.defVisible?'#ff6f66':'rgba(200,210,220,.7)'; fctx.setLineDash([4,4]);
+      fctx.beginPath(); fctx.ellipse(X_DEF+4,Y_DEF+6,m.type==='pore'?36:(m.type==='crack'?20:30),m.type==='pore'?66:62,0,0,Math.PI*2); fctx.stroke(); fctx.setLineDash([]);
+      tag(X_DEF+44,Y_DEF-6,m.defVisible?'Fehler':'Fehlerlage (nicht erkennbar)',m.defVisible?'#ff8a82':'#d2dae2','bold 11px "JetBrains Mono",monospace');
+    }
+    if(m.obj==='cast'){ fctx.strokeStyle='#ffc94d'; fctx.setLineDash([3,5]); fctx.beginPath(); fctx.moveTo(STEP_X+15,PLATE.y0+4); fctx.lineTo(STEP_X+15,PLATE.y1-4); fctx.stroke(); fctx.setLineDash([]);
+      tag(STEP_X+26,PLATE.y1-44,'Dickensprung (0,8·t)','#ffc94d'); tag(STEP_X+26,PLATE.y1-26,'dünner Bereich: D '+fmt(m.densThin,2),m.densThin>4.0?'#ff8a82':'#ffc94d'); }
+    fctx.restore();
+  }
+  if(EXP.running){
+    fctx.save(); fctx.fillStyle='rgba(4,7,10,.8)'; fctx.fillRect(FILM_W/2-130,FILM_H-36,260,24);
+    fctx.fillStyle='#ffc94d'; fctx.font='11px "JetBrains Mono",monospace'; fctx.textAlign='center';
+    fctx.fillText('Belichtung läuft · '+Math.round(m.mav/m.mavFull*100)+' % der Dosis',FILM_W/2,FILM_H-20); fctx.restore();
+  }
+}
+function lineY(m){ return m.type==='pore'?Y_DEF+PORES[0][1]/MM:Y_DEF; }
+
+/* ── Darstellung: Dichteprofil ───────────────────────────── */
+function drawProfile(m,pre){
+  const w=PROF_W,h=PROF_H, P=pal(), g=pctx;
+  g.clearRect(0,0,w,h);
+  const bg=g.createLinearGradient(0,0,0,h); bg.addColorStop(0,P.bg1); bg.addColorStop(1,P.bg2); g.fillStyle=bg; g.fillRect(0,0,w,h);
+  const L=58,R=16,T=16,B=30, pw=w-L-R, ph=h-T-B;
+  const yl=Math.round(lineY(m)), xs=[], ds=[], bs=[];
+  const CB=thickArr(m), SA=stepAmp(m);
+  for(let x=330;x<=570;x++){ const i=yl*FILM_W+x; xs.push(x); ds.push(Dbuf[i]); bs.push(m.density*Math.exp(-m.mu*(CB[i]+SA*ST.step[i]))+ST.mott[i]*0.05); }
+  const band=K_VIS*m.sigma;
+  const lo=Math.min(...ds,...bs.map(v=>v-band)), hi=Math.max(...ds,...bs.map(v=>v+band));
+  const mid=(lo+hi)/2, half=Math.max(0.22,(hi-lo)/2+0.04), yMin=mid-half, yMax=mid+half;
+  const X=i=>L+(i/(xs.length-1))*pw, Y=d=>T+ph-(clamp(d,yMin,yMax)-yMin)/(yMax-yMin)*ph;
+  g.strokeStyle=P.grid2; g.lineWidth=1; g.font='10px "JetBrains Mono",monospace'; g.fillStyle=P.text;
+  for(let k=0;k<=4;k++){ const yy=T+ph*k/4; g.beginPath(); g.moveTo(L,yy); g.lineTo(w-R,yy); g.stroke(); g.fillText((yMax-(yMax-yMin)*k/4).toFixed(2).replace('.',','),8,yy+3); }
+  [-24,-12,0,12,24].forEach(mm=>{ const x=L+((mm+24)/48)*pw; g.beginPath(); g.moveTo(x,T); g.lineTo(x,T+ph); g.stroke(); g.fillText((mm>0?'+':'')+mm+' mm',x-16,h-10); });
+  // Rauschband um die fehlerfreie Naht-Grundlinie
+  g.fillStyle=P.band; g.beginPath(); bs.forEach((v,i)=>{ const x=X(i), y=Y(v+band); if(i===0) g.moveTo(x,y); else g.lineTo(x,y); }); for(let i=bs.length-1;i>=0;i--) g.lineTo(X(i),Y(bs[i]-band)); g.closePath(); g.fill();
+  g.strokeStyle=P.amber; g.lineWidth=1; g.setLineDash([5,4]);
+  [band,-band].forEach(off=>{ g.beginPath(); bs.forEach((v,i)=>{ const x=X(i), y=Y(v+off); if(i===0) g.moveTo(x,y); else g.lineTo(x,y); }); g.stroke(); }); g.setLineDash([]);
+  g.fillStyle=P.amber; g.fillText('Rauschband ± '+fmt(K_VIS,1)+' σ um die fehlerfreie Grundlinie',L+8,T+12);
+  // Spur
+  g.strokeStyle=P.cyan; g.lineWidth=1.4; g.beginPath(); ds.forEach((d,i)=>{ const x=X(i), y=Y(d); if(i===0) g.moveTo(x,y); else g.lineTo(x,y); }); g.stroke();
+  g.fillStyle=P.text; g.save(); g.translate(14,T+ph/2+14); g.rotate(-Math.PI/2); g.fillText('D',0,0); g.restore();
+  $('profInfo').textContent = m.defect ? 'ΔD Fehler '+fmt(m.defect.eff,3)+' · Schwelle '+fmt(band,3) : 'σ = '+fmt(m.sigma,3)+' · kein Fehler';
+}
+
+/* ── Darstellung: Strahlengang ───────────────────────────── */
+function pal(){
+  return light ? {
+    bg1:'#eef3f8', bg2:'#dce5ee', grid:'rgba(40,70,90,.10)', grid2:'rgba(40,70,90,.14)', band:'rgba(164,95,0,.10)', beam:'200,120,10',
+    metal1:'#b9c4ce', metal2:'#8794a1', plate1:'#a8b6c3', plate2:'#8a9aa9', plateS:'#2d6a8c', weld:'#d6b574', weldS:'#8a6a28',
+    text:'#415667', label:'#0c1620', cyan:'#0a7d6e', amber:'#a45f00', red:'#b0241a', green:'#187a32', film:'#f6f9fc', lead:'#58626c', chip:'rgba(255,255,255,.85)'
+  } : {
+    bg1:'#0a1016', bg2:'#131c25', grid:'rgba(120,150,170,.08)', grid2:'rgba(120,150,170,.14)', band:'rgba(255,201,77,.10)', beam:'255,201,77',
+    metal1:'#78858f', metal2:'#323c46', plate1:'#566677', plate2:'#3f4d5b', plateS:'#8fb4cf', weld:'#9a8250', weldS:'#d1b56e',
+    text:'#9fb0bd', label:'#d5dde3', cyan:'#4de9d4', amber:'#ffc94d', red:'#ff6f66', green:'#5fe072', film:'#dfe8f0', lead:'#2a2f35', chip:'rgba(20,28,36,.85)'
+  };
+}
+function chip(g,P,x,y,text,col){
+  g.font='11px "JetBrains Mono",monospace'; const w=g.measureText(text).width+16;
+  g.fillStyle=P.chip; g.strokeStyle=col; g.lineWidth=1.3; g.beginPath(); g.roundRect?g.roundRect(x,y,w,22,11):g.rect(x,y,w,22); g.fill(); g.stroke();
+  g.fillStyle=col; g.fillText(text,x+8,y+15); return w;
+}
+function arrowH(g,x1,x2,y,col,label,above){
+  g.strokeStyle=col; g.fillStyle=col; g.lineWidth=1.3; g.beginPath(); g.moveTo(x1,y); g.lineTo(x2,y); g.stroke();
+  [[x1,1],[x2,-1]].forEach(([x,d])=>{ g.beginPath(); g.moveTo(x,y); g.lineTo(x+7*d,y-3.5); g.lineTo(x+7*d,y+3.5); g.closePath(); g.fill(); });
+  g.beginPath(); g.moveTo(x1,y-6); g.lineTo(x1,y+6); g.moveTo(x2,y-6); g.lineTo(x2,y+6); g.stroke();
+  if(label){ g.font='11px "JetBrains Mono",monospace'; g.textAlign='center'; g.fillText(label,(x1+x2)/2,y+(above?-8:16)); g.textAlign='left'; }
+}
+function drawGeom(m){
+  const w=GEOM_W,h=GEOM_H,P=pal(),g=gctx;
+  g.clearRect(0,0,w,h);
+  const bg=g.createLinearGradient(0,0,0,h); bg.addColorStop(0,P.bg1); bg.addColorStop(1,P.bg2); g.fillStyle=bg; g.fillRect(0,0,w,h);
+  g.fillStyle=P.grid; for(let x=20;x<w;x+=30) for(let y=14;y<h;y+=30) g.fillRect(x,y,1.5,1.5);
+
+  const axisY=126, srcX=92, filmX=818, half=92;
+  // Strahlenkegel
+  const cg=g.createLinearGradient(srcX,0,filmX,0); cg.addColorStop(0,'rgba('+P.beam+',.34)'); cg.addColorStop(1,'rgba('+P.beam+',.08)');
+  g.fillStyle=cg; g.beginPath(); g.moveTo(srcX,axisY); g.lineTo(filmX-10,axisY-half); g.lineTo(filmX-10,axisY+half); g.closePath(); g.fill();
+  g.strokeStyle='rgba('+P.beam+',.55)'; g.lineWidth=1; g.setLineDash([6,4]);
+  g.beginPath(); g.moveTo(srcX,axisY); g.lineTo(filmX-10,axisY-half); g.moveTo(srcX,axisY); g.lineTo(filmX-10,axisY+half); g.stroke();
+  g.setLineDash([2,5]); g.beginPath(); g.moveTo(srcX,axisY); g.lineTo(filmX,axisY); g.stroke(); g.setLineDash([]);
+
+  // Platte (Querschnitt): Schweißnaht, Vollmaterial oder Gussteil mit Dickensprung
+  const tp=12+m.t*1.3, xR=filmX-26, xL=xR-tp, pt=axisY-98, pb=axisY+98;
+  const isW=m.obj==='weld', isC=m.obj==='cast', xLt=xR-tp*0.8, stepY=pt+(pb-pt)*0.7;
+  const platePath=()=>{ g.beginPath(); if(isC){ g.moveTo(xL,pt); g.lineTo(xR,pt); g.lineTo(xR,pb); g.lineTo(xLt,pb); g.lineTo(xLt,stepY+12); g.lineTo(xL,stepY-12); g.closePath(); } else { g.rect(xL,pt,tp,pb-pt); } };
+  const pg=g.createLinearGradient(xL,0,xR,0); pg.addColorStop(0,P.plate1); pg.addColorStop(1,P.plate2);
+  platePath(); g.fillStyle=pg; g.fill(); g.strokeStyle=P.plateS; g.lineWidth=1.4; g.stroke();
+  g.save(); platePath(); g.clip(); g.strokeStyle='rgba(0,0,0,.12)'; g.lineWidth=1;
+  for(let k=-300;k<400;k+=8){ g.beginPath(); g.moveTo(xL+k,pt); g.lineTo(xL+k+(pb-pt),pb); g.stroke(); } g.restore();
+  const cap=isW?6+m.t*0.14:0;
+  g.font='10px "JetBrains Mono",monospace'; g.fillStyle=P.text;
+  if(isW){
+    g.beginPath(); g.moveTo(xL,axisY-40); g.quadraticCurveTo(xL-cap*2,axisY,xL,axisY+40); g.lineTo(xR,axisY+16); g.quadraticCurveTo(xR+7,axisY,xR,axisY-16); g.closePath();
+    const wg=g.createLinearGradient(xL,0,xR,0); wg.addColorStop(0,P.weldS); wg.addColorStop(1,P.weld); g.fillStyle=wg; g.fill(); g.strokeStyle=P.weldS; g.lineWidth=1.2; g.stroke();
+    g.fillStyle=P.text; g.fillText('Naht',xL-cap*2-34,axisY+4);
+  } else if(isC){
+    g.textAlign='right'; g.fillText('Dickensprung',xLt-8,stepY+4); g.fillText('0,8 · t',xLt-8,stepY+16); g.textAlign='left';
+    g.strokeStyle=P.amber; g.lineWidth=1; g.setLineDash([3,3]); g.beginPath(); g.moveTo(xL,pt+8); g.lineTo(xL,stepY-14); g.stroke(); g.setLineDash([]);
+  } else {
+    g.textAlign='right'; g.fillText('Vollmaterial',xL-8,axisY+4); g.textAlign='left';
+  }
+
+  // Fehler im Prüfobjekt
+  const cx=xL+tp*0.5, cy=axisY+2;
+  g.fillStyle=P.red; g.strokeStyle=P.red;
+  if(m.type==='pore'){ [[0,-10,3.6],[5,6,2.8],[-4,16,2.2],[3,-24,2.4],[-6,-2,3]].forEach(([dx,dy,r])=>{ g.beginPath(); g.arc(cx+dx,cy+dy,r,0,Math.PI*2); g.fill(); }); }
+  else if(m.type==='inclusion'){ g.beginPath(); g.ellipse(cx,cy,Math.min(tp*0.32,14),6,0.5,0,Math.PI*2); g.fill(); }
+  else if(m.type==='crack'){ const th=m.ang*Math.PI/180, len=Math.min(tp*0.75,44); g.lineWidth=2.2; g.beginPath(); g.moveTo(cx-Math.cos(th)*len/2,cy+Math.sin(th)*len/2); g.lineTo(cx+Math.cos(th)*len/2,cy-Math.sin(th)*len/2); g.stroke();
+    g.lineWidth=1; g.strokeStyle=P.text; g.setLineDash([3,3]); g.beginPath(); g.moveTo(cx-len/2,cy); g.lineTo(cx+len/2,cy); g.stroke(); g.setLineDash([]);
+    g.fillStyle=P.red; g.font='10px "JetBrains Mono",monospace'; g.fillText('θ '+m.ang+'°',cx+len/2+6,cy-4); }
+  if(m.type!=='none'){ g.font='10px "JetBrains Mono",monospace'; g.fillStyle=P.red; g.textAlign='center'; g.fillText({pore:'Poren',crack:'Riss',inclusion:isW?'Schlacke':'Einschluss'}[m.type],cx,axisY-48); g.textAlign='left'; }
+
+  // IQI quellenseitig
+  g.fillStyle=P.lead; g.fillRect(xL-9,axisY-92,9,48); g.fillStyle=P.cyan; for(let k=0;k<5;k++) g.fillRect(xL-8,axisY-88+k*9,7,Math.max(1,0.6+k*0.5));
+  g.fillStyle=P.cyan; g.font='10px "JetBrains Mono",monospace'; g.textAlign='right'; g.fillText('IQI',xL-14,axisY-70); g.textAlign='left';
+
+  // Filmkassette
+  g.fillStyle=P.lead; g.fillRect(filmX+8,pt-6,16,pb-pt+12);
+  g.fillStyle=P.film; g.fillRect(filmX-2,pt-2,6,pb-pt+4);
+  g.fillStyle=P.metal1; g.fillRect(filmX-6,pt-2,4,pb-pt+4); g.fillRect(filmX+4,pt-2,4,pb-pt+4);
+  g.fillStyle=P.text; g.font='10px "JetBrains Mono",monospace'; g.textAlign='center'; g.fillText('Film + Bleifolien',filmX+4,pt-10); g.textAlign='left';
+
+  // Röntgenröhre
+  const tg=g.createLinearGradient(0,axisY-30,0,axisY+30); tg.addColorStop(0,P.metal1); tg.addColorStop(1,P.metal2);
+  g.fillStyle=tg; g.beginPath(); g.roundRect?g.roundRect(16,axisY-30,60,60,10):g.rect(16,axisY-30,60,60); g.fill(); g.strokeStyle=P.plateS; g.lineWidth=1.2; g.stroke();
+  g.fillStyle=P.lead; g.fillRect(70,axisY-14,10,28);
+  const fr=Math.max(2.5,m.fs*2.1); const fg=g.createRadialGradient(srcX,axisY,0,srcX,axisY,fr*2.6); fg.addColorStop(0,'rgba('+P.beam+',.95)'); fg.addColorStop(1,'rgba('+P.beam+',0)');
+  g.fillStyle=fg; g.beginPath(); g.arc(srcX,axisY,fr*2.6,0,Math.PI*2); g.fill(); g.fillStyle='rgb('+P.beam+')'; g.beginPath(); g.arc(srcX,axisY,fr,0,Math.PI*2); g.fill();
+  g.fillStyle=P.text; g.font='11px "JetBrains Mono",monospace'; g.fillText('Röntgenröhre · '+m.kv.toFixed(0)+' kV',14,axisY+48);
+  g.fillText('Brennfleck Ø '+fmt(m.fs,1)+' mm',14,axisY+62);
+
+  // Beschriftung Objekt, Maße
+  g.fillStyle=P.label; g.font='11px "JetBrains Mono",monospace'; g.textAlign='right'; g.fillText('Prüfobjekt ('+m.mat.name+') · '+m.t.toFixed(0)+' mm',xR-34,pt-10); g.textAlign='left';
+  arrowH(g,srcX,filmX,h-22,P.cyan,'SFD '+m.sfd.toFixed(0)+' mm',false);
+
+  // Chips: Geometrie-Kennwerte
+  let cxp=12; const okc=m.geomOK?P.green:P.red;
+  cxp+=chip(g,P,cxp,10,'Ug '+fmt(m.Ug,3)+' mm',P.cyan)+8;
+  cxp+=chip(g,P,cxp,10,'f '+m.fSrc.toFixed(0)+' / min '+m.fMin.toFixed(0)+' mm',okc)+8;
+  chip(g,P,12,38,'Ui '+fmt(m.Ui,2)+' mm · U '+fmt(m.U,2)+' mm',P.amber);
+}
+
+/* ── Gesamt: Auswertung + Schritte ───────────────────────── */
+function setBox(id,cls){ const b=$(id); b.classList.remove('warn','ok'); if(cls) b.classList.add(cls); }
+function fmtClock(min){ const s=Math.max(0,Math.round(min*60)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function renderLive(m){
+  const T=m.mavFull/m.ma, partial=EXP.partial, el_=partial?EXP.elapsed:T;
+  $('expState').textContent = EXP.idle?'bereit – noch nicht belichtet':(EXP.running?'Belichtung läuft':(partial?'angehalten':'abgeschlossen'));
+  $('expState').className='live-state'+(EXP.running?' run':'');
+  $('expClock').textContent = fmtClock(Math.min(el_,T))+' / '+fmtClock(T)+' min';
+  $('expBar').style.width = clamp(m.mav/m.mavFull*100,0,100)+'%';
+  $('expSub').textContent = 'Dosis '+fmt(m.mav,1)+' / '+fmt(m.mavFull,0)+' mA·min · Schwärzungszuwachs ≈ '+fmt(m.dRate,2)+' D/min';
+  $('timeNote').textContent = 'Belichtungszeit '+fmtClock(T)+' min bei '+m.mavFull+' mA·min';
+}
+function draw(){
+  const m=model(), pre=prepare(m);
+  const gk=[m.kv,m.t,m.sfd,m.fs,m.type,m.ang,light,classSel.value,m.obj,m.mat.name].join('|'); if(gk!==geomKey){ geomKey=gk; drawGeom(m); }
+  drawFilm(m,pre); drawProfile(m,pre); renderLive(m);
+  $('angRow').style.display = m.type==='crack' ? '' : 'none';
+  $('geomSub').textContent = {weld:'Schweißnaht',solid:'Vollmaterial',cast:'Gussteil mit Dickensprung'}[m.obj]+' im Querschnitt · nicht maßstäblich';
+  $('clsInfo').textContent = 'Prüfklasse '+classSel.value+' · D ≥ '+fmt(m.cls.dmin,1);
+  $('filmInfo').textContent = OBJS[m.obj]+' · '+m.mat.name+' · Film '+m.film.name+' · D '+fmt(m.density,2)+' · 1 px = 0,2 mm';
+
+  $('stDens').innerHTML=fmt(m.density,2)+(m.obj==='cast'?'<small>dünner Bereich D '+fmt(m.densThin,2)+'</small>':''); setBox('stDensBox',m.expoOK?'ok':'warn');
+  $('stExpo').textContent=m.expoState; setBox('stExpoBox',m.expoOK?'ok':'warn');
+  const visW=m.visIdx>=0?m.wireSet[m.visIdx]:null, reqW=m.wireSet[m.reqIdx];
+  $('stIqi').innerHTML=(visW?'W'+visW.num+' · '+fmt(visW.d,2)+' mm':'keiner sichtbar')+'<small>gefordert W'+reqW.num+' · '+fmt(reqW.d,2)+' mm</small>';
+  setBox('stIqiBox',m.iqiPass?'ok':'warn');
+  if(m.type==='none'){ $('stDef').textContent='kein Fehler'; setBox('stDefBox','ok'); }
+  else if(m.defVisible){ $('stDef').textContent='ja, sichtbar'; setBox('stDefBox','warn'); }
+  else { $('stDef').textContent='nicht auswertbar'; setBox('stDefBox',null); }
+  $('stU').innerHTML=fmt(m.U,2)+' mm<small>Ug '+fmt(m.Ug,3)+' · Ui '+fmt(m.Ui,2)+'</small>'; setBox('stUBox',m.geomOK?'ok':'warn');
+  if(m.defect){ $('stSnr').innerHTML=fmt(m.defect.eff/m.sigma,1)+' × σ<small>ΔD '+fmt(m.defect.eff,3)+' · σ '+fmt(m.sigma,3)+'</small>'; setBox('stSnrBox',m.defect.eff>=K_VIS*m.sigma?'ok':'warn'); }
+  else { $('stSnr').innerHTML='–<small>σ '+fmt(m.sigma,3)+'</small>'; setBox('stSnrBox',null); }
+  $('needle').style.left=clamp(m.density/4.6*100,1,99)+'%';
+  $('needle2').style.display=m.obj==='cast'?'':'none'; $('needle2').style.left=clamp(m.densThin/4.6*100,1,99)+'%';
+
+  const c=$('callout');
+  if(EXP.idle){ c.className='callout';
+    c.innerHTML='<b>Noch nicht belichtet.</b> Parameter einstellen (Spannung, Strom, Abstand, Film) und „Belichtung starten“ drücken. Die Belichtung läuft dann in Echtzeit ab und der Film dunkelt mit der Dosis nach.'; }
+  else if(EXP.running){ c.className='callout';
+    c.innerHTML='<b>Belichtung läuft.</b> Der Film dunkelt mit der Dosis nach (D = '+fmt(m.density,2)+', Ziel '+fmt(m.cls.dmin,1)+'–4,0). Erst im Sollbereich werden Drähte und Fehler erkennbar – Parameter lassen sich während der Belichtung ändern.'; }
+  else if(m.obj==='cast' && m.density>=m.cls.dmin && m.densThin>4.0){ c.className='callout bad';
+    c.innerHTML='<b>Dünner Bereich überbelichtet.</b> Hinter dem Dickensprung liegt D = '+fmt(m.densThin,2)+' (> 4,0), während der dicke Bereich bei D = '+fmt(m.density,2)+' liegt. Der Belichtungsumfang reicht nicht für beide Dicken: Belichtung senken, höhere kV wählen (flacherer Kontrast) oder mit Vorfilter bzw. in zwei Aufnahmen prüfen.'; }
+  else if(!m.expoOK){ c.className='callout bad';
+    c.innerHTML='<b>'+(m.expoState==='unterbelichtet'?'Unterbelichtet':'Überbelichtet')+'.</b> D = '+fmt(m.density,2)+' liegt außerhalb des Sollbereichs ('+fmt(m.cls.dmin,1)+'–4,0 für Klasse '+classSel.value+'). '+(m.expoState==='unterbelichtet'?'Belichtungswert erhöhen, Abstand verringern oder kV erhöhen.':'Belichtungswert senken oder Abstand vergrößern.'); }
+  else if(!m.geomOK){ c.className='callout bad';
+    c.innerHTML='<b>Abstand zu klein.</b> Quelle–Objekt f = '+m.fSrc.toFixed(0)+' mm, nötig ≥ '+m.fMin.toFixed(0)+' mm (Klasse '+classSel.value+'). Die geometrische Unschärfe Ug = '+fmt(m.Ug,2)+' mm verwischt feine Anzeigen. SFD erhöhen oder kleineren Brennfleck wählen.'; }
+  else if(!m.iqiPass){ c.className='callout bad';
+    c.innerHTML='<b>Bildgüte nicht erreicht.</b> Sichtbar '+(visW?'bis W'+visW.num+' ('+fmt(visW.d,2)+' mm)':'kein Draht')+', gefordert W'+reqW.num+' ('+fmt(reqW.d,2)+' mm). '+(!m.kvOK?'Die Spannung liegt über dem Richtwert – kV senken erhöht den Kontrast.':'Feineres Filmsystem, kleinerer Brennfleck oder niedrigere kV verbessern die Bildgüte.'); }
+  else if(m.type!=='none' && m.defVisible){ c.className='callout good';
+    c.innerHTML='<b>Fehler erkennbar.</b> Bildgüte (W'+visW.num+') und Belichtung sind ausreichend; der Dichtesprung von '+fmt(m.defect.eff,3)+' liegt über der Rauschschwelle '+fmt(K_VIS*m.sigma,3)+'.'; }
+  else if(m.type==='crack'){ c.className='callout';
+    c.innerHTML='<b>Riss nicht erkennbar.</b> Bei '+m.ang+'° zur Strahlrichtung ist die durchstrahlte Risshöhe nur ≈ '+fmt(m.defect.path,2)+' mm. Planare Risse zeigen sich nur, wenn die Rissebene nahezu parallel zum Strahl liegt – bei Verdacht zusätzlich schräg durchstrahlen.'; }
+  else if(m.type!=='none'){ c.className='callout';
+    c.innerHTML='<b>Fehler nicht auswertbar.</b> Der Dichtesprung ('+fmt(m.defect.eff,3)+') liegt unter der Rauschschwelle ('+fmt(K_VIS*m.sigma,3)+'). Feineres Filmsystem oder niedrigere kV wählen.'; }
+  else { c.className='callout good'; c.innerHTML='<b>Fehlerfrei.</b> Die Aufnahme erfüllt die Anforderungen an Belichtung, Geometrie und Bildgüte.'; }
+
+  renderSteps(m);
+}
+
+function renderSteps(m){
+  const all = m.expoOK && m.geomOK && m.iqiPass;
+  const reqW=m.wireSet[m.reqIdx], visW=m.visIdx>=0?m.wireSet[m.visIdx]:null;
+  const steps=[
+    {t:'Strahlenschutz & Aufbau', val:'manuell', st:'idle',
+     d:'Kontrollbereich absperren, Warnleuchte und Dosimeter. Film mit Bleifolien in die Kassette, quellenseitig Bleimarken und IQI auf das Prüfobjekt legen'+(m.obj==='weld'?' (quer über die Naht)':'')+'.'},
+    {t:'Strahlrichtung & Abstand', val:'f '+m.fSrc.toFixed(0)+' / ≥ '+m.fMin.toFixed(0)+' mm', st:m.geomOK?'ok':'warn',
+     d:(m.obj==='weld'?'Strahl senkrecht auf die Naht. ':(m.obj==='cast'?'Strahl senkrecht auf die Wand; bei Dickensprüngen Aufbau so wählen, dass beide Dicken im Bild liegen. ':'Strahl senkrecht auf die Wand. '))+'Quelle–Objekt-Abstand f ≥ '+fmt(m.cls.fmin,1)+' · d · b^(2/3) mit d = Brennfleck, b = Abstand Objekt–Film (vereinfacht nach ISO 17636-1).',
+     fix:'SFD erhöhen oder kleineren Brennfleck wählen.'},
+    {t:'Röhrenspannung wählen', val:m.kv+' kV · max ≈ '+m.kvMax, st:m.kvOK?'ok':'warn',
+     d:'So niedrig wie möglich: niedrige kV erhöhen den Kontrast, hohe kV durchdringen dicke Wände. Richtwert für '+m.mat.name+' vereinfacht ≈ '+m.mat.kvA+' kV + '+fmt(m.mat.kvB,1)+' kV je mm.',
+     fix:'Spannung senken, sonst sinkt der Kontrast.'},
+    {t:'Belichtung einstellen', val:'D '+fmt(m.density,2)+(m.obj==='cast'?' / '+fmt(m.densThin,2):''), st:m.expoOK?'ok':'warn',
+     d:'Belichtungswert und Abstand so wählen, dass D im Sollbereich liegt (Klasse A ≥ 2,0 · Klasse B ≥ 2,3, bis ca. 4,0)'+(m.obj==='cast'?' – im dünnen Bereich ebenfalls (D '+fmt(m.densThin,2)+')':'')+'. Dosis ∝ mA·min / SFD².',
+     fix:m.expoState==='unterbelichtet'?'Mehr Belichtung (mA·min) oder geringerer Abstand.':(m.obj==='cast'&&m.density>=m.cls.dmin?'Dünner Bereich zu dunkel – Belichtung senken, kV erhöhen oder zwei Aufnahmen.':'Weniger Belichtung oder größerer Abstand.')},
+    {t:'Bildgüte prüfen (IQI)', val:(visW?'W'+visW.num:'–')+' / ≥ W'+reqW.num, st:m.iqiPass?'ok':'warn',
+     d:'Im Film muss der geforderte Draht (≈ '+fmt(m.cls.ratio*100,1)+' % der Wandstärke) erkennbar sein. Er zeigt, wie fein der Aufbau insgesamt auflöst.',
+     fix:'Feineres Filmsystem, kleinerer Brennfleck oder niedrigere kV.'},
+    {t:'Befund bewerten & dokumentieren', val:m.type==='none'?'fehlerfrei':(m.defVisible?'Fehler sichtbar':'nicht auswertbar'),
+     st:(all && (m.type==='none'||m.defVisible))?'ok':'warn',
+     d:'Anzeigen nach Art, Lage und Größe beschreiben, mit den Zulässigkeitskriterien (z. B. ISO 5817) vergleichen und den Film archivieren. Risse nur bei günstiger Strahlrichtung sichtbar.',
+     fix:all?'Fehlerart wird nicht abgebildet – Strahlrichtung, Filmsystem oder kV prüfen.':'Erst Belichtung, Geometrie und Bildgüte erfüllen.'}
+  ];
+  const firstWarn=steps.findIndex(x=>x.st==='warn'), done=steps.filter(x=>x.st==='ok').length;
+  $('stepsCount').textContent=done+' von '+steps.filter(x=>x.st!=='idle').length+' prüfbaren Schritten erfüllt';
+  $('steps').innerHTML=steps.map((x,i)=>'<div class="step '+x.st+(i===firstWarn?' cur':'')+'"><div class="ic">'+(x.st==='ok'?'✓':(x.st==='warn'?'!':(i+1)))+'</div><div><h4><span>'+(i+1)+'. '+x.t+'</span><span class="val">'+x.val+'</span></h4><p>'+x.d+'</p>'+(x.st==='warn'&&x.fix?'<p class="fix">'+x.fix+'</p>':'')+'</div></div>').join('');
+}
+
+/* ── Interaktion ─────────────────────────────────────────── */
+function fillRange(inp){ inp.style.setProperty('--p',((inp.value-inp.min)/(inp.max-inp.min)*100)+'%'); }
+function syncLabels(){
+  $('kvV').textContent=kvEl.value+' kV'; $('mavV').textContent=mavEl.value; $('thickV').textContent=thickEl.value+' mm';
+  $('sfdV').textContent=sfdEl.value+' mm'; $('focV').textContent=fmt(+focEl.value,1)+' mm'; $('angV').textContent=angEl.value+'°';
+  $('maV').textContent=maEl.value+' mA'; $('ctrV').textContent=fmt(+ctrEl.value,1)+'×';
+  document.querySelectorAll('input[type=range]').forEach(fillRange);
+}
+// Während der Belichtung zeichnet die Live-Schleife ohnehin laufend – sonst sofort im nächsten Frame
+function scheduleDraw(){ if(EXP.running||drawQueued) return; drawQueued=true; requestAnimationFrame(()=>{ drawQueued=false; draw(); }); }
+[kvEl,mavEl,thickEl,sfdEl,focEl,angEl,maEl,ctrEl,filmSel,classSel,defectSel,speedSel,objSel,matSel].forEach(e=>{
+  e.addEventListener('input',()=>{ if(e===mavEl&&!EXP.running&&!EXP.idle) EXP.partial=false; syncLabels(); scheduleDraw(); });
+  e.addEventListener('change',()=>{ syncLabels(); scheduleDraw(); });
+});
+btnAid.addEventListener('click',()=>{ showAid=!showAid; btnAid.classList.toggle('on',showAid); btnAid.setAttribute('aria-pressed',showAid); draw(); });
+
+// Werkstoffwechsel: passende Startwerte (Aluminium ist durchlässiger → weniger Dosis, feineres Filmsystem)
+matSel.addEventListener('change',()=>{ const al=matSel.value==='alu'; kvEl.value=al?90:140; mavEl.value=al?14:15; filmSel.value=al?'fein':'mittel'; if(!EXP.running&&!EXP.idle) EXP.partial=false; syncLabels(); scheduleDraw(); });
+function setBtn(){ btnExpose.textContent = EXP.running ? '■ Belichtung stoppen' : (EXP.idle ? '▶ Belichtung starten' : '▶ Neu belichten'); }
+function startExposure(){
+  EXP.idle=false; EXP.partial=true; EXP.running=true; EXP.dose=0; EXP.elapsed=0; EXP.last=performance.now(); lastDraw=0;
+  if(rafLive) cancelAnimationFrame(rafLive); setBtn(); rafLive=requestAnimationFrame(liveTick);
+}
+function stopExposure(){ EXP.running=false; if(rafLive){ cancelAnimationFrame(rafLive); rafLive=null; } setBtn(); draw(); }
+function liveTick(now){
+  const dtS=Math.min(0.1,(now-EXP.last)/1000); EXP.last=now;
+  const dtMin=dtS/60*(+speedSel.value);                       // Zeitraffer: 1× = Echtzeit
+  EXP.dose+=(+maEl.value)*dtMin; EXP.elapsed+=dtMin;
+  const full=+mavEl.value;
+  if(EXP.dose>=full){ EXP.dose=full; EXP.partial=false; EXP.running=false; rafLive=null; setBtn(); draw(); return; }
+  if(now-lastDraw>=33){ lastDraw=now; draw(); }               // ≈ 30 Bilder/s
+  rafLive=requestAnimationFrame(liveTick);
+}
+btnExpose.addEventListener('click',()=>{ if(EXP.running) stopExposure(); else startExposure(); });
+window.addEventListener('resize',()=>{ setupCanvases(); geomKey=''; draw(); });
+
+syncLabels();
+ready=true;
+setBtn();
+draw();                  // startet nicht von allein: Belichtung per Knopf
+</script>
+<script id="fit-js">
+window.FIT_CFG={cols:[[0,1],[2,3,4]],template:'1.7fr 1fr'};
+(function(){
+  /* ═══ Kompakt-Dashboard (wie UT) – reines CSS-Pixel-Layout, KEIN Zoom-Eingriff: Browser-Zoom (Strg +/−) wirkt normal ═══ */
+  var C=window.FIT_CFG||{};
+  var app=document.querySelector('.app'); if(!app) return;
+  var container=app.querySelector(':scope > .layout, :scope > .grid'); if(!container) return;
+  var SIDEW=C.sideW||280, MINCOL=C.minCol||440, MAXK=C.maxCols||3, MAXS=C.maxSide||3,
+      SIDEGROUPS=C.sideGroups===undefined?[0]:C.sideGroups, MANUAL=C.cols||null, TEMPLATE=C.template||null;
+  var GAPS=[8,6,5], TIER=0, root=document.documentElement;
+  function isItem(c){ return c.classList.contains('panel')||c.classList.contains('stage'); }
+  function flat(g){
+    var o=[]; [].slice.call(g.children).forEach(function(ch){
+      if(ch.tagName==='SCRIPT'||ch.tagName==='STYLE') return;
+      if(getComputedStyle(ch).display==='contents'){ o.push.apply(o,flat(ch)); return; }
+      var kids=[].slice.call(ch.children);
+      if(ch.classList.contains('stagegrid') && kids.length>1 && kids.every(function(k){return k.classList.contains('stage');})){
+        var cls=['riss-only','gef-only'].filter(function(q){return ch.classList.contains(q);}), sc=ch.dataset.scn;
+        kids.forEach(function(k){ cls.forEach(function(q){k.classList.add(q);}); if(sc) k.dataset.scn=sc; o.push(k); });
+      } else o.push(ch);
+    }); return o;
+  }
+  var groups=[].slice.call(container.children).filter(function(c){return c.tagName!=='SCRIPT'&&c.tagName!=='STYLE';})
+    .map(function(c){ return isItem(c)?[c]:flat(c); });
+  var all=[]; groups.forEach(function(g,gi){ g.forEach(function(el){ all.push({el:el,g:gi,parent:el.parentElement,next:el.nextSibling}); }); });
+  var grid=null, cols=[], stash=null, curN=0, curSig='', busy=false;
+  function active(){ return window.innerWidth>=1000 && window.innerHeight>=520; }
+  function GAP(){ return GAPS[TIER]; }
+  function ensure(n){
+    if(grid&&curN===n) return;
+    if(!grid){ grid=document.createElement('div'); grid.className='fitgrid'; stash=document.createElement('div'); stash.style.display='none'; container.after(grid); container.after(stash); }
+    grid.textContent=''; cols=[]; curN=n; curSig='';
+    for(var i=0;i<n;i++){ var c=document.createElement('div'); c.className='fcol'; cols.push(c); grid.appendChild(c); }
+  }
+  function partition(hs,K){            /* zusammenhängende Aufteilung mit minimaler Maximalhöhe */
+    var n=hs.length, G=GAP(); if(K<=1||n<=1) return [hs.map(function(_,i){return i;})];
+    K=Math.min(K,n); var pre=[0]; hs.forEach(function(h,i){pre.push(pre[i]+h+G);});
+    var best=[],bestScore=1e12;
+    (function rec(start,k,cut){
+      if(k===1){ var cuts=cut.concat([n]), mx=0, sq=0; for(var j=0;j<cuts.length;j++){ var a=j?cuts[j-1]:0, h=pre[cuts[j]]-pre[a]; mx=Math.max(mx,h); sq+=h*h; }
+        var sc=mx+sq*1e-7; if(sc<bestScore){bestScore=sc;best=cuts;} return; }
+      for(var e=start+1;e<=n-(k-1);e++) rec(e,k-1,cut.concat([e]));
+    })(0,K,[]);
+    var out=[],s=0; best.forEach(function(e){ var a=[]; for(var i=s;i<e;i++) a.push(i); out.push(a); s=e; }); return out;
+  }
+  function colH(ix,list){ var t=0; ix.forEach(function(i){t+=list[i].h+GAP();}); return t; }
+  function setTier(t){ TIER=t; root.classList.remove('d1','d2'); if(t) root.classList.add('d'+t); }
+
+  function layoutOnce(){
+    var W=window.innerWidth, effW=W-26, G=GAP();
+    root.classList.add('fit'); container.style.display='none';
+    var mwrap=document.createElement('div'); mwrap.className='fitgrid'; mwrap.style.cssText='position:absolute;left:-99999px;top:0;display:block;flex:none;visibility:hidden;';
+    var meas=document.createElement('div'); meas.className='fcol'; meas.style.cssText='overflow:visible;height:auto;max-height:none;display:flex;flex-direction:column;';
+    mwrap.appendChild(meas); app.appendChild(mwrap);
+    ensure(1); grid.style.gridTemplateColumns='1fr';
+    var availH=Math.max(300,grid.clientHeight-2), plan, S, K, over=0, tpl;
+    function measure(list,w){ meas.style.width=w+'px'; list.forEach(function(a){meas.appendChild(a.el);}); list.forEach(function(a){a.h=a.el.getBoundingClientRect().height;}); }
+    if(MANUAL){
+      K=MANUAL.length; S=0; ensure(K);
+      plan=MANUAL.map(function(idxs){ return idxs.map(function(i){return all[i];}).filter(Boolean); });
+      var used={}; MANUAL.forEach(function(ix){ix.forEach(function(i){used[i]=1;});});
+      all.forEach(function(a,i){ if(!used[i]) plan[K-1].push(a); });
+      tpl=TEMPLATE||('repeat('+K+',minmax(0,1fr))');
+      plan.forEach(function(c,i){ var w=Math.floor((effW-G*(K-1))/K); measure(c,w); over=Math.max(over,colH(c.map(function(_,j){return j;}),c)-availH); });
+    } else {
+      var side=all.filter(function(a){return SIDEGROUPS.indexOf(a.g)>=0;}), rest=all.filter(function(a){return SIDEGROUPS.indexOf(a.g)<0;});
+      var best=null, sv=[];
+      var sideVis=side.length; if(side.length){ measure(side,SIDEW-6); sideVis=side.filter(function(a){return a.h>1;}).length; }
+      for(var s=(sideVis?1:0); s<=(sideVis?Math.min(MAXS,sideVis):0); s++){
+        if(effW-s*(SIDEW+G)<MINCOL) break;
+        var spart=[], oS=-1e9;
+        if(s){ measure(side,SIDEW-6); sv=side.filter(function(a){return a.h>1;}); spart=partition(sv.map(function(a){return a.h;}),s);
+          oS=Math.max.apply(null,spart.map(function(ix){return colH(ix,sv)-availH;})); }
+        var kmax=Math.max(1,Math.min(MAXK,Math.floor((effW-s*(SIDEW+G)+G)/(MINCOL+G))));
+        for(var k=1;k<=kmax;k++){
+          var mw=Math.floor((effW-s*(SIDEW+G)-G*(k-1))/k)-6;
+          measure(rest,mw);
+          var vv=rest.filter(function(a){return a.h>1;}); if(k>Math.max(1,vv.length)) break;
+          var pp=partition(vv.map(function(a){return a.h;}),k);
+          var hR=pp.map(function(ix){return colH(ix,vv);}), mxR=Math.max.apply(null,hR);
+          var solvable=(k===1&&s>=1&&vv.length<=2), ov=Math.max(0,oS,solvable?0:mxR-availH), left=solvable?0:Math.max(0,availH-mxR);
+          var score=ov>2?(1e6+ov*10):(left*0.5+s*45+k*4+(solvable?25:0));
+          if(!best||score<best.score) best={score:score,S:s,K:k,spart:spart,pp:pp,vv:vv,sv:sv,over:ov,mw:mw};
+        }
+      }
+      S=best.S; K=best.K; over=best.over;
+      ensure(S+K);
+      plan=best.spart.map(function(ix){return ix.map(function(i){return best.sv[i];});}).concat(best.pp.map(function(ix){return ix.map(function(i){return best.vv[i];});}));
+      if(S) side.filter(function(a){return a.h<=1;}).forEach(function(a){plan[0].push(a);});
+      while(plan.length<S+K) plan.push([]);
+      var sw=[]; for(var q=0;q<S;q++) sw.push(SIDEW+'px');
+      tpl=(S?sw.join(' ')+' ':'')+'repeat('+K+',minmax(0,1fr))';
+    }
+    var sig=plan.map(function(c){return c.map(function(a){return all.indexOf(a);}).join(',');}).join('|')+'@'+curN;
+    var inPlan=new Set(); plan.forEach(function(c){c.forEach(function(a){inPlan.add(a);});});
+    if(sig!==curSig){ plan.forEach(function(c,i){ cols[i].replaceChildren.apply(cols[i],c.map(function(a){return a.el;})); }); curSig=sig; }
+    else plan.forEach(function(c,i){ c.forEach(function(a){ if(a.el.parentElement!==cols[i]) cols[i].appendChild(a.el); }); });
+    all.forEach(function(a){ if(!inPlan.has(a)) stash.appendChild(a.el); });
+    mwrap.remove();
+    grid.style.gridTemplateColumns=tpl;
+    window.__fitDbg={S:S,K:K,tier:TIER,over:Math.round(over),availH:availH};
+    return {over:over,S:S,K:K,availH:availH};
+  }
+  function redraw(){ window.__fitSilent=true; window.dispatchEvent(new Event('resize')); window.__fitSilent=false; }
+  function colNat(c){ var t=0,n=0; [].forEach.call(c.children,function(ch){ var h=ch.getBoundingClientRect().height; if(h>0){ t+=h; n++; } }); return t+Math.max(0,n-1)*GAP(); }
+  function isGraphicCol(c){
+    var els=c.querySelectorAll('canvas,svg'); for(var i=0;i<els.length;i++){ var e=els[i]; if(e.closest('button,.icon,.badge,.toggle,summary')) continue; var r=e.getBoundingClientRect(); if(r.width>150&&r.height>60) return true; } return false;
+  }
+  var TEXTMIN=C.textMin||300;
+  function fitWidths(avail){        /* Grafik-Spalten so breit, dass ihre Höhe die Fensterhöhe füllt (Seitenverhältnis bleibt, nichts verzerrt); Rest geht an Text-Spalten */
+    var n=cols.length; if(n<1) return 0;
+    var G=GAP(), availW=window.innerWidth-26-G*(n-1), g=cols.map(isGraphicCol), nG=g.filter(Boolean).length, nT=n-nG;
+    function tpl(w){ return cols.map(function(_,i){ return g[i]?Math.round(w[i])+'px':'minmax('+TEXTMIN+'px,1fr)'; }).join(' '); }
+    if(!nG||n===1){ grid.style.gridTemplateColumns=cols.map(function(){return 'minmax(0,1fr)';}).join(' '); redraw(); }
+    else {
+      var budget=availW-nT*TEXTMIN, w=cols.map(function(_,i){return g[i]?budget/nG:0;}), lo=MINCOL*0.7;
+      for(var it=0; it<7; it++){
+        grid.style.gridTemplateColumns=tpl(w); redraw();
+        var worst=0, nw=w.slice();
+        cols.forEach(function(c,i){ if(!g[i]) return; var h=colNat(c); worst=Math.max(worst,Math.abs(h-avail)/avail); nw[i]=Math.max(lo,Math.min(budget,w[i]*Math.pow(avail/Math.max(150,h),0.95))); });
+        var sum=0; cols.forEach(function(_,i){ if(g[i]) sum+=nw[i]; });
+        if(sum>budget) cols.forEach(function(_,i){ if(g[i]) nw[i]=Math.max(lo,nw[i]*budget/sum); });
+        w=nw; if(worst<0.02) break;
+      }
+      grid.style.gridTemplateColumns=tpl(w); grid.style.justifyContent=nT?'stretch':'center'; redraw();
+    }
+    var mx=0; cols.forEach(function(c){ mx=Math.max(mx,colNat(c)-avail); });
+    var sw=cols.map(function(c){ var hs=[].slice.call(c.querySelectorAll('.panel,.stage')); return hs.length; });
+    /* breite Einstellungsspalten: Regler zweispaltig */
+    cols.forEach(function(c){ var wide=c.getBoundingClientRect().width>=430&&!isGraphicCol(c); [].forEach.call(c.querySelectorAll('.panel'),function(pn){ var k=[].filter.call(pn.children,function(e){return e.classList.contains('ctl-row')||e.classList.contains('field');}).length; pn.classList.toggle('fit2',wide&&k>=3); }); });
+    return mx-5;
+  }
+  function relayout(){
+    if(busy) return; busy=true;
+    try{
+      if(!active()){ restore(); return; }
+      var r=null, mx=0;
+      for(var t=0;t<3;t++){ setTier(t); r=layoutOnce(); redraw(); mx=fitWidths(r.availH-5); if(mx<=0) break; }
+      window.__fitDbg.over=Math.round(Math.max(0,mx)); redraw();
+    } finally { busy=false; }
+  }
+  function restore(){
+    root.classList.remove('fit','d1','d2'); TIER=0;
+    if(!grid) return; container.style.display='';
+    all.forEach(function(a){ if(a.next&&a.next.parentNode===a.parent) a.parent.insertBefore(a.el,a.next); else a.parent.appendChild(a.el); });
+    grid.remove(); stash.remove(); grid=null; stash=null; cols=[]; curN=0; curSig='';
+  }
+  function again(){ clearTimeout(window.__fitA); window.__fitA=setTimeout(function(){ relayout(); },70); }
+  window.addEventListener('resize',function(){ if(window.__fitSilent) return; clearTimeout(window.__fitT); window.__fitT=setTimeout(relayout,90); });
+  document.addEventListener('click',function(e){ if(e.target.closest('button,.toggle,.seg,.tabs,label,summary')) again(); },true);
+  document.addEventListener('change',function(e){ if(e.target.matches('select,input[type=checkbox],input[type=radio]')) again(); },true);
+  window.__fitRelayout=again;
+  relayout();
+  setTimeout(relayout,350);
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mobile Härteprüfung · HT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media=\'all\'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
+<style>
+  :root{
+    --bg:#1c1e20; --bg-2:#242628; --panel:#2a2d30; --panel-2:#2f3236;
+    --border:#4a5058; --border-soft:#3a4048; --text:#f0f2f4; --text-dim:#b8bec4; --text-faint:#7a8490;
+    --amber:#ffc94d; --amber-dim:#8a6420; --amber-glow:rgba(255,201,77,.24);
+    --cyan:#4de9d4; --cyan-dim:#1f6a61; --cyan-glow:rgba(77,233,212,.18);
+    --red:#ff6f66; --green:#5fe072; --green-glow:rgba(95,224,114,.55);
+    --mono:'JetBrains Mono',ui-monospace,monospace; --disp:'Space Grotesk',sans-serif; --body:'Inter',sans-serif;
+  }
+  body.light-mode{
+    --bg:#e7ecf2; --bg-2:#dbe3ec; --panel:#f7f9fb; --panel-2:#eaeff4;
+    --border:#7c93a8; --border-soft:#a9bccb; --text:#0c1620; --text-dim:#2b3e4f; --text-faint:#51687a;
+    --amber:#a45f00; --amber-dim:#e0aa4a; --amber-glow:rgba(164,95,0,.16);
+    --cyan:#0a7d6e; --cyan-dim:#bfe9e1; --cyan-glow:rgba(10,125,110,.14);
+    --red:#b0241a; --green:#187a32; --green-glow:rgba(24,122,50,.25);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--body);transition:background .2s,color .2s;}
+  body{min-height:100vh;background:
+      radial-gradient(ellipse 1400px 700px at 10% -5%,#0a1e30 0%,transparent 55%),
+      radial-gradient(ellipse 900px 500px at 95% 5%,#14101e 0%,transparent 50%),
+      var(--bg);}
+  body.light-mode{background:
+      radial-gradient(ellipse 1400px 700px at 10% -5%,#c9d7e4 0%,transparent 55%),
+      radial-gradient(ellipse 900px 500px at 95% 5%,#dcd3e8 0%,transparent 50%),
+      var(--bg);}
+  .app{max-width:1200px;margin:0 auto;padding:14px 12px 48px;}
+  @media(min-width:768px){.app{padding:20px 20px 56px;}}
+  /* FIX: Breite Bildschirme nutzten bislang nur 1200px, Rest blieb leer */
+  @media(min-width:1500px){.app{max-width:1760px;}}
+  @media(min-width:1900px){.app{max-width:2000px;}}
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;margin-bottom:16px;border-bottom:1.5px solid var(--border);flex-wrap:wrap;}
+  .brand-eyebrow{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--cyan);margin:0 0 4px;display:flex;align-items:center;gap:6px;}
+  .brand-eyebrow::before{content:'';display:inline-block;width:18px;height:1.5px;background:var(--cyan);opacity:.8;}
+  h1{font-family:var(--disp);font-weight:700;font-size:20px;margin:0;background:linear-gradient(120deg,var(--text) 60%,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  h1 small{display:block;font-family:var(--body);font-weight:400;font-size:11.5px;color:var(--text-dim);margin-top:2px;-webkit-text-fill-color:var(--text-dim);}
+  @media(min-width:600px){h1{font-size:24px;}h1 small{font-size:12.5px;}}
+  .hdr-right{display:flex;align-items:center;gap:8px;}
+  .badge{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:5px 10px;border:1px solid var(--border);border-radius:20px;color:var(--text-dim);display:flex;align-items:center;gap:6px;}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green-glow);}
+  .theme-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--panel-2);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:.15s;}
+  .theme-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+
+  .grid{display:grid;grid-template-columns:1fr;gap:16px;}
+  @media(min-width:960px){.grid{grid-template-columns:1.3fr .9fr;align-items:start;}}
+  @media(min-width:1500px){.grid{grid-template-columns:1.7fr .9fr;gap:22px;}}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border-soft);border-radius:14px;padding:14px;}
+  .stage-title{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);margin:0 0 10px;display:flex;justify-content:space-between;}
+
+  .stage{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--border-soft);background:#000;}
+  canvas{display:block;width:100%;height:auto;}
+
+  .ctl-row{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .ctl-row label{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--text-dim);display:flex;justify-content:space-between;}
+  .ctl-row label b{color:var(--amber);font-weight:700;}
+  input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:4px;background:var(--panel-2);outline:none;border:1px solid var(--border-soft);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--amber);border:2px solid #1a1200;box-shadow:0 0 8px var(--amber-glow);cursor:pointer;}
+  select{width:100%;background:var(--panel-2);color:var(--text);border:1px solid var(--border-soft);border-radius:8px;padding:8px 10px;font-family:var(--body);font-size:13px;}
+
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;}
+  button{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);cursor:pointer;transition:.15s;}
+  button:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan);}
+  button.primary{background:linear-gradient(120deg,var(--amber-dim),#5c4310);border-color:var(--amber);color:var(--amber);}
+  body.light-mode button.primary{background:linear-gradient(120deg,#f2d9a8,#e0aa4a);color:#4a2f00;}
+  button:disabled{opacity:.4;cursor:not-allowed;}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+  .stat{background:var(--panel-2);border:1px solid var(--border-soft);border-radius:8px;padding:8px 10px;}
+  .stat .k{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);}
+  .stat .v{font-family:var(--disp);font-size:16px;font-weight:700;color:var(--cyan);}
+  .stat .v small{font-size:10px;color:var(--text-dim);font-weight:400;}
+  .stat.warn .v{color:var(--red);}
+  .stat.ok .v{color:var(--green);}
+
+  .gauge{margin-top:12px;}
+  .gauge .bar{position:relative;height:14px;border-radius:7px;background:linear-gradient(90deg,#3a1010 0%, #3a1010 18%, #1a3a20 32%, #12401f 68%, #3a2a10 82%, #3a1010 100%);border:1px solid var(--border-soft);overflow:visible;}
+  body.light-mode .gauge .bar{background:linear-gradient(90deg,#f3caca 0%, #f3caca 18%, #cdeed3 32%, #b9e6c2 68%, #f2e0b9 82%, #f3caca 100%);}
+  .gauge .needle{position:absolute;top:-4px;width:3px;height:22px;background:var(--text);border-radius:2px;transform:translateX(-1.5px);transition:left .2s;}
+  .gauge .lbl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;color:var(--text-faint);margin-top:4px;}
+
+  .callout{margin-top:12px;padding:10px 12px;border-radius:8px;border:1px solid var(--border-soft);background:var(--panel-2);font-size:12px;color:var(--text-dim);}
+  .callout.bad{border-color:#7a2a2a;color:#ffb3ac;}
+  body.light-mode .callout.bad{color:#7a1a12;background:#fbe4e2;}
+  .callout.good{border-color:#245c30;color:#b7f0c0;}
+  body.light-mode .callout.good{color:#0f4a20;background:#e2f5e6;}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--text-dim);}
+
+  /* ═══ HT · Mobile Härteprüfung ═══ */
+  .hidden{display:none !important;}
+  body[data-mode="leeb"] .uci-only{display:none !important;}
+  body[data-mode="uci"] .leeb-only{display:none !important;}
+  .col{display:flex;flex-direction:column;gap:16px;min-width:0;}
+  .panel{box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 10px 28px -14px rgba(0,0,0,.55);}
+  body.light-mode .panel{box-shadow:0 10px 26px -16px rgba(12,31,22,.28);}
+  .stage{box-shadow:inset 0 0 0 1px rgba(255,255,255,.05),0 8px 20px -12px rgba(0,0,0,.7);}
+  .stage-title .sub{color:var(--text-faint);font-weight:400;text-transform:none;letter-spacing:0;font-size:10.5px;}
+  body.light-mode .stage-title .sub{color:var(--text-dim);}
+  input[type=range]{background:linear-gradient(90deg,var(--amber) var(--p,40%),var(--panel-2) var(--p,40%));}
+  input[type=range]:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .ctl-row .note{font-size:10.5px;color:var(--text-faint);line-height:1.4;}
+  body.light-mode .ctl-row .note{color:var(--text-dim);}
+  .seg{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:12px;}
+  .seg button{padding:10px 6px;font-size:11px;font-weight:600;text-transform:none;letter-spacing:.02em;line-height:1.25;}
+  .seg button.sel{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-glow);box-shadow:0 0 0 1px var(--cyan) inset;}
+  body.light-mode .seg button.sel{background:#08954C;border-color:#08954C;color:#fff;}
+  .btnrow button.tog.on{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-glow);}
+  .btnrow{flex-wrap:wrap;}
+  .hint{font-size:11.5px;color:var(--text-faint);line-height:1.5;margin:8px 0 0;}
+  body.light-mode .hint{color:var(--text-dim);}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--text-dim);}
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--border);}
+  .stats{grid-template-columns:1fr 1fr;}
+  .stat .v{font-size:15px;}
+  .stat .v small{display:block;font-family:var(--mono);font-size:9.5px;color:var(--text-faint);font-weight:500;margin-top:1px;}
+  body.light-mode .stat .v small{color:var(--text-dim);}
+  .stat.full{grid-column:1/-1;}
+
+  .live{margin:0 0 10px;padding:12px 14px;border:1px solid var(--border-soft);border-radius:10px;background:var(--panel-2);}
+  .live-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:var(--mono);}
+  .live-state{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);}
+  .live-state.run{color:var(--amber);}
+  .live-state.run::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--amber);margin-right:7px;box-shadow:0 0 8px var(--amber);animation:livepulse 1s ease-in-out infinite;}
+  @keyframes livepulse{0%,100%{opacity:1}50%{opacity:.3}}
+  @media(prefers-reduced-motion:reduce){.live-state.run::before{animation:none;}}
+  .live-val{font-size:22px;font-weight:700;color:var(--text);letter-spacing:.02em;}
+  .live-val small{font-size:11px;font-weight:500;color:var(--text-faint);}
+  body.light-mode .live-val small{color:var(--text-dim);}
+  .pbar{height:7px;border-radius:4px;background:var(--bg-2);border:1px solid var(--border-soft);margin:9px 0 6px;overflow:hidden;}
+  .pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--amber-dim),var(--amber));}
+  .live-sub{font-family:var(--mono);font-size:10px;color:var(--text-faint);line-height:1.5;}
+  body.light-mode .live-sub{color:var(--text-dim);}
+
+  table.ht{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;margin-top:10px;}
+  table.ht th{font-weight:600;color:var(--text-faint);text-align:right;padding:5px 6px;border-bottom:1px solid var(--border-soft);font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;}
+  table.ht th:first-child,table.ht td:first-child{text-align:left;}
+  table.ht td{padding:5px 6px;text-align:right;border-bottom:1px solid var(--border-soft);color:var(--text);}
+  table.ht tr.out td{color:var(--red);}
+  table.ht tr.cur td{background:var(--amber-glow);}
+  body.light-mode table.ht th{color:var(--text-dim);}
+
+  .factors{display:flex;flex-direction:column;margin-top:4px;}
+  .frow{display:grid;grid-template-columns:20px 1fr auto;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--border-soft);font-size:11.5px;}
+  .frow:first-child{border-top:0;}
+  .frow .dot{width:10px;height:10px;border-radius:50%;background:var(--green);justify-self:center;}
+  .frow.warn .dot{background:var(--red);}
+  .frow.idle .dot{background:var(--text-faint);opacity:.5;}
+  .frow .nm small{display:block;font-size:10px;color:var(--text-faint);line-height:1.35;}
+  body.light-mode .frow .nm small{color:var(--text-dim);}
+  .frow .vv{font-family:var(--mono);font-weight:700;font-size:11.5px;color:var(--green);}
+  .frow.warn .vv{color:var(--red);}
+  .frow.idle .vv{color:var(--text-faint);}
+
+  .proc{display:flex;flex-direction:column;}
+  .pstep{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--border-soft);}
+  .pstep:first-child{border-top:0;padding-top:2px;}
+  .pstep .ic{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;border:1.5px solid var(--border);color:var(--text-dim);background:var(--panel-2);}
+  .pstep.ok .ic{border-color:var(--green);color:var(--green);background:var(--cyan-glow);}
+  .pstep.warn .ic{border-color:var(--red);color:var(--red);background:rgba(255,111,102,.12);}
+  .pstep h4{margin:0;font-family:var(--disp);font-size:12.5px;font-weight:600;display:flex;justify-content:space-between;gap:8px;align-items:baseline;}
+  .pstep h4 .val{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--text-dim);text-align:right;}
+  .pstep.ok h4 .val{color:var(--green);}
+  .pstep.warn h4 .val{color:var(--red);}
+  .pstep p{margin:3px 0 0;font-size:11px;line-height:1.45;color:var(--text-faint);}
+  body.light-mode .pstep p{color:var(--text-dim);}
+  .pstep p.fix{color:var(--red);font-weight:500;}
+  .pstep.cur{background:linear-gradient(90deg,var(--cyan-glow),transparent 70%);margin:0 -6px;padding-left:6px;padding-right:6px;border-radius:8px;}
+</style>
+<script src="/shared/zfp-context.js"></script>
+<script id="zfp-offline">
+/* Offline-Fallback: läuft die App ohne Server (file://), fehlt /shared/zfp-context.js – dann wird der Theme-Kontext lokal bereitgestellt. */
+(function(){
+  if(window.ZfPContext) return;
+  var cbs=[], mode=null, KEY='zfp-theme';
+  function store(v){ try{ if(v===undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY,v); }catch(e){} return null; }
+  function init(){ if(mode) return; var s=store(); mode=(s==='light'||s==='dark')?s:((document.body&&(document.body.classList.contains('light-mode')||document.body.classList.contains('light')))?'light':'dark'); }
+  window.ZfPContext={
+    get theme(){ init(); return mode; },
+    onTheme:function(f){ if(typeof f!=='function') return; cbs.push(f); init(); f(mode); },
+    toggleTheme:function(){ init(); mode=mode==='light'?'dark':'light'; store(mode); cbs.forEach(function(f){ try{ f(mode); }catch(e){} }); }
+  };
+})();
+</script>
+
+<style id="fit-css">
+/* ═══ Kompakt-Dashboard (wie UT): kleine Schrift, dichte Panels, alles auf einem Bildschirm ═══ */
+html.fit, html.fit body{height:100%; overflow:hidden;}
+html.fit .app{box-sizing:border-box; display:flex; flex-direction:column; padding:5px 12px 8px; gap:6px; max-width:none; width:100%; height:100vh; height:100dvh; overflow:hidden; zoom:1 !important;}
+html.fit .sfl-bar{display:none;}
+html.fit header.top{margin:0; padding:0 0 4px; flex:0 0 auto; align-items:center; gap:12px; flex-wrap:nowrap;}
+html.fit header.top .brand-eyebrow, html.fit .eyebrow{font-size:9px; margin:0 0 1px;}
+html.fit header.top h1{font-size:21px; line-height:1.05; margin:0;}
+html.fit header.top h1 small, html.fit header.top .title-group > small, html.fit header.top .sub{font-size:11.5px; line-height:1.2;}
+html.fit .badge{font-size:10.5px; padding:3px 9px;}
+html.fit .icon-btn{width:30px; height:30px; font-size:14px;}
+html.fit .fitgrid{flex:1 1 0; min-height:0; display:grid; gap:8px; margin:0; align-items:stretch;}
+html.fit .fcol{display:flex; flex-direction:column; gap:8px; min-height:0; min-width:0; overflow-y:auto; overflow-x:hidden; padding:0 2px 4px 0; scrollbar-width:thin;}
+html.fit .fcol > *{flex:0 0 auto; margin:0 !important;}
+html.fit .panel{padding:8px 10px 9px; border-radius:10px;}
+html.fit .panel h2, html.fit .stage-title, html.fit .panel > .stage-title{margin:0 0 5px; font-size:10.5px; letter-spacing:.07em; line-height:1.25;}
+html.fit .stage-head{gap:4px 10px; flex-wrap:wrap; padding:0 0 4px; margin:0 0 2px;}
+html.fit .ctl-row, html.fit .field{margin:0 0 5px;}
+html.fit .ctl-row label, html.fit .field label{font-size:11.5px; margin:0 0 1px; line-height:1.25;}
+html.fit .ctl-row label .val, html.fit .field label .val{font-size:11.5px;}
+html.fit input[type=range]{margin:1px 0; height:18px;}
+html.fit .hint, html.fit .note, html.fit .ctl-row .note, html.fit .sidebar-note, html.fit .panel .hint{font-size:10.5px; line-height:1.32; margin:2px 0 0;}
+html.fit .btnrow{gap:5px; margin:4px 0;}
+html.fit button, html.fit select{font-size:11.5px; padding:5px 9px;}
+html.fit .callout, html.fit .verdict{font-size:11.5px; line-height:1.4; padding:7px 10px; margin-top:5px; max-height:none; overflow:visible;}
+html.fit .stat{padding:5px 8px;} html.fit .stat .k{font-size:9.5px; line-height:1.2;} html.fit .stat .v{font-size:14.5px;}
+html.fit .stats{gap:5px; grid-template-columns:repeat(3,1fr);}
+html.fit .seg{gap:4px;}
+html.fit .seg button, html.fit .toggle button{padding:6px 5px; min-width:0; white-space:normal; line-height:1.2; font-size:11px;}
+html.fit .seg.mini button{padding:3px 8px; font-size:10.5px;}
+html.fit .toggle{flex-wrap:wrap; padding:5px 8px; margin:0 0 4px;}
+html.fit .legend{font-size:10px; margin-top:4px; gap:3px 12px;}
+html.fit table.res td, html.fit table.res th, html.fit table.ht td, html.fit table.ht th{padding:3px 5px; font-size:10.5px;}
+html.fit .pstep, html.fit .step{padding-top:5px; padding-bottom:5px; gap:8px;}
+html.fit .pstep p, html.fit .step p{font-size:10.5px; line-height:1.38; margin-top:2px;}
+html.fit .pstep h4{font-size:12px;}
+html.fit .frow{padding:3px 0; font-size:11.5px;}
+html.fit .frow .nm small{font-size:10px; line-height:1.25;}
+html.fit .live{padding:8px 11px; margin-bottom:6px;}
+html.fit .live-val{font-size:19px;}
+html.fit .pbar{margin:6px 0 4px;}
+html.fit .stage, html.fit .panel > .stage{margin:0;}
+html.fit .foot{font-size:10.5px; padding-top:3px;}
+html.fit .kv{font-size:11px;}
+html.fit canvas, html.fit svg.view{max-width:100%; height:auto;}
+html.fit .step p, html.fit .pstep p{display:none;}
+html.fit .step.cur p, html.fit .pstep.cur p{display:block;}
+/* Slider-reiche Panels: zwei Regler nebeneinander */
+html.fit .panel.fit2{display:grid; grid-template-columns:1fr 1fr; column-gap:12px; align-content:start;}
+html.fit .panel.fit2 > *{grid-column:1/-1;}
+html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{grid-column:auto; min-width:0;}
+
+/* Grafiken: nur Breite begrenzt, Höhe folgt dem Seitenverhältnis → nie verzerrt */
+html.fit .stage canvas, html.fit .stage svg{max-width:100%; height:auto;}
+/* Kompaktstufen (nur Abstände, Schriftgröße bleibt → Browser-Zoom wirkt normal) */
+html.fit.d1 .fitgrid, html.fit.d1 .fcol{gap:6px;}
+html.fit.d1 .panel{padding:6px 8px 7px;}
+html.fit.d1 .panel h2, html.fit.d1 .stage-title{margin-bottom:3px;}
+html.fit.d1 .ctl-row, html.fit.d1 .field{margin-bottom:3px;}
+html.fit.d1 .hint, html.fit.d1 .note, html.fit.d1 .panel .hint{margin-top:1px; line-height:1.25;}
+html.fit.d1 .stat{padding:3px 7px;} html.fit.d1 .stats{gap:4px;}
+html.fit.d1 .toggle{padding:3px 7px; margin-bottom:3px;}
+html.fit.d1 .seg button, html.fit.d1 .toggle button{padding:4px 4px;}
+html.fit.d1 button, html.fit.d1 select{padding:3px 8px;}
+html.fit.d1 .callout, html.fit.d1 .verdict{padding:5px 8px; margin-top:3px; line-height:1.3;}
+html.fit.d1 .pstep, html.fit.d1 .step{padding-top:3px; padding-bottom:3px;}
+html.fit.d1 .legend{margin-top:2px;} html.fit.d1 .btnrow{margin:2px 0;}
+html.fit.d1 header.top{padding-bottom:2px;}
+html.fit.d2 .fitgrid, html.fit.d2 .fcol{gap:4px;}
+html.fit.d2 .panel{padding:4px 7px 5px; border-radius:8px;}
+html.fit.d2 .panel h2, html.fit.d2 .stage-title{margin-bottom:2px; font-size:10px;}
+html.fit.d2 .ctl-row, html.fit.d2 .field{margin-bottom:1px;}
+html.fit.d2 input[type=range]{height:14px; margin:0;}
+html.fit.d2 .hint, html.fit.d2 .note, html.fit.d2 .panel .hint{line-height:1.18; font-size:10px; margin-top:0;}
+html.fit.d2 .stat{padding:2px 6px;} html.fit.d2 .stat .v{font-size:13px;} html.fit.d2 .stats{gap:3px;}
+html.fit.d2 .toggle{padding:2px 6px; margin-bottom:2px;}
+html.fit.d2 .seg button, html.fit.d2 .toggle button{padding:3px 3px;}
+html.fit.d2 button, html.fit.d2 select{padding:2px 7px;}
+html.fit.d2 .callout, html.fit.d2 .verdict{padding:3px 7px; margin-top:2px; line-height:1.25;}
+html.fit.d2 .pstep, html.fit.d2 .step{padding-top:2px; padding-bottom:2px;}
+html.fit.d2 header.top h1{font-size:19px;} html.fit.d2 header.top h1 small{display:none;}
+html.fit.d2 .legend{margin-top:1px;} html.fit.d2 .btnrow{margin:1px 0;} html.fit.d2 .live{padding:5px 9px; margin-bottom:3px;}
+
+html.fit .thermal-wrap{align-items:start;}
+html.fit #heat{height:auto !important; align-self:start;}
+html.fit #cbar{height:100%;}
+/* Tabellen: nie rechts abschneiden */
+html.fit .fcol div:has(> table), html.fit .fcol .tablewrap, html.fit .fcol .skiptbl-wrap{overflow-x:auto; max-width:100%;}
+html.fit .fcol table{font-size:10.5px;}
+html.fit .fcol table th, html.fit .fcol table td{padding:3px 4px; white-space:normal;}
+/* alte max-height-Kappen der Einzel-Apps aufheben: Höhe folgt nur dem Seitenverhältnis (keine Seitenbalken) */
+html.fit svg, html.fit .stage svg, html.fit #setup, html.fit #wave, html.fit #chart, html.fit #view{max-height:none !important;}
+html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{min-width:0; overflow:hidden;}
+html.fit .panel.fit2 select, html.fit .panel.fit2 input[type=range]{width:100%; max-width:100%; min-width:0;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="title-group">
+      <p class="brand-eyebrow">SCHAEFFLER · ZFP · SCHWEINFURT</p>
+      <h1>Mobile Härteprüfung<small>HT · Leeb-Rückprall (HLD) &amp; UCI – Messung, Einflussgrößen &amp; Umwertung</small></h1>
+    </div>
+    <div class="hdr-right">
+      <div class="badge"><span class="dot"></span>HT · MOBIL</div>
+      <button class="theme-btn" id="themeBtn" title="Light/Dark Mode">☀</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <div class="panel">
+        <p class="stage-title"><span>MESSUNG · LIVE</span><span class="sub" id="liveSub">—</span></p>
+        <div class="stage"><canvas id="cvMain" role="img" aria-label="Seitenansicht des Messvorgangs"></canvas></div>
+        <div class="legend" id="mainLegend"></div>
+      </div>
+      <div class="panel">
+        <p class="stage-title"><span>MESSFELD · EINDRÜCKE</span><span class="sub" id="indSub">—</span></p>
+        <div class="stage"><canvas id="cvInd" role="img" aria-label="Draufsicht auf das Messfeld mit Eindrücken"></canvas></div>
+        <p class="hint">Die gestrichelten Kreise zeigen den Mindestabstand zwischen den Messstellen, der schraffierte Streifen den Mindestrandabstand. Verletzte Abstände färben sich rot.</p>
+      </div>
+      <div class="panel">
+        <p class="stage-title"><span>MESSWERTE · HÄRTE IN HV</span><span class="sub" id="trendSub">—</span></p>
+        <div class="stage"><canvas id="cvTrend" role="img" aria-label="Verlauf der Messwerte"></canvas></div>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="panel">
+        <p class="stage-title"><span>VERFAHREN &amp; GERÄT</span><span class="sub" id="modeSub">—</span></p>
+        <div class="seg" id="modeSeg">
+          <button data-m="leeb" class="sel">Leeb · Rückprall<br>HLD → HV</button>
+          <button data-m="uci">UCI · Ultraschall<br>Kontaktimpedanz → HV</button>
+        </div>
+        <div class="ctl-row">
+          <label>Prüfobjekt (Werkstoff)</label>
+          <select id="mat">
+            <option value="s235">Baustahl S235 · ≈ 130 HV</option>
+            <option value="qt" selected>Vergütungsstahl 42CrMo4+QT · ≈ 300 HV</option>
+            <option value="case">Einsatzstahl, gehärtet · ≈ 650 HV</option>
+            <option value="tool">Werkzeugstahl, gehärtet · ≈ 760 HV</option>
+            <option value="gjl">Gusseisen GJL-250 · ≈ 220 HV</option>
+            <option value="alu">Aluminium EN AW-6082 · ≈ 95 HV</option>
+          </select>
+        </div>
+        <div class="row2">
+          <div class="ctl-row">
+            <label>Werkstoffgruppe im Gerät</label>
+            <select id="grp"><option value="stahl" selected>Stahl</option><option value="guss">Gusseisen</option><option value="alu">Aluminium</option></select>
+          </div>
+          <div class="ctl-row leeb-only">
+            <label>Schlaggerät</label>
+            <select id="dev"><option value="D" selected>D · Standard</option><option value="G">G · schwer (Guss)</option><option value="C">C · klein, dünn</option></select>
+          </div>
+          <div class="ctl-row uci-only">
+            <label>Prüfkraft</label>
+            <select id="load"><option value="hv1">HV 1 · 9,8 N</option><option value="hv5" selected>HV 5 · 49 N</option><option value="hv10">HV 10 · 98 N</option></select>
+          </div>
+        </div>
+        <div class="leeb-only">
+          <div class="row2">
+            <div class="ctl-row">
+              <label>Aufsetzrichtung</label>
+              <select id="dir"><option value="down" selected>senkrecht ↓</option><option value="hor">waagerecht →</option><option value="up45">schräg ↑ 45°</option><option value="up">über Kopf ↑</option></select>
+            </div>
+            <div class="ctl-row">
+              <label>Geräteeinstellungen</label>
+              <div class="btnrow" style="margin:0"><button class="tog on" id="btnCorr" aria-pressed="true">Richtungskorrektur</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="btnrow" style="margin-bottom:10px"><button class="tog on" id="btnCoupled" aria-pressed="true">Bauteil fest gespannt / gekoppelt</button></div>
+        <div class="ctl-row">
+          <label>Geräteabgleich (Justierung) <b id="abglV">0,0 %</b></label>
+          <input type="range" id="abgl" min="-6" max="6" step="0.1" value="0">
+          <div class="note">Über den Prüfkörper kontrollieren: Weicht die Anzeige ab, hier nachjustieren.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <p class="stage-title"><span>PRÜFSTELLE &amp; BAUTEIL</span></p>
+        <div class="ctl-row"><label>Rauheit Ra <b id="raV">0,8 µm</b></label><input type="range" id="ra" min="0.1" max="12" step="0.1" value="0.8"></div>
+        <div class="ctl-row"><label>Beschichtung / Zunder <b id="coatV">0 µm</b></label><input type="range" id="coat" min="0" max="150" step="5" value="0"></div>
+        <div class="ctl-row"><label>Wanddicke <b id="thickV">30 mm</b></label><input type="range" id="thick" min="1" max="60" step="1" value="30"></div>
+        <div class="ctl-row"><label>Bauteilmasse <b id="massV">20 kg</b></label><input type="range" id="mass" min="0.2" max="50" step="0.2" value="20"></div>
+        <div class="ctl-row"><label>Krümmungsradius <b id="radV">eben</b></label><input type="range" id="rad" min="5" max="200" step="5" value="200"><div class="note">200 mm und mehr = ebene Fläche</div></div>
+        <div class="row2">
+          <div class="ctl-row"><label>Messstellenabstand <b id="distV">3,0 mm</b></label><input type="range" id="dist" min="0.3" max="6" step="0.1" value="3"></div>
+          <div class="ctl-row"><label>Randabstand <b id="edgeV">6,0 mm</b></label><input type="range" id="edge" min="1" max="10" step="0.5" value="6"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <p class="stage-title"><span>MESSUNG</span><span class="sub" id="calSub">Gerät nicht kontrolliert</span></p>
+        <div class="live">
+          <div class="live-top"><span class="live-state" id="mState">bereit</span><span class="live-val" id="mVal">–</span></div>
+          <div class="pbar"><i id="mBar"></i></div>
+          <div class="live-sub" id="mSub">Messung starten oder zuerst den Prüfkörper messen.</div>
+        </div>
+        <div class="seg" id="speedSeg" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+          <button data-s="1" class="sel">1×<br>Echtzeit</button><button data-s="2">2×</button><button data-s="4">4×</button>
+        </div>
+        <div class="btnrow">
+          <button class="primary" id="btnMeasure">▶ Messung durchführen</button>
+          <button id="btnSeries">▶▶ Serie (5 ×)</button>
+          <button id="btnRef">🧪 Prüfkörper messen</button>
+          <button id="btnClear">↺ Messreihe löschen</button>
+          <button class="tog" id="btnReveal" aria-pressed="false">Sollwert zeigen</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <p class="stage-title"><span>AUSWERTUNG</span><span class="sub" id="evalSub"></span></p>
+        <div class="stats">
+          <div class="stat" id="stMeanBox"><div class="k" id="kMean">Mittelwert HV</div><div class="v" id="stMean">–</div></div>
+          <div class="stat" id="stSdBox"><div class="k">Streuung s / CV</div><div class="v" id="stSd">–</div></div>
+          <div class="stat" id="stConvBox"><div class="k">Umwertung</div><div class="v" id="stConv">–</div></div>
+          <div class="stat" id="stCalBox"><div class="k">Prüfkörper</div><div class="v" id="stCal">–</div></div>
+          <div class="stat full hidden" id="stTrueBox"><div class="k">Sollwert (nur zur Kontrolle)</div><div class="v" id="stTrue">–</div></div>
+        </div>
+        <table class="ht" id="tbl"><thead><tr><th>Nr</th><th id="thRaw">HLD</th><th>HV</th><th>HB</th><th>HRC</th></tr></thead><tbody></tbody></table>
+        <div class="callout" id="callout" aria-live="polite" style="margin-top:12px"></div>
+      </div>
+
+      <div class="panel">
+        <p class="stage-title"><span>EINFLUSSGRÖSSEN</span><span class="sub" id="infSub">auf die nächste Messung</span></p>
+        <div class="factors" id="factors"></div>
+        <p class="hint">Die Werte zeigen die zu erwartende systematische Abweichung des Härtewerts. Der Zufallsanteil kommt dazu.</p>
+      </div>
+
+      <div class="panel">
+        <p class="stage-title"><span>PRÜFPROTOKOLL</span><span class="sub" id="docSub">noch nicht erstellt</span></p>
+        <div class="btnrow">
+          <button class="primary" id="btnDoc" disabled>📄 Protokoll erstellen</button>
+          <button id="btnCopy" disabled>⧉ Kopieren</button>
+        </div>
+        <pre id="docOut" class="hidden" style="white-space:pre-wrap;font-family:var(--mono);font-size:10.5px;line-height:1.55;margin:12px 0 0;padding:12px;border:1px solid var(--border-soft);border-radius:8px;background:var(--panel-2);color:var(--text)"></pre>
+        <p class="hint">Das Protokoll fasst Verfahren, Geräteeinstellung, Prüfkörper-Nachweis, Einzelwerte, Mittelwert, Umwertung und Beurteilung zusammen. Ändert sich danach die Messreihe oder der Abgleich, ist es veraltet und muss neu erstellt werden.</p>
+      </div>
+
+      <div class="panel">
+        <p class="stage-title"><span>PRÜFABLAUF</span><span class="sub" id="procCount">—</span></p>
+        <div class="proc" id="proc"></div>
+        <p class="hint">Richtwerte vereinfacht nach DIN EN ISO 16859 (Leeb) und DIN 50159 (UCI); Umwertung nur für un- und niedriglegierte Stähle nach DIN EN ISO 18265 (Näherung). Die Modellwerte dienen der Schulung und ersetzen keine Prüfanweisung.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const fmt=(n,d=1)=>Number(n).toFixed(d).replace('.',',');
+const rad=d=>d*Math.PI/180;
+let light=false, ready=false;
+
+/* ── Theme: global über ZfPContext, lokaler Fallback ─────────── */
+function setTheme(mode){ light=mode==='light'; document.body.classList.toggle('light-mode',light); $('themeBtn').textContent=light?'☾':'☀'; if(ready) dirty=true; }
+const ctxTheme=window.ZfPContext||(()=>{ let cb=()=>{}, m='dark'; return {onTheme(f){cb=f;f(m);},toggleTheme(){m=m==='light'?'dark':'light';cb(m);}}; })();
+ctxTheme.onTheme(setTheme);
+$('themeBtn').addEventListener('click',()=>ctxTheme.toggleTheme());
+function pal(){ return light?{bg1:'#eef3f8',bg2:'#d9e2ec',text:'#415667',label:'#0c1620',grid:'rgba(40,70,90,.16)',cyan:'#0a7d6e',amber:'#a45f00',red:'#b0241a',green:'#187a32',steel1:'#b7c1ca',steel2:'#8895a2',steel3:'#6f7d8b',metal:'#c9d1d9',dev:'#5b6b7b',cu:'#b8733a'}
+  :{bg1:'#0a1016',bg2:'#151e28',text:'#9fb0bd',label:'#e0e7ee',grid:'rgba(120,150,170,.18)',cyan:'#4de9d4',amber:'#ffc94d',red:'#ff6f66',green:'#5fe072',steel1:'#7f8b96',steel2:'#58636e',steel3:'#3e4852',metal:'#8f9aa5',dev:'#4b5967',cu:'#c98245'}; }
+
+const CW=900, CH=380, IW=900, IH=300, TW=900, TH=220;
+const cvMain=$('cvMain'), gM=cvMain.getContext('2d'), cvInd=$('cvInd'), gI=cvInd.getContext('2d'), cvTrend=$('cvTrend'), gT=cvTrend.getContext('2d');
+function hiDPI(c,g,w,h){ const d=Math.max(1,window.devicePixelRatio||1); c.width=w*d; c.height=h*d; c.style.aspectRatio=(w/h); g.setTransform(d,0,0,d,0,0); }
+function setupCanvases(){ hiDPI(cvMain,gM,CW,CH); hiDPI(cvInd,gI,IW,IH); hiDPI(cvTrend,gT,TW,TH); }
+setupCanvases();
+
+/* ═══════════════ Modelle ═══════════════ */
+const MATS={
+  s235:{name:'Baustahl S235',hv:130,E:210,scat:0.02},
+  qt:{name:'Vergütungsstahl 42CrMo4+QT',hv:300,E:210,scat:0.015},
+  case:{name:'Einsatzstahl, gehärtet',hv:650,E:210,scat:0.015},
+  tool:{name:'Werkzeugstahl, gehärtet',hv:760,E:210,scat:0.012},
+  gjl:{name:'Gusseisen GJL-250',hv:220,E:110,scat:0.06},
+  alu:{name:'Aluminium EN AW-6082',hv:95,E:70,scat:0.02}
+};
+const GRPS={stahl:{name:'Stahl',E:210},guss:{name:'Gusseisen',E:110},alu:{name:'Aluminium',E:70}};
+const LDEV={D:{mmin:5,tmin:25,rf:1.0,dd:0.50},G:{mmin:15,tmin:70,rf:0.55,dd:0.9},C:{mmin:1.5,tmin:15,rf:0.75,dd:0.4}};
+const DIRS={down:{rot:0,bias:0,name:'senkrecht ↓'},hor:{rot:90,bias:-14,name:'waagerecht →'},up45:{rot:135,bias:-24,name:'schräg ↑ 45°'},up:{rot:180,bias:-34,name:'über Kopf ↑'}};
+const UL={hv1:{F:1,N:9.8},hv5:{F:5,N:49},hv10:{F:10,N:98}};
+const UCI_TMIN={hv1:0.4,hv5:1.0,hv10:1.5};
+const DRIFT={leeb:1.6,uci:5.5}, TOL={leeb:6,uci:3.0};             // verdeckte Geräteabweichung in %; Toleranz Prüfkörper (HLD bzw. %)
+const REFB={leeb:760,uci:700};                                      // Prüfkörper: HLD 760 bzw. HV 700
+const HLTAB=[[470,115],[500,150],[600,215],[700,300],[760,380],[800,470],[850,610],[900,760],[930,900]];   // HLD → HV (Stahl, Näherung)
+function interp(tab,x,ix,iy){ let i=0; if(x<=tab[0][ix]) i=0; else if(x>=tab[tab.length-1][ix]) i=tab.length-2; else { while(x>tab[i+1][ix]) i++; } const a=tab[i], b=tab[i+1]; return a[iy]+(x-a[ix])*(b[iy]-a[iy])/(b[ix]-a[ix]); }
+const hvFromHL=hl=>Math.max(20,interp(HLTAB,hl,0,1)), hlFromHV=hv=>interp(HLTAB,hv,1,0);
+const kE=E=>Math.pow(E/210,0.09);
+const HRCTAB=[[240,20.3],[260,24],[300,29.8],[340,34.4],[380,38.8],[400,40.8],[450,45.3],[500,49.1],[550,52.5],[600,55.2],[650,57.8],[700,60.1],[750,62.0],[800,63.9]];
+function hvToHRC(hv){ return hv<240?null:Math.min(66,interp(HRCTAB,hv,0,1)); }
+const hvToHB=hv=>hv>450?null:hv*0.95;
+const hvToRm=hv=>{ const hb=hv*0.95; return hv>450?null:hb*3.3; };
+function gauss(){ return (Math.random()+Math.random()+Math.random()+Math.random()-2)/0.577; }
+
+const S={ mode:'leeb', mat:'qt', grp:'stahl', dev:'D', dir:'down', corr:true, coupled:true, load:'hv5', abgl:0, ra:0.8, coat:0, thick:30, mass:20, rad:200, dist:3, edge:6, reveal:false, speed:1, series:[], cal:{done:false,dev:0,ok:false,mode:'leeb'} };
+
+/* Vickers-Diagonale (mm) bzw. Rückprall-Eindruck */
+const uciDiag=hv=>Math.sqrt(1.8544*UL[S.load].F/hv);
+const leebDent=hv=>LDEV[S.dev].dd*Math.sqrt(300/hv);
+const minDist=()=> S.mode==='uci' ? 3*uciDiag(MATS[S.mat].hv) : 3;
+const minEdge=()=> S.mode==='uci' ? 3*uciDiag(MATS[S.mat].hv) : 5;
+
+/* deterministische Einflüsse: Liste mit Abweichung in % des Härtewerts */
+function calc(o){
+  const mat=MATS[o.mat], hv=mat.hv, list=[], gE=GRPS[o.grp].E, kEg=kE(gE);
+  let total=0, noise;
+  const n=o.n||0;
+  if(o.mode==='leeb'){
+    const dv=LDEV[o.dev], hl0=hlFromHV(hv)*kE(mat.E), hvBase=hvFromHL(hl0/kEg);
+    const pct=dHL=>(hvFromHL((hl0+dHL)/kEg)-hvBase)/hv*100;
+    const add=(key,label,dHL,note)=>list.push({key,label,pct:Math.abs(dHL)<1e-9?0:pct(dHL),dHL,note});
+    add('ra','Oberflächenrauheit',-6*dv.rf*Math.max(0,o.ra-1.6),'Ra '+fmt(o.ra,1)+' µm · Gerät '+o.dev+': Ra ≤ '+fmt(1.6/dv.rf*1.0,1)+' µm unkritisch');
+    add('coat','Beschichtung / Zunder',-0.35*o.coat,o.coat>0?'dämpft den Rückprall – vor der Messung entfernen':'keine Schicht');
+    add('mass','Bauteilmasse',o.mass<dv.mmin?(o.coupled?-4*(1-o.mass/dv.mmin):-22*Math.pow(1-o.mass/dv.mmin,0.8)):0,'Gerät '+o.dev+': ≥ '+dv.mmin+' kg oder fest gekoppelt');
+    add('thick','Wanddicke',o.thick<dv.tmin?-26*(1-o.thick/dv.tmin)*(o.coupled?0.6:1):0,'Gerät '+o.dev+': ≥ '+dv.tmin+' mm');
+    add('rad','Krümmung',o.rad<50?-0.6*(50-o.rad):0,'unter 50 mm Radius Stützring nötig');
+    add('dir','Aufsetzrichtung',o.corr?0:DIRS[o.dir].bias,o.corr?'Richtungskorrektur aktiv':'Schwerkraft verfälscht – Korrektur einschalten');
+    add('edge','Randabstand',o.edge<5?-6*(5-o.edge):0,'mindestens 5 mm');
+    add('dist','Messstellenabstand',n>0&&o.dist<3?6*(3-o.dist):0,'mindestens 3 mm (sonst Verfestigung)');
+    list.push({key:'grp',label:'Werkstoffgruppe im Gerät',pct:(hvBase-hv)/hv*100,note:o.grp==='stahl'&&mat.E===210?'passt':'Umwertung mit falscher Gruppe'});
+    const sumHL=list.filter(x=>x.dHL!==undefined).reduce((a,x)=>a+x.dHL,0), adj=(DRIFT.leeb+o.abgl)/100;
+    list.push({key:'drift',label:'Geräteabgleich',pct:(hvFromHL(hl0*(1+adj)/kEg)-hvBase)/hv*100,note:'verdeckte Geräteabweichung + Abgleich'});
+    const hlTot=(hl0+sumHL)*(1+adj);
+    const hvDevDet=hvFromHL(hlTot/kEg);
+    total=(hvDevDet-hv)/hv*100;
+    const pen=((n>0&&o.dist<3)||o.edge<5)?0.02:0;
+    noise=Math.sqrt(mat.scat**2+0.012**2+(0.012*Math.max(0,o.ra-0.8)*dv.rf)**2+pen**2);
+    return {list,total,hl0,hlTot,hvDevDet,noise,kEg};
+  }
+  // UCI
+  const d=Math.sqrt(1.8544*UL[o.load].F/hv)*1000, h=d/7, rz=5*o.ra;       // d in µm
+  const dmm=d/1000, tmin=UCI_TMIN[o.load];
+  const add=(key,label,p,note)=>list.push({key,label,pct:p,note});
+  add('ra','Oberflächenrauheit',-clamp((rz/h-0.2)*0.35,0,0.35)*100,'Rz ≈ '+fmt(rz,1)+' µm · Eindrucktiefe ≈ '+fmt(h,0)+' µm');
+  add('coat','Beschichtung / Zunder',-clamp(o.coat/(4*h),0,0.6)*100,o.coat>0?'Schicht größer als Eindrucktiefe – entfernen':'keine Schicht');
+  add('mass','Bauteilmasse / Auflage',!o.coupled&&o.mass<0.5?-8*(1-o.mass/0.5):0,'leichte Teile fest koppeln');
+  add('thick','Wanddicke',o.thick<tmin?-35*(1-o.thick/tmin):0,'mindestens '+fmt(tmin,1)+' mm');
+  add('rad','Krümmung',o.rad<30?-6*(30-o.rad)/20:0,'unter 30 mm Radius Fehler');
+  add('edge','Randabstand',o.edge<3*dmm?-8*(1-o.edge/(3*dmm)):0,'mindestens 3 · d = '+fmt(3*dmm,2)+' mm');
+  add('dist','Messstellenabstand',n>0&&o.dist<3*dmm?6*(1-o.dist/(3*dmm)):0,'mindestens 3 · d = '+fmt(3*dmm,2)+' mm');
+  add('grp','E-Modul der Werkstoffgruppe',(Math.pow(gE/mat.E,0.7)-1)*100,gE===mat.E?'passt':'Gerät rechnet mit falschem E-Modul');
+  add('drift','Geräteabgleich',DRIFT.uci+o.abgl,'verdeckte Geräteabweichung + Abgleich');
+  const f=list.reduce((a,x)=>a*(1+x.pct/100),1);
+  total=(f-1)*100;
+  const pen=((n>0&&o.dist<3*dmm)||o.edge<3*dmm)?0.02:0;
+  noise=Math.sqrt(mat.scat**2+0.012**2+(0.15*Math.max(0,rz/h-0.15))**2+pen**2);
+  return {list,total,hvDevDet:hv*f,noise,d,h};
+}
+const opts=()=>Object.assign({},S,{n:S.series.length});
+
+function measureOnce(){
+  const o=opts(), c=calc(o), mat=MATS[o.mat];
+  let hv, raw, rawTxt;
+  if(o.mode==='leeb'){
+    const hl=Math.round(c.hlTot*(1+gauss()*c.noise/3.1));
+    raw=hl; rawTxt='HL'+o.dev+' '+hl; hv=hvFromHL(hl/c.kEg);
+  } else {
+    hv=c.hvDevDet*(1+gauss()*c.noise);
+    raw=Math.round(Math.sqrt(hv)*180); rawTxt='Δf '+raw+' Hz';
+  }
+  return {raw,rawTxt,hv,hl:o.mode==='leeb'?raw:null,idx:S.series.length,mode:o.mode,list:c.list,total:c.total};
+}
+function refDisplay(){ if(S.mode==='leeb'){ const hl=REFB.leeb; return {raw:hl,hl,hv:hvFromHL(hl),rawTxt:'HLD '+hl}; } const raw=Math.round(Math.sqrt(REFB.uci)*180); return {raw,hl:null,hv:REFB.uci,rawTxt:'Δf '+raw+' Hz'}; }
+function measureRef(){
+  const vals=[];
+  for(let i=0;i<3;i++){
+    if(S.mode==='leeb'){ vals.push(REFB.leeb*(1+(DRIFT.leeb+S.abgl)/100)*(1+gauss()*0.004)); }
+    else { vals.push(REFB.uci*(1+(DRIFT.uci+S.abgl)/100)*Math.pow(GRPS[S.grp].E/210,0.7)*(1+gauss()*0.008)); }
+  }
+  const mean=vals.reduce((a,b)=>a+b,0)/3, dev=S.mode==='leeb'?mean-REFB.leeb:(mean/REFB.uci-1)*100;
+  return {mean,dev,ok:Math.abs(dev)<=TOL[S.mode]};
+}
+
+/* ═══════════════ Messablauf (Echtzeit-Animation) ═══════════════ */
+const A={active:false,kind:'meas',t:0,total:3,res:null,queue:0,ref:null};
+function totalTime(){ return S.mode==='leeb'?3.0:3.4; }
+function startMeasure(kind){
+  if(A.active) return;
+  A.kind=kind||'meas'; A.t=0; A.total=totalTime(); A.active=true;
+  A.res=kind==='ref'?refDisplay():measureOnce(); A.ref=kind==='ref'?measureRef():null;
+  document.body.dataset.busy='1'; setBusy(true);
+}
+function finishMeasure(){
+  A.active=false; setBusy(false);
+  if(A.kind==='ref'){ S.cal={done:true,dev:A.ref.dev,ok:A.ref.ok,mode:S.mode,abgl:S.abgl,grp:S.grp}; }
+  else { S.series.push(A.res); if(S.series.length>15) S.series.shift(); }
+  dirty=true;
+  if(A.queue>0){ A.queue--; setTimeout(()=>startMeasure('meas'),150); }
+}
+function setBusy(b){ ['btnMeasure','btnSeries','btnRef','btnClear'].forEach(id=>$(id).disabled=b); }
+function animTick(dt){ if(!A.active) return; A.t+=dt*S.speed; if(A.t>=A.total) finishMeasure(); }
+
+/* ═══════════════ Zeichnen: Seitenansicht ═══════════════ */
+function surfaceY(x,ra){ const amp=clamp(ra*2.2,0.6,14); return 250 + amp*0.5*(Math.sin(x*0.9)+0.6*Math.sin(x*2.3+1)+0.4*Math.sin(x*5.1+2)); }
+function sagAt(x){ return S.rad>=200?0:((x-450)*(x-450))/(2*S.rad*5); }
+function profileY(x){ return surfaceY(x,S.ra)+sagAt(x); }
+function zigzag(g,x,y1,y2,w,n){ g.beginPath(); g.moveTo(x,y1); const st=(y2-y1)/(n+1); for(let i=1;i<=n;i++){ g.lineTo(x+(i%2?w:-w),y1+st*i); } g.lineTo(x,y2); g.stroke(); }
+function drawSpecimen(g,P,hit,dentAlpha){
+  const hpx=clamp(S.thick*3,30,125), x0=190, x1=710, ybot=250+hpx+34;
+  // Auflage: gekoppelt = Spannbacken, sonst lose auf Stützen
+  g.fillStyle=light?'#9aa6b1':'#2a323b'; g.fillRect(100,ybot,700,18);
+  if(S.coupled){ g.fillStyle=P.dev; g.fillRect(x0-40,250+8,30,hpx+26); g.fillRect(x1+10,250+8,30,hpx+26); g.fillStyle=light?'#6c7a88':'#6b7886'; g.fillRect(x0-26,250+16,14,hpx+10); g.fillRect(x1+12,250+16,14,hpx+10); }
+  else { g.fillStyle=P.dev; g.fillRect(x0+20,ybot-12,40,12); g.fillRect(x1-60,ybot-12,40,12); }
+  // Körper
+  const gr=g.createLinearGradient(0,250,0,250+hpx+34); gr.addColorStop(0,P.steel1); gr.addColorStop(1,P.steel3);
+  g.beginPath(); g.moveTo(x0,ybot); g.lineTo(x0,profileY(x0)); for(let x=x0;x<=x1;x+=3) g.lineTo(x,profileY(x)); g.lineTo(x1,ybot); g.closePath(); g.fillStyle=gr; g.fill();
+  g.save(); g.clip(); g.strokeStyle='rgba(0,0,0,.14)'; g.lineWidth=1; for(let k=-300;k<900;k+=9){ g.beginPath(); g.moveTo(k,250); g.lineTo(k+hpx+40,ybot); g.stroke(); } g.restore();
+  g.strokeStyle=light?'#2d4a63':'#9fb5c9'; g.lineWidth=1.4; g.beginPath(); for(let x=x0;x<=x1;x+=3){ const y=profileY(x); if(x===x0) g.moveTo(x,y); else g.lineTo(x,y); } g.stroke();
+  // Beschichtung
+  if(S.coat>0){ const th=Math.max(1.5,S.coat*0.1); g.beginPath(); for(let x=x0;x<=x1;x+=3){ const y=profileY(x)-th; if(x===x0) g.moveTo(x,y); else g.lineTo(x,y); } for(let x=x1;x>=x0;x-=3) g.lineTo(x,profileY(x)); g.closePath(); g.fillStyle='#c0553a'; g.globalAlpha=.9; g.fill(); g.globalAlpha=1; }
+  // Eindruck
+  if(dentAlpha>0){ const dd=S.mode==='leeb'?leebDent(MATS[S.mat].hv)*34:uciDiag(MATS[S.mat].hv)*60, y=profileY(450); g.fillStyle='rgba(0,0,0,'+(0.75*dentAlpha).toFixed(2)+')'; g.beginPath(); g.ellipse(450,y,Math.max(3,dd/2),Math.max(1.8,dd/6),0,0,Math.PI*2); g.fill(); }
+  // Beschriftung (im Körper)
+  return {hpx,ybot};
+}
+function drawLeebDevice(g,P,t){
+  const surf=profileY(450)-(S.coat>0?Math.max(1.5,S.coat*0.1):0), mat=MATS[S.mat], r=A.res||{hl:Math.round(hlFromHV(mat.hv)*kE(mat.E))};
+  const H=130, hl=(r.hl||700)/1000, hBounce=H*hl*hl;
+  // Phasen
+  let yb=surf-H, spring=1, dent=0, phase='bereit';
+  if(A.active){
+    if(t<0.6){ phase='spannen'; spring=1-0.45*(t/0.6); yb=surf-H+ (0.45*40)*(t/0.6)*0; yb=surf-H; }
+    else if(t<0.95){ phase='auslösen'; const u=(t-0.6)/0.35; yb=surf-H+H*u*u; spring=0.55+0.45*u; }
+    else if(t<1.9){ phase='rückprall'; const u=clamp((t-0.95)/0.55,0,1); yb=surf-hBounce*(1-(1-u)*(1-u)); spring=1; dent=1; }
+    else { phase='auswerten'; yb=surf-hBounce; dent=1; spring=1; }
+  }
+  // Rohr
+  const cx=450;
+  g.fillStyle=P.dev; g.strokeStyle=light?'#2d4a63':'#9fb5c9'; g.lineWidth=1.4;
+  g.beginPath(); g.rect(cx-34,surf-232,68,198); g.fill(); g.stroke();
+  g.fillStyle=light?'#d5dde5':'#222b34'; g.fillRect(cx-22,surf-224,44,182);            // Innenraum
+  g.fillStyle=P.dev; g.fillRect(cx-44,surf-38,88,34); g.strokeRect(cx-44,surf-38,88,34); // Stützring
+  // Spule
+  g.strokeStyle=P.cu; g.lineWidth=3; for(let i=0;i<9;i++){ const y=surf-110+i*7; g.beginPath(); g.moveTo(cx-30,y); g.lineTo(cx+30,y); g.stroke(); }
+  g.fillStyle=P.text; g.font='10px "JetBrains Mono",monospace'; g.textAlign='left'; g.fillText('Spule',cx+40,surf-72);
+  // Feder
+  g.strokeStyle=light?'#4d5f70':'#c4ced8'; g.lineWidth=2; zigzag(g,cx,surf-224,yb-52,12,8);
+  // Schlagkörper
+  const grd=g.createLinearGradient(cx-8,0,cx+8,0); grd.addColorStop(0,'#aab4be'); grd.addColorStop(0.5,'#f0f4f8'); grd.addColorStop(1,'#7d8995');
+  g.fillStyle=grd; g.fillRect(cx-8,yb-52,16,52);
+  g.fillStyle='#d7a82b'; g.beginPath(); g.arc(cx,yb,6.5,0,Math.PI*2); g.fill();            // Hartmetallkugel
+  g.fillStyle=P.text; g.fillText('Schlagkörper mit Hartmetallkugel',cx+44,yb-26);
+  return {phase,dent,yb,surf};
+}
+function drawUciProbe(g,P,t){
+  const surf=profileY(450)-(S.coat>0?Math.max(1.5,S.coat*0.1):0), cx=450, mat=MATS[S.mat];
+  const dfFinal=A.res?A.res.raw:Math.round(Math.sqrt(mat.hv)*180), F=UL[S.load].N;
+  let off=70, force=0, df=0, dent=0, phase='bereit', now=performance.now()/1000;
+  if(A.active){
+    if(t<0.7){ phase='annähern'; off=70*(1-t/0.7); }
+    else if(t<2.0){ phase='aufdrücken'; off=0; force=(t-0.7)/1.3; df=dfFinal*Math.pow(force,0.6); dent=force; }
+    else if(t<2.8){ phase='messen'; off=0; force=1; df=dfFinal; dent=1; }
+    else { phase='abheben'; off=-(t-2.8)/0.6*60; force=Math.max(0,1-(t-2.8)/0.3); df=dfFinal; dent=1; }
+  }
+  const press=force*12, top=surf-205+off+press*0.3;
+  // Gehäuse
+  g.fillStyle=P.dev; g.strokeStyle=light?'#2d4a63':'#9fb5c9'; g.lineWidth=1.4; g.beginPath(); g.rect(cx-40,top-40,80,120); g.fill(); g.stroke();
+  g.fillStyle=light?'#d5dde5':'#222b34'; g.fillRect(cx-28,top-30,56,100);
+  // Feder
+  g.strokeStyle=light?'#4d5f70':'#c4ced8'; g.lineWidth=2; zigzag(g,cx,top-30,top+36+(1-force)*10,13,7);
+  // Stab mit Schwingung (Längsschwingung ≈ 78 kHz, stark verlangsamt dargestellt)
+  const yTip=surf-6+press*0.0+(-off*0), rodTop=top+36, rodBot=yTip-8;
+  g.strokeStyle=P.cyan; g.lineWidth=3; g.beginPath();
+  for(let y=rodTop;y<=rodBot;y+=3){ const k=(y-rodTop)/(rodBot-rodTop), a=3*Math.sin(now*14)*(1-k*0.2), x=cx+a*Math.sin(k*18-now*14); if(y===rodTop) g.moveTo(x,y); else g.lineTo(x,y); }
+  g.stroke();
+  g.fillStyle=P.cu; g.fillRect(cx-16,rodTop+6,32,16);        // Piezo
+  g.fillStyle=P.text; g.font='10px "JetBrains Mono",monospace'; g.textAlign='left'; g.fillText('Piezo-Schwinger',cx+44,rodTop+18); g.fillText('Stab ≈ 78 kHz',cx+44,rodTop+60);
+  // Vickers-Diamant
+  g.fillStyle='#bfe9ff'; g.strokeStyle='#5da9d8'; g.lineWidth=1.2; g.beginPath(); g.moveTo(cx-10,rodBot); g.lineTo(cx+10,rodBot); g.lineTo(cx,rodBot+14); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle=P.text; g.fillText('Vickers-Diamant',cx+44,rodBot+12);
+  return {phase,dent,force,df,dfFinal,F};
+}
+function drawMain(){
+  const P=pal(), g=gM, now=performance.now()/1000;
+  const bg=g.createLinearGradient(0,0,0,CH); bg.addColorStop(0,P.bg1); bg.addColorStop(1,P.bg2); g.fillStyle=bg; g.fillRect(0,0,CW,CH);
+  g.fillStyle=P.grid; for(let x=20;x<CW;x+=30) for(let y=14;y<CH;y+=30) g.fillRect(x,y,1.5,1.5);
+  const leeb=S.mode==='leeb', rotDeg=leeb?DIRS[S.dir].rot:0;
+  const t=A.active?A.t:-1;
+  let info;
+  g.save(); g.translate(450,230); g.rotate(rad(rotDeg)); g.translate(-450,-230);
+  const sp=drawSpecimen(g,P,0,0);
+  info=leeb?drawLeebDevice(g,P,t):drawUciProbe(g,P,t);
+  if(info.dent>0){ const hv=MATS[S.mat].hv, dd=leeb?leebDent(hv)*34:uciDiag(hv)*60, y=profileY(450); g.fillStyle='rgba(0,0,0,.8)'; g.beginPath(); g.ellipse(450,y,Math.max(3,dd/2),Math.max(1.8,dd/6),0,0,Math.PI*2); g.fill(); }
+  g.restore();
+  // Schwerkraftpfeil + Beschriftung (nicht mitgedreht)
+  g.strokeStyle=P.amber; g.fillStyle=P.amber; g.lineWidth=2; g.beginPath(); g.moveTo(60,60); g.lineTo(60,110); g.stroke(); g.beginPath(); g.moveTo(60,120); g.lineTo(54,106); g.lineTo(66,106); g.closePath(); g.fill();
+  g.font='10px "JetBrains Mono",monospace'; g.textAlign='center'; g.fillText('g',60,48); g.textAlign='left';
+  g.fillStyle=P.label; g.font='bold 12px "JetBrains Mono",monospace';
+  g.fillText(leeb?('Leeb-Rückprall · Gerät '+S.dev+' · '+DIRS[S.dir].name+' · Zeitlupe'):('UCI · '+UL[S.load].N+' N · '+({hv1:'HV 1',hv5:'HV 5',hv10:'HV 10'}[S.load])),20,24);
+  g.font='10px "JetBrains Mono",monospace'; g.fillStyle=P.text;
+  g.fillText(MATS[S.mat].name+' · Ra '+fmt(S.ra,1)+' µm · '+fmt(S.thick,0)+' mm'+(S.coat>0?' · Schicht '+S.coat+' µm':''),20,42);
+  // Messsignal / Δf-Anzeige
+  const bx=640, by=20, bw=240, bh=120;
+  g.fillStyle=light?'rgba(255,255,255,.85)':'rgba(8,12,18,.78)'; g.strokeStyle=P.grid; g.lineWidth=1; g.beginPath(); g.roundRect?g.roundRect(bx,by,bw,bh,8):g.rect(bx,by,bw,bh); g.fill(); g.stroke();
+  g.fillStyle=P.text; g.font='9px "JetBrains Mono",monospace';
+  if(leeb){
+    g.fillText('Spulensignal (Geschwindigkeit)',bx+10,by+14);
+    g.strokeStyle=P.grid; g.beginPath(); g.moveTo(bx+8,by+70); g.lineTo(bx+bw-8,by+70); g.stroke();
+    if(A.active){
+      const r=A.res, vr=(r.hl||700)/1000;
+      g.strokeStyle=P.cyan; g.lineWidth=2; g.beginPath();
+      for(let px=0;px<=bw-20;px++){ const tt=0.6+px/(bw-20)*1.5; if(tt>A.t) break; const s=Math.exp(-Math.pow((tt-0.93)/0.035,2))*1.0 - Math.exp(-Math.pow((tt-1.0)/0.045,2))*vr; const y=by+70-s*44; if(px===0) g.moveTo(bx+10,y); else g.lineTo(bx+10+px,y); }
+      g.stroke();
+      g.fillStyle=P.cyan; g.fillText('v',bx+10,by+26); g.fillText('A',bx+14,by+26);
+      if(A.t>1.0){ g.fillStyle=P.amber; g.fillText('vR = '+fmt(vr*1,2)+' · vA',bx+bw-92,by+104); }
+      if(A.t>1.4){ g.fillStyle=P.label; g.font='bold 14px "JetBrains Mono",monospace'; g.fillText('HL = 1000 · vR/vA = '+r.hl,bx+10,by+bh-8); }
+    } else { g.fillText('HL = 1000 · vR / vA',bx+10,by+bh-8); }
+  } else {
+    g.fillText('Frequenzverschiebung Δf',bx+10,by+14);
+    g.strokeStyle=P.grid; g.beginPath(); g.moveTo(bx+8,by+98); g.lineTo(bx+bw-8,by+98); g.moveTo(bx+8,by+98); g.lineTo(bx+8,by+22); g.stroke();
+    if(A.active){
+      const r=A.res, dfF=r.raw;
+      g.strokeStyle=P.cyan; g.lineWidth=2; g.beginPath(); let first=true;
+      for(let px=0;px<=bw-24;px++){ const tt=0.7+px/(bw-24)*2.1; if(tt>A.t) break; let f=0; if(tt<2.0) f=Math.pow((tt-0.7)/1.3,0.6); else f=1; if(tt>2.8) f=Math.max(0,1-(tt-2.8)/0.3)*0+f; const y=by+98-f*66; if(first){ g.moveTo(bx+12,y); first=false; } else g.lineTo(bx+12+px,y); }
+      g.stroke();
+      const cur=A.t<0.7?0:(A.t<2.0?dfF*Math.pow((A.t-0.7)/1.3,0.6):dfF);
+      g.fillStyle=P.label; g.font='bold 14px "JetBrains Mono",monospace'; g.fillText('Δf = '+Math.round(cur)+' Hz',bx+10,by+bh-8);
+    } else { g.fillText('Δf wächst mit der Kontaktfläche',bx+10,by+bh-8); }
+  }
+  // Phasenband
+  const names=leeb?{bereit:'bereit',spannen:'① Spannen',auslösen:'② Auslösen',rückprall:'③ Aufprall & Rückprall',auswerten:'④ Auswerten'}:{bereit:'bereit',annähern:'① Aufsetzen',aufdrücken:'② Prüfkraft aufbringen',messen:'③ Messen',abheben:'④ Abheben'};
+  const ph=info.phase; if(ph&&ph!=='bereit'){ const txt=names[ph]||ph; g.font='bold 12px "JetBrains Mono",monospace'; const w=g.measureText(txt).width+22; g.fillStyle=light?'rgba(255,255,255,.92)':'rgba(8,12,18,.85)'; g.strokeStyle=P.amber; g.lineWidth=1.5; g.beginPath(); g.roundRect?g.roundRect(20,CH-44,w,26,13):g.rect(20,CH-44,w,26); g.fill(); g.stroke(); g.fillStyle=light?'#7a4a00':P.amber; g.textAlign='left'; g.fillText(txt,31,CH-27); }
+  // Ergebnisanzeige am Ende
+  const ready_=A.active&&A.kind==='meas'&&(leeb?A.t>1.9:A.t>2.0)&&A.res;
+  if(ready_){ g.fillStyle=light?'rgba(255,255,255,.92)':'rgba(8,12,18,.88)'; g.strokeStyle=P.cyan; g.lineWidth=1.5; g.beginPath(); g.roundRect?g.roundRect(CW-250,CH-68,230,50,10):g.rect(CW-250,CH-68,230,50); g.fill(); g.stroke();
+    g.fillStyle=P.cyan; g.font='bold 20px "JetBrains Mono",monospace'; g.textAlign='left'; g.fillText(fmt(A.res.hv,0)+' HV',CW-238,CH-38); g.font='10px "JetBrains Mono",monospace'; g.fillStyle=P.text; g.fillText(A.res.rawTxt,CW-238,CH-24); }
+  g.textAlign='left';
+  $('mainLegend').innerHTML=leeb?'<span><i style="background:#d7a82b"></i>Hartmetallkugel</span><span><i style="background:'+P.cu+'"></i>Spule</span><span><i style="background:'+P.cyan+'"></i>Geschwindigkeitssignal</span><span><i style="background:#c0553a"></i>Beschichtung</span>':'<span><i style="background:#bfe9ff"></i>Vickers-Diamant</span><span><i style="background:'+P.cyan+'"></i>Schwingstab</span><span><i style="background:'+P.cu+'"></i>Piezo</span><span><i style="background:#c0553a"></i>Beschichtung</span>';
+}
+
+/* ═══════════════ Zeichnen: Messfeld ═══════════════ */
+function positions(n){
+  const W=24,H=12, out=[]; let x=S.edge, y=S.edge;
+  for(let i=0;i<n;i++){ out.push({x,y}); x+=S.dist; if(x>W-S.edge+1e-6){ x=S.edge; y+=S.dist; } }
+  return out;
+}
+function drawInd(){
+  const P=pal(), g=gI, sc=22, ox=30, oy=22, W=24, H=12;
+  const bg=g.createLinearGradient(0,0,0,IH); bg.addColorStop(0,P.bg1); bg.addColorStop(1,P.bg2); g.fillStyle=bg; g.fillRect(0,0,IW,IH);
+  const hv=MATS[S.mat].hv, leeb=S.mode==='leeb';
+  const n=S.series.length+(A.active&&A.kind==='meas'&&A.t>(leeb?0.95:0.8)?1:0), pos=positions(n), md=minDist(), me=minEdge();
+  // Probenfläche
+  const sg=g.createLinearGradient(ox,oy,ox,oy+H*sc); sg.addColorStop(0,P.steel1); sg.addColorStop(1,P.steel2);
+  g.fillStyle=sg; g.fillRect(ox,oy,W*sc,H*sc);
+  g.save(); g.beginPath(); g.rect(ox,oy,W*sc,H*sc); g.clip();
+  g.strokeStyle='rgba(255,255,255,.10)'; g.lineWidth=1; const gs=clamp(S.ra*0.9,1.5,9); for(let y=oy;y<oy+H*sc;y+=gs){ g.beginPath(); g.moveTo(ox,y); g.lineTo(ox+W*sc,y+Math.sin(y)*0.6); g.stroke(); }
+  // Randstreifen
+  g.fillStyle='rgba(255,111,102,.14)'; const ew=me*sc; g.fillRect(ox,oy,ew,H*sc); g.fillRect(ox+W*sc-ew,oy,ew,H*sc); g.fillRect(ox,oy,W*sc,ew); g.fillRect(ox,oy+H*sc-ew,W*sc,ew);
+  g.strokeStyle='rgba(255,111,102,.5)'; g.lineWidth=1; for(let k=-200;k<W*sc+H*sc;k+=8){ g.beginPath(); g.moveTo(ox+k,oy); g.lineTo(ox+k-ew*0.0,oy); } g.restore();
+  g.strokeStyle=P.red; g.lineWidth=1; g.setLineDash([5,4]); g.strokeRect(ox+ew,oy+ew,W*sc-2*ew,H*sc-2*ew); g.setLineDash([]);
+  g.strokeStyle=light?'#2d4a63':'#9fb5c9'; g.lineWidth=1.5; g.strokeRect(ox,oy,W*sc,H*sc);
+  // Eindrücke
+  const dmm=leeb?leebDent(hv):uciDiag(hv);
+  pos.forEach((p,i)=>{
+    const px=ox+p.x*sc, py=oy+p.y*sc;
+    const tooNear=i>0&&Math.hypot(p.x-pos[i-1].x,p.y-pos[i-1].y)<md-1e-6, nearEdge=Math.min(p.x,p.y,W-p.x,H-p.y)<me-1e-6, bad=tooNear||nearEdge;
+    g.strokeStyle=bad?P.red:P.cyan; g.lineWidth=1; g.setLineDash([4,3]); g.beginPath(); g.arc(px,py,md*sc/2,0,Math.PI*2); g.stroke(); g.setLineDash([]);
+    g.save(); g.translate(px,py); g.fillStyle='rgba(8,10,14,.92)';
+    if(leeb){ g.beginPath(); g.arc(0,0,Math.max(3,dmm*sc/2),0,Math.PI*2); g.fill(); }
+    else { const h=Math.max(3.5,dmm*sc/2); g.rotate(Math.PI/4); g.fillRect(-h/Math.SQRT2,-h/Math.SQRT2,h*Math.SQRT2,h*Math.SQRT2); }
+    g.restore();
+    g.fillStyle=P.label; g.font='bold 10px "JetBrains Mono",monospace'; g.textAlign='center'; g.fillText(String(i+1),px,py-md*sc/2-4);
+  });
+  // Zoom (Mikroskop)
+  const zx=720, zy=150, zr=122; g.save(); g.beginPath(); g.arc(zx,zy,zr,0,Math.PI*2); g.clip();
+  const zg=g.createLinearGradient(0,zy-zr,0,zy+zr); zg.addColorStop(0,P.steel1); zg.addColorStop(1,P.steel3); g.fillStyle=zg; g.fillRect(zx-zr,zy-zr,2*zr,2*zr);
+  const diag=dmm*1000;                                   // µm
+  const zs=(zr*1.1)/Math.max(diag,60);                   // px je µm
+  g.strokeStyle='rgba(255,255,255,.18)'; g.lineWidth=1; const rz=5*S.ra; const gsp=clamp(rz*zs*1.8,5,34);
+  for(let y=zy-zr;y<zy+zr;y+=gsp){ g.beginPath(); g.moveTo(zx-zr,y); for(let x=zx-zr;x<=zx+zr;x+=8) g.lineTo(x,y+Math.sin(x*0.07+y)*rz*zs*0.35); g.stroke(); }
+  if(S.coat>0){ g.fillStyle='rgba(192,85,58,.28)'; g.fillRect(zx-zr,zy-zr,2*zr,2*zr); }
+  if(S.series.length>0||A.active){
+    g.fillStyle='rgba(6,8,12,.9)';
+    if(leeb){ g.beginPath(); g.arc(zx,zy,diag*zs/2,0,Math.PI*2); g.fill(); }
+    else { const h=diag*zs/2; g.save(); g.translate(zx,zy); g.fillRect(-h*0.0,-h*0.0,0,0); g.beginPath(); g.moveTo(0,-h); g.lineTo(h,0); g.lineTo(0,h); g.lineTo(-h,0); g.closePath(); g.fill(); g.strokeStyle=P.amber; g.lineWidth=1.5; g.beginPath(); g.moveTo(-h,0); g.lineTo(h,0); g.stroke(); g.restore(); }
+  }
+  g.restore();
+  g.strokeStyle=light?'#2d4a63':'#9fb5c9'; g.lineWidth=3; g.beginPath(); g.arc(zx,zy,zr,0,Math.PI*2); g.stroke();
+  g.fillStyle=P.label; g.font='11px "JetBrains Mono",monospace'; g.textAlign='center';
+  g.fillText(leeb?('Eindruck Ø ≈ '+fmt(diag,0)+' µm'):('Diagonale d ≈ '+fmt(diag,0)+' µm'),zx,zy+zr+22);
+  g.fillStyle=P.text; g.font='10px "JetBrains Mono",monospace'; g.fillText('Rz ≈ '+fmt(rz,1)+' µm'+(leeb?'':' · Tiefe h ≈ '+fmt(diag/7,0)+' µm'),zx,zy+zr+38);
+  g.textAlign='left'; g.fillText('Maßstab: 1 mm ≙ '+sc+' px',ox,IH-8);
+  $('indSub').textContent='Mindestabstand '+fmt(md,2)+' mm · Mindestrandabstand '+fmt(me,2)+' mm';
+}
+
+/* ═══════════════ Zeichnen: Messwerte ═══════════════ */
+function stats(){
+  const v=S.series.map(r=>r.hv), n=v.length; if(!n) return {n:0};
+  const mean=v.reduce((a,b)=>a+b,0)/n, sd=n>1?Math.sqrt(v.reduce((a,b)=>a+(b-mean)**2,0)/(n-1)):0;
+  const raws=S.series.map(r=>r.raw), rmean=raws.reduce((a,b)=>a+b,0)/n;
+  return {n,mean,sd,cv:mean?sd/mean*100:0,min:Math.min(...v),max:Math.max(...v),rmean};
+}
+function drawTrend(){
+  const P=pal(), g=gT, L=62, R=20, T=18, B=34, w=TW-L-R, h=TH-T-B;
+  const bg=g.createLinearGradient(0,0,0,TH); bg.addColorStop(0,P.bg1); bg.addColorStop(1,P.bg2); g.fillStyle=bg; g.fillRect(0,0,TW,TH);
+  const tv=MATS[S.mat].hv, v=S.series.map(r=>r.hv), st=stats();
+  let lo=Math.min(tv*0.7,...(v.length?v:[tv])), hi=Math.max(tv*1.3,...(v.length?v:[tv]));
+  lo=Math.floor(lo/10)*10; hi=Math.ceil(hi/10)*10;
+  const Y=x=>T+h-(x-lo)/(hi-lo)*h, nMax=Math.max(10,v.length), X=i=>L+(i+0.5)/nMax*w;
+  g.font='10px "JetBrains Mono",monospace'; g.textAlign='right'; g.fillStyle=P.text; g.strokeStyle=P.grid; g.lineWidth=1;
+  for(let k=0;k<=4;k++){ const yy=T+h*k/4, val=hi-(hi-lo)*k/4; g.beginPath(); g.moveTo(L,yy); g.lineTo(TW-R,yy); g.stroke(); g.fillText(Math.round(val)+' HV',L-6,yy+3); }
+  g.textAlign='center'; for(let i=0;i<nMax;i++) g.fillText(String(i+1),X(i),TH-12);
+  // Toleranzband ±5 % um den Mittelwert
+  if(st.n>1){ g.fillStyle=light?'rgba(8,149,76,.12)':'rgba(95,224,114,.10)'; g.fillRect(L,Y(st.mean*1.05),w,Y(st.mean*0.95)-Y(st.mean*1.05)); g.strokeStyle=P.green; g.setLineDash([5,4]); g.beginPath(); g.moveTo(L,Y(st.mean)); g.lineTo(TW-R,Y(st.mean)); g.stroke(); g.setLineDash([]); g.fillStyle=P.green; g.textAlign='left'; g.fillText('Mittel '+fmt(st.mean,0)+' HV · Band ± 5 %',L+6,Y(st.mean)-6); }
+  if(S.reveal){ g.strokeStyle=P.amber; g.setLineDash([2,4]); g.lineWidth=1.5; g.beginPath(); g.moveTo(L,Y(tv)); g.lineTo(TW-R,Y(tv)); g.stroke(); g.setLineDash([]); g.fillStyle=P.amber; g.textAlign='right'; g.fillText('Sollwert '+tv+' HV',TW-R-4,Y(tv)-6); }
+  v.forEach((val,i)=>{ const out=st.n>2&&Math.abs(val-st.mean)>2*st.sd; g.fillStyle=out?P.red:P.cyan; g.beginPath(); g.arc(X(i),Y(val),6,0,Math.PI*2); g.fill(); g.strokeStyle=light?'#fff':'#0a1016'; g.lineWidth=1.5; g.stroke(); });
+  if(!v.length){ g.fillStyle=P.text; g.textAlign='center'; g.font='12px "JetBrains Mono",monospace'; g.fillText('Noch keine Messwerte – Messung durchführen',L+w/2,T+h/2); }
+  $('trendSub').textContent=st.n?(st.n+' Messungen · Mittel '+fmt(st.mean,0)+' HV · s '+fmt(st.sd,1)):'—';
+}
+
+/* ═══════════════ Auswertung / UI ═══════════════ */
+let dirty=true, lastUI=0, procKey='';
+function toneBox(id,cls){ const b=$(id); b.classList.remove('ok','warn'); if(cls) b.classList.add(cls); }
+function updateUI(){
+  const leeb=S.mode==='leeb', mat=MATS[S.mat], st=stats(), o=opts(), c=calc(o);
+  document.body.dataset.mode=S.mode;
+  $('modeSub').textContent=leeb?'Rückprallverfahren (Leeb)':'Ultraschall-Kontaktimpedanz (UCI)';
+  $('liveSub').textContent=leeb?'Zeitlupe des Aufpralls':'Prüfkraft und Frequenzverschiebung';
+  $('thRaw').textContent=leeb?('HL'+S.dev):'Δf Hz'; $('kMean').textContent=leeb?'Mittelwert HV (aus HL'+S.dev+')':'Mittelwert HV';
+  // Prüfkörper
+  const cal=S.cal, calOK=cal.done&&cal.ok&&cal.mode===S.mode&&Math.abs(cal.abgl-S.abgl)<1e-9&&cal.grp===S.grp;
+  const calValid=cal.done&&cal.mode===S.mode&&Math.abs((cal.abgl||0)-S.abgl)<1e-9&&cal.grp===S.grp;
+  $('stCal').innerHTML=calValid?((cal.ok?'i. O.':'außerhalb')+'<small>'+(S.mode==='leeb'?(cal.dev>=0?'+':'')+fmt(cal.dev,1)+' HLD (Soll ± '+TOL.leeb+')':(cal.dev>=0?'+':'')+fmt(cal.dev,1)+' % (Soll ± '+TOL.uci+' %)')+'</small>'):('nicht kontrolliert<small>Prüfkörper '+(leeb?'HLD '+REFB.leeb:'HV '+REFB.uci)+' messen</small>');
+  toneBox('stCalBox',calValid?(cal.ok?'ok':'warn'):'warn');
+  $('calSub').textContent=calValid?(cal.ok?'Gerät kontrolliert ✓':'Gerät außerhalb der Toleranz'):'Gerät nicht kontrolliert';
+  // Statistik
+  if(st.n){
+    $('stMean').innerHTML=fmt(st.mean,0)+' HV<small>'+(leeb?'HL'+S.dev+' '+fmt(st.rmean,0):'Δf '+fmt(st.rmean,0)+' Hz')+'</small>';
+    $('stSd').innerHTML=fmt(st.sd,1)+' / '+fmt(st.cv,1)+' %<small>min '+fmt(st.min,0)+' · max '+fmt(st.max,0)+'</small>';
+    toneBox('stSdBox',st.n>=3?(st.cv<=3?'ok':'warn'):null);
+    const hrc=hvToHRC(st.mean), hb=hvToHB(st.mean), rm=hvToRm(st.mean);
+    $('stConv').innerHTML=(hrc?fmt(hrc,1)+' HRC':'< 20 HRC')+'<small>'+(hb?'HB '+fmt(hb,0)+' · ':'')+(rm?'Rm ≈ '+fmt(rm,0)+' MPa':'nur Stahl')+'</small>';
+    toneBox('stConvBox',null);
+    toneBox('stMeanBox',null);
+  } else { $('stMean').textContent='–'; $('stSd').textContent='–'; $('stConv').textContent='–'; toneBox('stSdBox',null); }
+  $('stTrueBox').classList.toggle('hidden',!S.reveal); $('stTrue').innerHTML=mat.hv+' HV<small>'+mat.name+'</small>';
+  $('evalSub').textContent=st.n?(st.n+' Messungen'+(st.n<5?' · mindestens 5 empfohlen':'')):'';
+  // Tabelle
+  $('tbl').querySelector('tbody').innerHTML=S.series.map((r,i)=>{ const hrc=hvToHRC(r.hv), hb=hvToHB(r.hv), out=st.n>2&&Math.abs(r.hv-st.mean)>2*st.sd;
+    return '<tr class="'+(out?'out':'')+'"><td>'+(i+1)+'</td><td>'+r.raw+'</td><td>'+fmt(r.hv,0)+'</td><td>'+(hb?fmt(hb,0):'–')+'</td><td>'+(hrc?fmt(hrc,1):'–')+'</td></tr>'; }).join('');
+  // Einflussgrößen
+  const shown=c.list.filter(x=>leeb?true:true);
+  const rows=shown.map(x=>{ const a=Math.abs(x.pct), cls=a<0.05?'idle':(a<2?'':'warn'); return '<div class="frow '+cls+'"><div class="dot"></div><div class="nm">'+x.label+'<small>'+x.note+'</small></div><div class="vv">'+(a<0.05?'±0':(x.pct>0?'+':'')+fmt(x.pct,1)+' %')+'</div></div>'; });
+  rows.push('<div class="frow '+(Math.abs(c.total)<2?'':'warn')+'" style="border-top:2px solid var(--border)"><div class="dot"></div><div class="nm"><b>Erwartete Gesamtabweichung</b><small>systematisch, ohne Zufallsstreuung (σ ≈ '+fmt(c.noise*100,1)+' %)</small></div><div class="vv">'+(c.total>0?'+':'')+fmt(c.total,1)+' %</div></div>');
+  $('factors').innerHTML=rows.join('');
+  // Prüfablauf
+  renderProc(c,st,calValid);
+  $('btnDoc').disabled=!S.series.length||A.active; $('docSub').textContent=docValid()?'erstellt':(DOC.done?'veraltet – neu erstellen':'noch nicht erstellt');
+  if(DOC.done&&!docValid()) $('docOut').classList.add('hidden'); else if(docValid()) $('docOut').classList.remove('hidden');
+  // Messstatus
+  if(!A.active){ $('mState').textContent='bereit'; $('mState').className='live-state'; $('mBar').style.width='0%';
+    $('mVal').innerHTML=S.series.length?fmt(S.series[S.series.length-1].hv,0)+' <small>HV</small>':'–'; $('mSub').textContent=S.series.length?('Letzte Messung: '+S.series[S.series.length-1].rawTxt):'Messung starten oder zuerst den Prüfkörper messen.'; }
+  setHint(c,st,calValid);
+}
+function setHint(c,st,calValid){
+  const el=$('callout'), worst=c.list.filter(x=>Math.abs(x.pct)>=2).sort((a,b)=>Math.abs(b.pct)-Math.abs(a.pct))[0];
+  let cls='callout', html;
+  if(A.active){ cls='callout'; html='<b>Messung läuft …</b> Der Vorgang läuft in Echtzeit ab (Leeb in Zeitlupe).'; }
+  else if(!S.series.length){ html='<b>Noch keine Messung.</b> '+(calValid?'Das Gerät ist kontrolliert. Starte eine Messreihe mit mindestens 5 Einzelwerten.':'Kontrolliere zuerst das Gerät am Prüfkörper und stelle bei Abweichung den Abgleich nach.'); }
+  else if(worst){ cls='callout bad'; html='<b>'+worst.label+' verfälscht den Messwert um ≈ '+(worst.pct>0?'+':'')+fmt(worst.pct,1)+' %.</b> '+worst.note+'.'; }
+  else if(!calValid){ cls='callout bad'; html='<b>Gerät nicht kontrolliert.</b> Ohne gültigen Prüfkörper-Nachweis ist die Messreihe nicht belastbar.'; }
+  else if(st.n<5){ html='<b>Weitere Messungen nötig.</b> '+st.n+' von mindestens 5 Einzelwerten. Messstellen mit Mindestabstand setzen.'; }
+  else if(st.cv>3){ cls='callout bad'; html='<b>Streuung zu groß (CV '+fmt(st.cv,1)+' %).</b> Oberfläche, Kopplung und Messstellenabstand prüfen, Ausreißer bewerten.'; }
+  else { cls='callout good'; html='<b>Messreihe i. O.</b> Mittelwert '+fmt(st.mean,0)+' HV bei CV '+fmt(st.cv,1)+' %. Umwertung nur für un- und niedriglegierte Stähle gültig.'; }
+  el.className=cls; el.innerHTML=html;
+}
+/* ═══ Dokumentation ═══ */
+const DOC={done:false, key:'', text:''};
+function docKey(){ return [S.mode,S.mat,S.grp,S.dev,S.dir,S.load,S.abgl,S.series.map(r=>r.raw).join(',')].join('|'); }
+const docValid=()=>DOC.done&&DOC.key===docKey();
+function buildDoc(){
+  const leeb=S.mode==='leeb', st=stats(), c=calc(opts()), cal=S.cal, mat=MATS[S.mat];
+  const calOK=cal.done&&cal.ok&&cal.mode===S.mode&&Math.abs((cal.abgl||0)-S.abgl)<1e-9&&cal.grp===S.grp;
+  const line=(k,v)=>k.padEnd(26,' ')+v;
+  const hrc=hvToHRC(st.mean), hb=hvToHB(st.mean), rm=hvToRm(st.mean);
+  const bad=c.list.filter(x=>Math.abs(x.pct)>=2);
+  const out=[];
+  out.push('PRÜFPROTOKOLL · MOBILE HÄRTEPRÜFUNG','Datum: '+new Date().toLocaleString('de-DE'),'');
+  out.push(line('Verfahren',leeb?'Leeb-Rückprall (HL'+S.dev+')':'UCI (Ultraschall-Kontaktimpedanz), '+({hv1:'HV 1',hv5:'HV 5',hv10:'HV 10'}[S.load])));
+  out.push(line('Werkstoffgruppe im Gerät',GRPS[S.grp].name)); if(leeb) out.push(line('Aufsetzrichtung',DIRS[S.dir].name+(S.corr?' (Korrektur an)':' (ohne Korrektur)')));
+  out.push(line('Prüfobjekt',(S.reveal?mat.name:'Werkstoff laut Prüfauftrag')));
+  out.push(line('Prüfstelle','Ra '+fmt(S.ra,1)+' µm · Schicht '+S.coat+' µm · Wanddicke '+fmt(S.thick,0)+' mm · Masse '+fmt(S.mass,1)+' kg · '+(S.coupled?'fest gekoppelt':'lose aufgelegt')+' · Radius '+(S.rad>=200?'eben':S.rad+' mm')));
+  out.push(line('Messstellen','Abstand '+fmt(S.dist,1)+' mm · Randabstand '+fmt(S.edge,1)+' mm'));
+  out.push(line('Prüfkörper-Nachweis',calOK?('i. O. ('+(leeb?(cal.dev>=0?'+':'')+fmt(cal.dev,1)+' HLD':(cal.dev>=0?'+':'')+fmt(cal.dev,1)+' %')+', Abgleich '+fmt(S.abgl,1)+' %)'):'NICHT nachgewiesen'));
+  out.push('','Einzelwerte ('+st.n+'):');
+  S.series.forEach((r,i)=>{ const h=hvToHRC(r.hv); out.push('  '+String(i+1).padStart(2,' ')+'  '+r.rawTxt.padEnd(14,' ')+fmt(r.hv,0).padStart(5,' ')+' HV'+(h?'   '+fmt(h,1)+' HRC':'')); });
+  out.push('',line('Mittelwert',st.n?fmt(st.mean,0)+' HV':'–'),line('Streuung s / CV',st.n?fmt(st.sd,1)+' HV / '+fmt(st.cv,1)+' %':'–'));
+  out.push(line('Umwertung (nur Stahl)',st.n?((hrc?fmt(hrc,1)+' HRC':'< 20 HRC')+(hb?' · HB '+fmt(hb,0):'')+(rm?' · Rm ≈ '+fmt(rm,0)+' MPa':'')):'–'));
+  const issues=[]; if(!calOK) issues.push('Gerät nicht am Prüfkörper kontrolliert'); if(st.n<5) issues.push('weniger als 5 Einzelwerte'); if(st.n>=3&&st.cv>3) issues.push('Streuung über 3 %');
+  bad.forEach(x=>issues.push(x.label+' '+(x.pct>0?'+':'')+fmt(x.pct,1)+' %'));
+  out.push('','Beurteilung: '+(issues.length?'NICHT BELASTBAR – '+issues.join('; '):'Messreihe i. O.'));
+  return out.join('\n');
+}
+$('btnDoc').addEventListener('click',()=>{ if(!S.series.length||A.active) return; DOC.text=buildDoc(); DOC.done=true; DOC.key=docKey(); $('docOut').textContent=DOC.text; $('docOut').classList.remove('hidden'); $('btnCopy').disabled=false; dirty=true; procKey=''; });
+$('btnCopy').addEventListener('click',()=>{ try{ navigator.clipboard.writeText(DOC.text); $('btnCopy').textContent='✓ Kopiert'; setTimeout(()=>{ $('btnCopy').textContent='⧉ Kopieren'; },1500); }catch(e){ $('btnCopy').textContent='Markieren & kopieren'; } });
+function renderProc(c,st,calValid){
+  const leeb=S.mode==='leeb', dv=LDEV[S.dev], mat=MATS[S.mat], by=k=>c.list.find(x=>x.key===k), bad=k=>by(k)&&Math.abs(by(k).pct)>=2;
+  const prepOK=!bad('ra')&&!bad('coat'), setOK=!bad('grp')&&!bad('dir');
+  const coupOK=!bad('mass')&&!bad('thick')&&!bad('rad'), geoOK=!bad('edge')&&!bad('dist');
+  const seriesOK=st.n>=5&&st.cv<=3;
+  const items=[
+    {t:'Prüfstelle vorbereiten', val:'Ra '+fmt(S.ra,1)+' µm'+(S.coat>0?' · '+S.coat+' µm Schicht':''), ok:prepOK, d:'Fläche reinigen, Farbe, Zunder und Rost entfernen und die geforderte Rauheit herstellen. Beschichtungen dämpfen den Rückprall bzw. täuschen eine geringere Härte vor.', fix:bad('coat')?'Beschichtung entfernen.':'Fläche feiner schleifen oder ein Gerät bzw. eine Prüfkraft wählen, die rauer verträgt.'},
+    {t:'Gerät & Einstellungen', val:GRPS[S.grp].name+(leeb?' · Gerät '+S.dev:' · '+({hv1:'HV 1',hv5:'HV 5',hv10:'HV 10'}[S.load])), ok:setOK, d:'Werkstoffgruppe (E-Modul) im Gerät passend zum Prüfobjekt wählen'+(leeb?', Schlaggerät nach Masse und Wanddicke auswählen und die Aufsetzrichtung einstellen bzw. korrigieren.':', Prüfkraft nach Rauheit und Wanddicke wählen: kleine Kräfte sind rauheitsempfindlich, große brauchen dickere Wände.'), fix:bad('grp')?'Werkstoffgruppe auf das Prüfobjekt einstellen.':'Richtungskorrektur einschalten.'},
+    {t:'Gerät am Prüfkörper kontrollieren', val:calValid?(S.cal.ok?'i. O.':'außerhalb'):'offen', ok:calValid&&S.cal.ok, d:'Vor jeder Messreihe am Prüfkörper ('+(leeb?'HLD '+REFB.leeb+' ± '+TOL.leeb:'HV '+REFB.uci+' ± '+TOL.uci+' %')+') prüfen. Liegt die Anzeige außerhalb, wird das Gerät nachjustiert und erneut kontrolliert.', fix:calValid?'Abgleich nachstellen und erneut am Prüfkörper messen.':'„Prüfkörper messen“ ausführen.'},
+    {t:'Aufsetzen & Kopplung', val:'m '+fmt(S.mass,1)+' kg · '+fmt(S.thick,0)+' mm', ok:coupOK, d:'Das Bauteil muss steif und schwer genug sein oder fest gespannt werden (Leeb: Mindestmasse und -wanddicke je Schlaggerät, UCI: Mindestwanddicke). Gekrümmte Flächen brauchen einen Stützring.', fix:bad('rad')?'Stützring verwenden oder größeren Radius prüfen.':'Bauteil fest koppeln, anderes Gerät oder Prüfkraft wählen.'},
+    {t:'Messreihe aufnehmen', val:st.n+' Messungen', ok:st.n>=5&&geoOK, d:'Mindestens 5 Einzelwerte in einem Messfeld aufnehmen. Mindestabstand zwischen den Eindrücken ('+(leeb?'3 mm':'3 · d')+') und zum Rand ('+(leeb?'5 mm':'3 · d')+') einhalten, sonst verfestigt der Werkstoff bzw. der Rand stört.', fix:!geoOK?'Mess- und Randabstand vergrößern.':'Mehr Einzelmessungen durchführen.'},
+    {t:'Auswerten & Umwerten', val:st.n?fmt(st.mean,0)+' HV · CV '+fmt(st.cv,1)+' %':'offen', ok:seriesOK&&prepOK&&setOK&&coupOK&&geoOK&&calValid&&S.cal.ok, d:'Mittelwert bilden, Streuung (CV ≤ 3 %) beurteilen und erst dann umwerten. Die Umwertung in HRC, HB oder Rm gilt nur für un- und niedriglegierte Stähle.', fix:'Vorherige Schritte erfüllen, bis Streuung und Einflüsse unkritisch sind.'},
+    {t:'Dokumentieren', val:docValid()?'Protokoll erstellt':(DOC.done?'veraltet':'offen'), ok:docValid(), d:'Verfahren, Gerät, Prüfkörper-Nachweis, Messstelle, Einzelwerte, Mittelwert und Umwertung im Prüfprotokoll festhalten. Fehlende Nachweise stehen dort als „nicht belastbar“.', fix:!S.series.length?'Erst eine Messreihe aufnehmen.':(DOC.done?'Messreihe oder Abgleich haben sich geändert – Protokoll neu erstellen.':'Im Panel „Prüfprotokoll“ auf „Protokoll erstellen“ klicken.')}
+  ];
+  items.forEach(it=>{ it.st=it.ok===null?'idle':(it.ok?'ok':'warn'); });
+  const key=items.map(i=>i.st+i.val).join('|');
+  $('procCount').textContent=items.filter(i=>i.st==='ok').length+' von '+items.filter(i=>i.st!=='idle').length+' Schritten erfüllt';
+  if(key===procKey) return; procKey=key;
+  const firstWarn=items.findIndex(i=>i.st==='warn');
+  $('proc').innerHTML=items.map((x,i)=>'<div class="pstep '+x.st+(i===firstWarn?' cur':'')+'"><div class="ic">'+(x.st==='ok'?'✓':(x.st==='warn'?'!':(i+1)))+'</div><div><h4><span>'+(i+1)+'. '+x.t+'</span><span class="val">'+x.val+'</span></h4><p>'+x.d+'</p>'+(x.st==='warn'&&x.fix?'<p class="fix">'+x.fix+'</p>':'')+'</div></div>').join('');
+}
+function updateLive(){
+  if(!A.active) return;
+  const leeb=S.mode==='leeb', el=$('mState'); el.className='live-state run';
+  const ph=leeb?(A.t<0.6?'Spannen':(A.t<0.95?'Auslösen':(A.t<1.9?'Aufprall & Rückprall':'Auswerten'))):(A.t<0.7?'Aufsetzen':(A.t<2.0?'Prüfkraft aufbringen':(A.t<2.8?'Messen':'Abheben')));
+  el.textContent=(A.kind==='ref'?'Prüfkörper · ':'')+ph;
+  $('mBar').style.width=Math.min(100,A.t/A.total*100)+'%';
+  const showv=A.res&&(leeb?A.t>1.9:A.t>2.0);
+  $('mVal').innerHTML=A.kind==='ref'?'<small>Kontrollmessung</small>':(showv?fmt(A.res.hv,0)+' <small>HV</small>':'…');
+  $('mSub').textContent=A.kind==='ref'?'3 Einzelmessungen am Prüfkörper (Soll '+(leeb?'HLD '+REFB.leeb:'HV '+REFB.uci)+')':(showv?A.res.rawTxt:'Messvorgang läuft · Zeitraffer '+S.speed+'×');
+}
+
+/* ═══════════════ Bedienung ═══════════════ */
+function fillRange(i){ i.style.setProperty('--p',((i.value-i.min)/(i.max-i.min)*100)+'%'); }
+function syncLabels(){
+  $('abglV').textContent=fmt(S.abgl,1)+' %'; $('raV').textContent=fmt(S.ra,1)+' µm'; $('coatV').textContent=S.coat+' µm'; $('thickV').textContent=S.thick+' mm';
+  $('massV').textContent=fmt(S.mass,1)+' kg'; $('radV').textContent=S.rad>=200?'eben':S.rad+' mm'; $('distV').textContent=fmt(S.dist,1)+' mm'; $('edgeV').textContent=fmt(S.edge,1)+' mm';
+  document.querySelectorAll('input[type=range]').forEach(fillRange);
+}
+[['abgl','abgl'],['ra','ra'],['coat','coat'],['thick','thick'],['mass','mass'],['rad','rad'],['dist','dist'],['edge','edge']].forEach(([id,k])=>$(id).addEventListener('input',()=>{ S[k]=parseFloat($(id).value); syncLabels(); dirty=true; procKey=''; }));
+[['mat','mat'],['grp','grp'],['dev','dev'],['dir','dir'],['load','load']].forEach(([id,k])=>$(id).addEventListener('change',()=>{ S[k]=$(id).value; dirty=true; procKey=''; if(id==='mat'||id==='dev'||id==='load') {} }));
+function tog(id,key){ $(id).addEventListener('click',()=>{ S[key]=!S[key]; $(id).classList.toggle('on',S[key]); $(id).setAttribute('aria-pressed',S[key]); dirty=true; procKey=''; }); }
+tog('btnCorr','corr'); tog('btnCoupled','coupled');
+$('modeSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b||A.active) return; S.mode=b.dataset.m; document.querySelectorAll('#modeSeg button').forEach(x=>x.classList.toggle('sel',x===b)); S.series=[]; dirty=true; procKey=''; });
+$('speedSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; S.speed=parseInt(b.dataset.s,10); document.querySelectorAll('#speedSeg button').forEach(x=>x.classList.toggle('sel',x===b)); });
+$('btnMeasure').addEventListener('click',()=>startMeasure('meas'));
+$('btnSeries').addEventListener('click',()=>{ A.queue=4; startMeasure('meas'); });
+$('btnRef').addEventListener('click',()=>startMeasure('ref'));
+$('btnClear').addEventListener('click',()=>{ S.series=[]; dirty=true; procKey=''; });
+$('btnReveal').addEventListener('click',()=>{ S.reveal=!S.reveal; $('btnReveal').classList.toggle('on',S.reveal); $('btnReveal').setAttribute('aria-pressed',S.reveal); $('btnReveal').textContent=S.reveal?'Sollwert verbergen':'Sollwert zeigen'; dirty=true; });
+window.addEventListener('resize',()=>{ setupCanvases(); dirty=true; });
+
+/* ── Hauptschleife ── */
+let lastT=performance.now();
+function loop(now){
+  const dt=Math.min((now-lastT)/1000,0.25); lastT=now;
+  animTick(dt);
+  drawMain();
+  if(A.active) updateLive();
+  if(dirty||A.active||now-lastUI>1000){ if(dirty||now-lastUI>150){ lastUI=now; drawInd(); drawTrend(); updateUI(); dirty=false; } }
+  requestAnimationFrame(loop);
+}
+syncLabels(); document.body.dataset.mode='leeb'; ready=true;
+requestAnimationFrame(loop);
+</script>
+<script id="fit-js">
+window.FIT_CFG={cols:[[0,1,2,6],[3,4,5,8],[7,9]],template:'1.5fr 1fr 1fr'};
+(function(){
+  /* ═══ Kompakt-Dashboard (wie UT) – reines CSS-Pixel-Layout, KEIN Zoom-Eingriff: Browser-Zoom (Strg +/−) wirkt normal ═══ */
+  var C=window.FIT_CFG||{};
+  var app=document.querySelector('.app'); if(!app) return;
+  var container=app.querySelector(':scope > .layout, :scope > .grid'); if(!container) return;
+  var SIDEW=C.sideW||280, MINCOL=C.minCol||440, MAXK=C.maxCols||3, MAXS=C.maxSide||3,
+      SIDEGROUPS=C.sideGroups===undefined?[0]:C.sideGroups, MANUAL=C.cols||null, TEMPLATE=C.template||null;
+  var GAPS=[8,6,5], TIER=0, root=document.documentElement;
+  function isItem(c){ return c.classList.contains('panel')||c.classList.contains('stage'); }
+  function flat(g){
+    var o=[]; [].slice.call(g.children).forEach(function(ch){
+      if(ch.tagName==='SCRIPT'||ch.tagName==='STYLE') return;
+      if(getComputedStyle(ch).display==='contents'){ o.push.apply(o,flat(ch)); return; }
+      var kids=[].slice.call(ch.children);
+      if(ch.classList.contains('stagegrid') && kids.length>1 && kids.every(function(k){return k.classList.contains('stage');})){
+        var cls=['riss-only','gef-only'].filter(function(q){return ch.classList.contains(q);}), sc=ch.dataset.scn;
+        kids.forEach(function(k){ cls.forEach(function(q){k.classList.add(q);}); if(sc) k.dataset.scn=sc; o.push(k); });
+      } else o.push(ch);
+    }); return o;
+  }
+  var groups=[].slice.call(container.children).filter(function(c){return c.tagName!=='SCRIPT'&&c.tagName!=='STYLE';})
+    .map(function(c){ return isItem(c)?[c]:flat(c); });
+  var all=[]; groups.forEach(function(g,gi){ g.forEach(function(el){ all.push({el:el,g:gi,parent:el.parentElement,next:el.nextSibling}); }); });
+  var grid=null, cols=[], stash=null, curN=0, curSig='', busy=false;
+  function active(){ return window.innerWidth>=1000 && window.innerHeight>=520; }
+  function GAP(){ return GAPS[TIER]; }
+  function ensure(n){
+    if(grid&&curN===n) return;
+    if(!grid){ grid=document.createElement('div'); grid.className='fitgrid'; stash=document.createElement('div'); stash.style.display='none'; container.after(grid); container.after(stash); }
+    grid.textContent=''; cols=[]; curN=n; curSig='';
+    for(var i=0;i<n;i++){ var c=document.createElement('div'); c.className='fcol'; cols.push(c); grid.appendChild(c); }
+  }
+  function partition(hs,K){            /* zusammenhängende Aufteilung mit minimaler Maximalhöhe */
+    var n=hs.length, G=GAP(); if(K<=1||n<=1) return [hs.map(function(_,i){return i;})];
+    K=Math.min(K,n); var pre=[0]; hs.forEach(function(h,i){pre.push(pre[i]+h+G);});
+    var best=[],bestScore=1e12;
+    (function rec(start,k,cut){
+      if(k===1){ var cuts=cut.concat([n]), mx=0, sq=0; for(var j=0;j<cuts.length;j++){ var a=j?cuts[j-1]:0, h=pre[cuts[j]]-pre[a]; mx=Math.max(mx,h); sq+=h*h; }
+        var sc=mx+sq*1e-7; if(sc<bestScore){bestScore=sc;best=cuts;} return; }
+      for(var e=start+1;e<=n-(k-1);e++) rec(e,k-1,cut.concat([e]));
+    })(0,K,[]);
+    var out=[],s=0; best.forEach(function(e){ var a=[]; for(var i=s;i<e;i++) a.push(i); out.push(a); s=e; }); return out;
+  }
+  function colH(ix,list){ var t=0; ix.forEach(function(i){t+=list[i].h+GAP();}); return t; }
+  function setTier(t){ TIER=t; root.classList.remove('d1','d2'); if(t) root.classList.add('d'+t); }
+
+  function layoutOnce(){
+    var W=window.innerWidth, effW=W-26, G=GAP();
+    root.classList.add('fit'); container.style.display='none';
+    var mwrap=document.createElement('div'); mwrap.className='fitgrid'; mwrap.style.cssText='position:absolute;left:-99999px;top:0;display:block;flex:none;visibility:hidden;';
+    var meas=document.createElement('div'); meas.className='fcol'; meas.style.cssText='overflow:visible;height:auto;max-height:none;display:flex;flex-direction:column;';
+    mwrap.appendChild(meas); app.appendChild(mwrap);
+    ensure(1); grid.style.gridTemplateColumns='1fr';
+    var availH=Math.max(300,grid.clientHeight-2), plan, S, K, over=0, tpl;
+    function measure(list,w){ meas.style.width=w+'px'; list.forEach(function(a){meas.appendChild(a.el);}); list.forEach(function(a){a.h=a.el.getBoundingClientRect().height;}); }
+    if(MANUAL){
+      K=MANUAL.length; S=0; ensure(K);
+      plan=MANUAL.map(function(idxs){ return idxs.map(function(i){return all[i];}).filter(Boolean); });
+      var used={}; MANUAL.forEach(function(ix){ix.forEach(function(i){used[i]=1;});});
+      all.forEach(function(a,i){ if(!used[i]) plan[K-1].push(a); });
+      tpl=TEMPLATE||('repeat('+K+',minmax(0,1fr))');
+      plan.forEach(function(c,i){ var w=Math.floor((effW-G*(K-1))/K); measure(c,w); over=Math.max(over,colH(c.map(function(_,j){return j;}),c)-availH); });
+    } else {
+      var side=all.filter(function(a){return SIDEGROUPS.indexOf(a.g)>=0;}), rest=all.filter(function(a){return SIDEGROUPS.indexOf(a.g)<0;});
+      var best=null, sv=[];
+      var sideVis=side.length; if(side.length){ measure(side,SIDEW-6); sideVis=side.filter(function(a){return a.h>1;}).length; }
+      for(var s=(sideVis?1:0); s<=(sideVis?Math.min(MAXS,sideVis):0); s++){
+        if(effW-s*(SIDEW+G)<MINCOL) break;
+        var spart=[], oS=-1e9;
+        if(s){ measure(side,SIDEW-6); sv=side.filter(function(a){return a.h>1;}); spart=partition(sv.map(function(a){return a.h;}),s);
+          oS=Math.max.apply(null,spart.map(function(ix){return colH(ix,sv)-availH;})); }
+        var kmax=Math.max(1,Math.min(MAXK,Math.floor((effW-s*(SIDEW+G)+G)/(MINCOL+G))));
+        for(var k=1;k<=kmax;k++){
+          var mw=Math.floor((effW-s*(SIDEW+G)-G*(k-1))/k)-6;
+          measure(rest,mw);
+          var vv=rest.filter(function(a){return a.h>1;}); if(k>Math.max(1,vv.length)) break;
+          var pp=partition(vv.map(function(a){return a.h;}),k);
+          var hR=pp.map(function(ix){return colH(ix,vv);}), mxR=Math.max.apply(null,hR);
+          var solvable=(k===1&&s>=1&&vv.length<=2), ov=Math.max(0,oS,solvable?0:mxR-availH), left=solvable?0:Math.max(0,availH-mxR);
+          var score=ov>2?(1e6+ov*10):(left*0.5+s*45+k*4+(solvable?25:0));
+          if(!best||score<best.score) best={score:score,S:s,K:k,spart:spart,pp:pp,vv:vv,sv:sv,over:ov,mw:mw};
+        }
+      }
+      S=best.S; K=best.K; over=best.over;
+      ensure(S+K);
+      plan=best.spart.map(function(ix){return ix.map(function(i){return best.sv[i];});}).concat(best.pp.map(function(ix){return ix.map(function(i){return best.vv[i];});}));
+      if(S) side.filter(function(a){return a.h<=1;}).forEach(function(a){plan[0].push(a);});
+      while(plan.length<S+K) plan.push([]);
+      var sw=[]; for(var q=0;q<S;q++) sw.push(SIDEW+'px');
+      tpl=(S?sw.join(' ')+' ':'')+'repeat('+K+',minmax(0,1fr))';
+    }
+    var sig=plan.map(function(c){return c.map(function(a){return all.indexOf(a);}).join(',');}).join('|')+'@'+curN;
+    var inPlan=new Set(); plan.forEach(function(c){c.forEach(function(a){inPlan.add(a);});});
+    if(sig!==curSig){ plan.forEach(function(c,i){ cols[i].replaceChildren.apply(cols[i],c.map(function(a){return a.el;})); }); curSig=sig; }
+    else plan.forEach(function(c,i){ c.forEach(function(a){ if(a.el.parentElement!==cols[i]) cols[i].appendChild(a.el); }); });
+    all.forEach(function(a){ if(!inPlan.has(a)) stash.appendChild(a.el); });
+    mwrap.remove();
+    grid.style.gridTemplateColumns=tpl;
+    window.__fitDbg={S:S,K:K,tier:TIER,over:Math.round(over),availH:availH};
+    return {over:over,S:S,K:K,availH:availH};
+  }
+  function redraw(){ window.__fitSilent=true; window.dispatchEvent(new Event('resize')); window.__fitSilent=false; }
+  function colNat(c){ var t=0,n=0; [].forEach.call(c.children,function(ch){ var h=ch.getBoundingClientRect().height; if(h>0){ t+=h; n++; } }); return t+Math.max(0,n-1)*GAP(); }
+  function isGraphicCol(c){
+    var els=c.querySelectorAll('canvas,svg'); for(var i=0;i<els.length;i++){ var e=els[i]; if(e.closest('button,.icon,.badge,.toggle,summary')) continue; var r=e.getBoundingClientRect(); if(r.width>150&&r.height>60) return true; } return false;
+  }
+  var TEXTMIN=C.textMin||300;
+  function fitWidths(avail){        /* Grafik-Spalten so breit, dass ihre Höhe die Fensterhöhe füllt (Seitenverhältnis bleibt, nichts verzerrt); Rest geht an Text-Spalten */
+    var n=cols.length; if(n<1) return 0;
+    var G=GAP(), availW=window.innerWidth-26-G*(n-1), g=cols.map(isGraphicCol), nG=g.filter(Boolean).length, nT=n-nG;
+    function tpl(w){ return cols.map(function(_,i){ return g[i]?Math.round(w[i])+'px':'minmax('+TEXTMIN+'px,1fr)'; }).join(' '); }
+    if(!nG||n===1){ grid.style.gridTemplateColumns=cols.map(function(){return 'minmax(0,1fr)';}).join(' '); redraw(); }
+    else {
+      var budget=availW-nT*TEXTMIN, w=cols.map(function(_,i){return g[i]?budget/nG:0;}), lo=MINCOL*0.7;
+      for(var it=0; it<7; it++){
+        grid.style.gridTemplateColumns=tpl(w); redraw();
+        var worst=0, nw=w.slice();
+        cols.forEach(function(c,i){ if(!g[i]) return; var h=colNat(c); worst=Math.max(worst,Math.abs(h-avail)/avail); nw[i]=Math.max(lo,Math.min(budget,w[i]*Math.pow(avail/Math.max(150,h),0.95))); });
+        var sum=0; cols.forEach(function(_,i){ if(g[i]) sum+=nw[i]; });
+        if(sum>budget) cols.forEach(function(_,i){ if(g[i]) nw[i]=Math.max(lo,nw[i]*budget/sum); });
+        w=nw; if(worst<0.02) break;
+      }
+      grid.style.gridTemplateColumns=tpl(w); grid.style.justifyContent=nT?'stretch':'center'; redraw();
+    }
+    var mx=0; cols.forEach(function(c){ mx=Math.max(mx,colNat(c)-avail); });
+    var sw=cols.map(function(c){ var hs=[].slice.call(c.querySelectorAll('.panel,.stage')); return hs.length; });
+    /* breite Einstellungsspalten: Regler zweispaltig */
+    cols.forEach(function(c){ var wide=c.getBoundingClientRect().width>=430&&!isGraphicCol(c); [].forEach.call(c.querySelectorAll('.panel'),function(pn){ var k=[].filter.call(pn.children,function(e){return e.classList.contains('ctl-row')||e.classList.contains('field');}).length; pn.classList.toggle('fit2',wide&&k>=3); }); });
+    return mx-5;
+  }
+  function relayout(){
+    if(busy) return; busy=true;
+    try{
+      if(!active()){ restore(); return; }
+      var r=null, mx=0;
+      for(var t=0;t<3;t++){ setTier(t); r=layoutOnce(); redraw(); mx=fitWidths(r.availH-5); if(mx<=0) break; }
+      window.__fitDbg.over=Math.round(Math.max(0,mx)); redraw();
+    } finally { busy=false; }
+  }
+  function restore(){
+    root.classList.remove('fit','d1','d2'); TIER=0;
+    if(!grid) return; container.style.display='';
+    all.forEach(function(a){ if(a.next&&a.next.parentNode===a.parent) a.parent.insertBefore(a.el,a.next); else a.parent.appendChild(a.el); });
+    grid.remove(); stash.remove(); grid=null; stash=null; cols=[]; curN=0; curSig='';
+  }
+  function again(){ clearTimeout(window.__fitA); window.__fitA=setTimeout(function(){ relayout(); },70); }
+  window.addEventListener('resize',function(){ if(window.__fitSilent) return; clearTimeout(window.__fitT); window.__fitT=setTimeout(relayout,90); });
+  document.addEventListener('click',function(e){ if(e.target.closest('button,.toggle,.seg,.tabs,label,summary')) again(); },true);
+  document.addEventListener('change',function(e){ if(e.target.matches('select,input[type=checkbox],input[type=radio]')) again(); },true);
+  window.__fitRelayout=again;
+  relayout();
+  setTimeout(relayout,350);
+})();
+
+</script>
+</body>
+</html>

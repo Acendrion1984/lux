@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eindringprüf-Simulator · PT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media=\'all\'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
+<style>
+  :root{
+    --bg:#1c1e20; --bg-2:#242628; --panel:#2a2d30; --panel-2:#2f3236;
+    --border:#4a5058; --border-soft:#3a4048; --text:#f0f2f4; --text-dim:#b8bec4; --text-faint:#7a8490;
+    --amber:#ffc94d; --amber-dim:#8a6420; --amber-glow:rgba(255,201,77,.24);
+    --cyan:#4de9d4; --cyan-dim:#1f6a61; --cyan-glow:rgba(77,233,212,.18);
+    --blue:#6cc0ec; --red:#ff6f66; --green:#5fe072; --green-glow:rgba(95,224,114,.55);
+    --mono:'JetBrains Mono',ui-monospace,monospace; --disp:'Space Grotesk',sans-serif; --body:'Inter',sans-serif;
+  }
+  body.light-mode{
+    --bg:#e7ecf2; --bg-2:#dbe3ec; --panel:#f7f9fb; --panel-2:#eaeff4;
+    --border:#7c93a8; --border-soft:#a9bccb; --text:#0c1620; --text-dim:#2b3e4f; --text-faint:#51687a;
+    --amber:#a45f00; --amber-dim:#e0aa4a; --amber-glow:rgba(164,95,0,.16);
+    --cyan:#0a7d6e; --cyan-dim:#bfe9e1; --cyan-glow:rgba(10,125,110,.14);
+    --red:#b0241a; --green:#187a32; --green-glow:rgba(24,122,50,.25);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--body);transition:background .2s,color .2s;}
+  body{min-height:100vh;background:
+      radial-gradient(ellipse 1400px 700px at 10% -5%,#0a1e30 0%,transparent 55%),
+      radial-gradient(ellipse 900px 500px at 95% 5%,#14101e 0%,transparent 50%),
+      var(--bg);}
+  body.light-mode{background:
+      radial-gradient(ellipse 1400px 700px at 10% -5%,#c9d7e4 0%,transparent 55%),
+      radial-gradient(ellipse 900px 500px at 95% 5%,#dcd3e8 0%,transparent 50%),
+      var(--bg);}
+  .app{max-width:1200px;margin:0 auto;padding:14px 12px 48px;}
+  @media(min-width:768px){.app{padding:20px 20px 56px;}}
+  @media(min-width:1500px){.app{max-width:1760px;}}
+  @media(min-width:1900px){.app{max-width:2000px;}}
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;margin-bottom:16px;border-bottom:1.5px solid var(--border);flex-wrap:wrap;}
+  .brand-eyebrow{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--cyan);margin:0 0 4px;display:flex;align-items:center;gap:6px;}
+  .brand-eyebrow::before{content:'';display:inline-block;width:18px;height:1.5px;background:var(--cyan);opacity:.8;}
+  h1{font-family:var(--disp);font-weight:700;font-size:20px;margin:0;background:linear-gradient(120deg,var(--text) 60%,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  h1 small{display:block;font-family:var(--body);font-weight:400;font-size:11.5px;color:var(--text-dim);margin-top:2px;-webkit-text-fill-color:var(--text-dim);}
+  @media(min-width:600px){h1{font-size:24px;}h1 small{font-size:12.5px;}}
+  .hdr-right{display:flex;align-items:center;gap:8px;}
+  .badge{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:5px 10px;border:1px solid var(--border);border-radius:20px;color:var(--text-dim);display:flex;align-items:center;gap:6px;}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green-glow);}
+  .theme-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--panel-2);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:.15s;}
+  .theme-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+
+  .grid{display:grid;grid-template-columns:1fr;gap:16px;}
+  @media(min-width:960px){.grid{grid-template-columns:1.3fr .9fr;align-items:start;}}
+  @media(min-width:1500px){.grid{grid-template-columns:1.7fr .9fr;gap:22px;}}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border-soft);border-radius:14px;padding:14px;}
+  .stage-title{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;}
+
+  .stage{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--border-soft);background:#050505;}
+  canvas{display:block;width:100%;height:auto;transition:opacity .18s ease;}
+  canvas.step-fade{opacity:.35;}
+
+  .steps{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .step{flex:1;min-width:110px;text-align:center;padding:8px 6px;border-radius:8px;border:1px solid var(--border-soft);font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;color:var(--text-faint);}
+  .step.active{border-color:var(--amber);color:var(--amber);background:var(--amber-glow);}
+  .step.done{border-color:var(--green);color:var(--green);}
+
+  .ctl-row{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .ctl-row label{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--text-dim);display:flex;justify-content:space-between;}
+  .ctl-row label b{color:var(--amber);font-weight:700;}
+  input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:4px;background:var(--panel-2);outline:none;border:1px solid var(--border-soft);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--amber);border:2px solid #1a1200;box-shadow:0 0 8px var(--amber-glow);cursor:pointer;}
+  select{width:100%;background:var(--panel-2);color:var(--text);border:1px solid var(--border-soft);border-radius:8px;padding:8px 10px;font-family:var(--body);font-size:13px;}
+
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  button{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);cursor:pointer;transition:.15s;}
+  button:hover:not(:disabled){border-color:var(--cyan);color:var(--cyan);}
+  button.primary{background:linear-gradient(120deg,var(--amber-dim),#5c4310);border-color:var(--amber);color:var(--amber);}
+  body.light-mode button.primary{background:linear-gradient(120deg,#f2d9a8,#e0aa4a);color:#4a2f00;}
+  button:disabled{opacity:.3;cursor:not-allowed;}
+
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+  .stat{background:var(--panel-2);border:1px solid var(--border-soft);border-radius:8px;padding:8px 10px;}
+  .stat .k{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);}
+  .stat .v{font-family:var(--disp);font-size:16px;font-weight:700;color:var(--cyan);}
+  .stat.warn .v{color:var(--red);}
+  .stat.ok .v{color:var(--green);}
+
+  .callout{margin-top:12px;padding:10px 12px;border-radius:8px;border:1px solid var(--border-soft);background:var(--panel-2);font-size:12px;color:var(--text-dim);}
+  .callout.bad{border-color:#7a2a2a;color:#ffb3ac;}
+  body.light-mode .callout.bad{color:#7a1a12;background:#fbe4e2;}
+  .callout.good{border-color:#245c30;color:#b7f0c0;}
+  body.light-mode .callout.good{color:#0f4a20;background:#e2f5e6;}
+  .toggle{display:flex;gap:8px;margin-bottom:12px;}
+  .toggle button{flex:1;}
+  .toggle button.sel{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-glow);}
+
+  /* ═══ PT-Upgrade: Zeitraffer, Querschnitt, Prüfablauf ═══ */
+  .col{display:flex;flex-direction:column;gap:16px;min-width:0;}
+  .panel{box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 10px 28px -14px rgba(0,0,0,.55);}
+  body.light-mode .panel{box-shadow:0 10px 26px -16px rgba(12,31,22,.28);}
+  .stage{box-shadow:inset 0 0 0 1px rgba(255,255,255,.05),0 8px 20px -12px rgba(0,0,0,.7);}
+  .stage-title .sub{color:var(--text-faint);font-weight:400;text-transform:none;letter-spacing:0;font-size:10.5px;}
+  body.light-mode .stage-title .sub{color:var(--text-dim);}
+  input[type=range]{background:linear-gradient(90deg,var(--amber) var(--p,40%),var(--panel-2) var(--p,40%));}
+  input[type=range]:focus-visible,button:focus-visible,select:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;}
+  .ctl-row .note{font-size:10.5px;color:var(--text-faint);line-height:1.4;}
+  body.light-mode .ctl-row .note{color:var(--text-dim);}
+
+  .step{display:flex;align-items:center;justify-content:center;gap:6px;line-height:1.25;transition:border-color .2s,background .2s,color .2s;}
+  .step .ico{font-size:13px;}
+  .legend{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--text-dim);}
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .legend i{width:12px;height:12px;border-radius:3px;display:inline-block;border:1px solid var(--border);}
+  .hint{font-size:11.5px;color:var(--text-faint);line-height:1.5;margin:8px 0 0;}
+  body.light-mode .hint{color:var(--text-dim);}
+
+  /* Prozessuhr + Zeitraffer */
+  .live{margin:0 0 4px;padding:12px 14px;border:1px solid var(--border-soft);border-radius:10px;background:var(--panel-2);}
+  .live-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-family:var(--mono);}
+  .live-state{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);}
+  .live-state.run{color:var(--amber);}
+  .live-state.run::before{content:'';display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--amber);margin-right:7px;box-shadow:0 0 8px var(--amber);animation:livepulse 1s ease-in-out infinite;}
+  @keyframes livepulse{0%,100%{opacity:1}50%{opacity:.3}}
+  @media(prefers-reduced-motion:reduce){.live-state.run::before{animation:none;}}
+  .live-clock{font-size:20px;font-weight:700;color:var(--text);letter-spacing:.02em;}
+  .live-clock small{font-size:11px;font-weight:500;color:var(--text-faint);}
+  body.light-mode .live-clock small{color:var(--text-dim);}
+  .pbar{height:7px;border-radius:4px;background:var(--bg-2);border:1px solid var(--border-soft);margin:9px 0 6px;overflow:hidden;}
+  .pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--amber-dim),var(--amber));}
+  .live-sub{font-family:var(--mono);font-size:10px;color:var(--text-faint);line-height:1.5;}
+  body.light-mode .live-sub{color:var(--text-dim);}
+  .speed{display:grid;grid-template-columns:repeat(3,1fr) auto;gap:6px;margin-top:10px;}
+  .speed button{padding:9px 6px;font-size:10.5px;text-transform:none;letter-spacing:.02em;line-height:1.2;}
+  .speed button.sel{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-glow);}
+  body.light-mode .speed button.sel{background:#08954C;border-color:#08954C;color:#fff;}
+  .speed button.pause{min-width:46px;}
+  .speed button.pause.on{border-color:var(--amber);color:var(--amber);background:var(--amber-glow);}
+
+  .stats{grid-template-columns:1fr 1fr;}
+  .stat .v small{display:block;font-family:var(--mono);font-size:9.5px;color:var(--text-faint);font-weight:500;margin-top:1px;}
+  body.light-mode .stat .v small{color:var(--text-dim);}
+  .stat.full{grid-column:1/-1;}
+
+  /* Prüfablauf */
+  .proc{display:flex;flex-direction:column;}
+  .pstep{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--border-soft);}
+  .pstep:first-child{border-top:0;padding-top:2px;}
+  .pstep .ic{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;border:1.5px solid var(--border);color:var(--text-dim);background:var(--panel-2);}
+  .pstep.ok .ic{border-color:var(--green);color:var(--green);background:var(--cyan-glow);}
+  .pstep.warn .ic{border-color:var(--red);color:var(--red);background:rgba(255,111,102,.12);}
+  .pstep.cur .ic{border-color:var(--amber);color:var(--amber);background:var(--amber-glow);}
+  .pstep h4{margin:0;font-family:var(--disp);font-size:12.5px;font-weight:600;display:flex;justify-content:space-between;gap:8px;align-items:baseline;}
+  .pstep h4 .val{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--text-dim);text-align:right;}
+  .pstep.ok h4 .val{color:var(--green);}
+  .pstep.warn h4 .val{color:var(--red);}
+  .pstep.cur h4 .val{color:var(--amber);}
+  .pstep p{margin:3px 0 0;font-size:11px;line-height:1.45;color:var(--text-faint);}
+  body.light-mode .pstep p{color:var(--text-dim);}
+  .pstep p.fix{color:var(--red);font-weight:500;}
+  .pstep.cur{background:linear-gradient(90deg,var(--amber-glow),transparent 70%);margin:0 -6px;padding-left:6px;padding-right:6px;border-radius:8px;}
+</style>
+<script src="/shared/zfp-context.js"></script>
+<script id="zfp-offline">
+/* Offline-Fallback: läuft die App ohne Server (file://), fehlt /shared/zfp-context.js – dann wird der Theme-Kontext lokal bereitgestellt. */
+(function(){
+  if(window.ZfPContext) return;
+  var cbs=[], mode=null, KEY='zfp-theme';
+  function store(v){ try{ if(v===undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY,v); }catch(e){} return null; }
+  function init(){ if(mode) return; var s=store(); mode=(s==='light'||s==='dark')?s:((document.body&&(document.body.classList.contains('light-mode')||document.body.classList.contains('light')))?'light':'dark'); }
+  window.ZfPContext={
+    get theme(){ init(); return mode; },
+    onTheme:function(f){ if(typeof f!=='function') return; cbs.push(f); init(); f(mode); },
+    toggleTheme:function(){ init(); mode=mode==='light'?'dark':'light'; store(mode); cbs.forEach(function(f){ try{ f(mode); }catch(e){} }); }
+  };
+})();
+</script>
+
+<style id="fit-css">
+/* ═══ Kompakt-Dashboard (wie UT): kleine Schrift, dichte Panels, alles auf einem Bildschirm ═══ */
+html.fit, html.fit body{height:100%; overflow:hidden;}
+html.fit .app{box-sizing:border-box; display:flex; flex-direction:column; padding:5px 12px 8px; gap:6px; max-width:none; width:100%; height:100vh; height:100dvh; overflow:hidden; zoom:1 !important;}
+html.fit .sfl-bar{display:none;}
+html.fit header.top{margin:0; padding:0 0 4px; flex:0 0 auto; align-items:center; gap:12px; flex-wrap:nowrap;}
+html.fit header.top .brand-eyebrow, html.fit .eyebrow{font-size:9px; margin:0 0 1px;}
+html.fit header.top h1{font-size:21px; line-height:1.05; margin:0;}
+html.fit header.top h1 small, html.fit header.top .title-group > small, html.fit header.top .sub{font-size:11.5px; line-height:1.2;}
+html.fit .badge{font-size:10.5px; padding:3px 9px;}
+html.fit .icon-btn{width:30px; height:30px; font-size:14px;}
+html.fit .fitgrid{flex:1 1 0; min-height:0; display:grid; gap:8px; margin:0; align-items:stretch;}
+html.fit .fcol{display:flex; flex-direction:column; gap:8px; min-height:0; min-width:0; overflow-y:auto; overflow-x:hidden; padding:0 2px 4px 0; scrollbar-width:thin;}
+html.fit .fcol > *{flex:0 0 auto; margin:0 !important;}
+html.fit .panel{padding:8px 10px 9px; border-radius:10px;}
+html.fit .panel h2, html.fit .stage-title, html.fit .panel > .stage-title{margin:0 0 5px; font-size:10.5px; letter-spacing:.07em; line-height:1.25;}
+html.fit .stage-head{gap:4px 10px; flex-wrap:wrap; padding:0 0 4px; margin:0 0 2px;}
+html.fit .ctl-row, html.fit .field{margin:0 0 5px;}
+html.fit .ctl-row label, html.fit .field label{font-size:11.5px; margin:0 0 1px; line-height:1.25;}
+html.fit .ctl-row label .val, html.fit .field label .val{font-size:11.5px;}
+html.fit input[type=range]{margin:1px 0; height:18px;}
+html.fit .hint, html.fit .note, html.fit .ctl-row .note, html.fit .sidebar-note, html.fit .panel .hint{font-size:10.5px; line-height:1.32; margin:2px 0 0;}
+html.fit .btnrow{gap:5px; margin:4px 0;}
+html.fit button, html.fit select{font-size:11.5px; padding:5px 9px;}
+html.fit .callout, html.fit .verdict{font-size:11.5px; line-height:1.4; padding:7px 10px; margin-top:5px; max-height:none; overflow:visible;}
+html.fit .stat{padding:5px 8px;} html.fit .stat .k{font-size:9.5px; line-height:1.2;} html.fit .stat .v{font-size:14.5px;}
+html.fit .stats{gap:5px; grid-template-columns:repeat(3,1fr);}
+html.fit .seg{gap:4px;}
+html.fit .seg button, html.fit .toggle button{padding:6px 5px; min-width:0; white-space:normal; line-height:1.2; font-size:11px;}
+html.fit .seg.mini button{padding:3px 8px; font-size:10.5px;}
+html.fit .toggle{flex-wrap:wrap; padding:5px 8px; margin:0 0 4px;}
+html.fit .legend{font-size:10px; margin-top:4px; gap:3px 12px;}
+html.fit table.res td, html.fit table.res th, html.fit table.ht td, html.fit table.ht th{padding:3px 5px; font-size:10.5px;}
+html.fit .pstep, html.fit .step{padding-top:5px; padding-bottom:5px; gap:8px;}
+html.fit .pstep p, html.fit .step p{font-size:10.5px; line-height:1.38; margin-top:2px;}
+html.fit .pstep h4{font-size:12px;}
+html.fit .frow{padding:3px 0; font-size:11.5px;}
+html.fit .frow .nm small{font-size:10px; line-height:1.25;}
+html.fit .live{padding:8px 11px; margin-bottom:6px;}
+html.fit .live-val{font-size:19px;}
+html.fit .pbar{margin:6px 0 4px;}
+html.fit .stage, html.fit .panel > .stage{margin:0;}
+html.fit .foot{font-size:10.5px; padding-top:3px;}
+html.fit .kv{font-size:11px;}
+html.fit canvas, html.fit svg.view{max-width:100%; height:auto;}
+html.fit .step p, html.fit .pstep p{display:none;}
+html.fit .step.cur p, html.fit .pstep.cur p{display:block;}
+/* Slider-reiche Panels: zwei Regler nebeneinander */
+html.fit .panel.fit2{display:grid; grid-template-columns:1fr 1fr; column-gap:12px; align-content:start;}
+html.fit .panel.fit2 > *{grid-column:1/-1;}
+html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{grid-column:auto; min-width:0;}
+
+/* Grafiken: nur Breite begrenzt, Höhe folgt dem Seitenverhältnis → nie verzerrt */
+html.fit .stage canvas, html.fit .stage svg{max-width:100%; height:auto;}
+/* Kompaktstufen (nur Abstände, Schriftgröße bleibt → Browser-Zoom wirkt normal) */
+html.fit.d1 .fitgrid, html.fit.d1 .fcol{gap:6px;}
+html.fit.d1 .panel{padding:6px 8px 7px;}
+html.fit.d1 .panel h2, html.fit.d1 .stage-title{margin-bottom:3px;}
+html.fit.d1 .ctl-row, html.fit.d1 .field{margin-bottom:3px;}
+html.fit.d1 .hint, html.fit.d1 .note, html.fit.d1 .panel .hint{margin-top:1px; line-height:1.25;}
+html.fit.d1 .stat{padding:3px 7px;} html.fit.d1 .stats{gap:4px;}
+html.fit.d1 .toggle{padding:3px 7px; margin-bottom:3px;}
+html.fit.d1 .seg button, html.fit.d1 .toggle button{padding:4px 4px;}
+html.fit.d1 button, html.fit.d1 select{padding:3px 8px;}
+html.fit.d1 .callout, html.fit.d1 .verdict{padding:5px 8px; margin-top:3px; line-height:1.3;}
+html.fit.d1 .pstep, html.fit.d1 .step{padding-top:3px; padding-bottom:3px;}
+html.fit.d1 .legend{margin-top:2px;} html.fit.d1 .btnrow{margin:2px 0;}
+html.fit.d1 header.top{padding-bottom:2px;}
+html.fit.d2 .fitgrid, html.fit.d2 .fcol{gap:4px;}
+html.fit.d2 .panel{padding:4px 7px 5px; border-radius:8px;}
+html.fit.d2 .panel h2, html.fit.d2 .stage-title{margin-bottom:2px; font-size:10px;}
+html.fit.d2 .ctl-row, html.fit.d2 .field{margin-bottom:1px;}
+html.fit.d2 input[type=range]{height:14px; margin:0;}
+html.fit.d2 .hint, html.fit.d2 .note, html.fit.d2 .panel .hint{line-height:1.18; font-size:10px; margin-top:0;}
+html.fit.d2 .stat{padding:2px 6px;} html.fit.d2 .stat .v{font-size:13px;} html.fit.d2 .stats{gap:3px;}
+html.fit.d2 .toggle{padding:2px 6px; margin-bottom:2px;}
+html.fit.d2 .seg button, html.fit.d2 .toggle button{padding:3px 3px;}
+html.fit.d2 button, html.fit.d2 select{padding:2px 7px;}
+html.fit.d2 .callout, html.fit.d2 .verdict{padding:3px 7px; margin-top:2px; line-height:1.25;}
+html.fit.d2 .pstep, html.fit.d2 .step{padding-top:2px; padding-bottom:2px;}
+html.fit.d2 header.top h1{font-size:19px;} html.fit.d2 header.top h1 small{display:none;}
+html.fit.d2 .legend{margin-top:1px;} html.fit.d2 .btnrow{margin:1px 0;} html.fit.d2 .live{padding:5px 9px; margin-bottom:3px;}
+
+html.fit .thermal-wrap{align-items:start;}
+html.fit #heat{height:auto !important; align-self:start;}
+html.fit #cbar{height:100%;}
+/* Tabellen: nie rechts abschneiden */
+html.fit .fcol div:has(> table), html.fit .fcol .tablewrap, html.fit .fcol .skiptbl-wrap{overflow-x:auto; max-width:100%;}
+html.fit .fcol table{font-size:10.5px;}
+html.fit .fcol table th, html.fit .fcol table td{padding:3px 4px; white-space:normal;}
+/* alte max-height-Kappen der Einzel-Apps aufheben: Höhe folgt nur dem Seitenverhältnis (keine Seitenbalken) */
+html.fit svg, html.fit .stage svg, html.fit #setup, html.fit #wave, html.fit #chart, html.fit #view{max-height:none !important;}
+html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{min-width:0; overflow:hidden;}
+html.fit .panel.fit2 select, html.fit .panel.fit2 input[type=range]{width:100%; max-width:100%; min-width:0;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="title-group">
+      <p class="brand-eyebrow">SCHAEFFLER · ZFP · SCHWEINFURT</p>
+      <h1>Eindringprüf-Simulator<small>PT · Penetrant Testing – Ablaufsimulation &amp; Anzeigenbildung</small></h1>
+    </div>
+    <div class="hdr-right">
+      <div class="badge"><span class="dot"></span>SIMULATION</div>
+      <button class="theme-btn" id="themeBtn" title="Light/Dark Mode">☀</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <div class="panel">
+        <p class="stage-title"><span>PROZESSSCHRITT</span> <span id="stepLabel">1 / 5 — Vorreinigung</span></p>
+        <div class="steps" id="steps"></div>
+        <div class="stage"><canvas id="cv" role="img" aria-label="Prüfstück mit Prozessdarstellung"></canvas></div>
+      </div>
+
+      <div class="panel">
+        <p class="stage-title"><span>RISSQUERSCHNITT · KAPILLARWIRKUNG</span><span class="sub">stark vergrößert, nicht maßstäblich</span></p>
+        <div class="stage"><canvas id="cvSec" role="img" aria-label="Querschnitt durch den Fehler mit Penetrant und Entwickler"></canvas></div>
+        <div class="legend">
+          <span><i id="lgPen" style="background:#d3281d"></i>Penetrant</span>
+          <span><i style="background:#f1efe6"></i>Entwickler</span>
+          <span><i style="background:#6b4a2a"></i>Verschmutzung</span>
+          <span><i style="background:#0b0e12"></i>Fehler (leer)</span>
+        </div>
+        <p class="hint" id="secHint">—</p>
+      </div>
+    </div>
+
+    <div class="col">
+      <div class="panel">
+        <p class="stage-title"><span>PROZESSUHR · ZEITRAFFER</span><span class="sub" id="clkPhaseSub">—</span></p>
+        <div class="live">
+          <div class="live-top"><span class="live-state" id="clkState">keine Zeitphase</span><span class="live-clock" id="clkTime">–</span></div>
+          <div class="pbar"><i id="clkBar"></i></div>
+          <div class="live-sub" id="clkSub">—</div>
+        </div>
+        <div class="speed" id="speedSeg" role="group" aria-label="Zeitraffer">
+          <button data-s="1">1×<br>Echtzeit</button>
+          <button data-s="10">10×</button>
+          <button data-s="60" class="sel">60×</button>
+          <button class="pause" id="btnPause" aria-pressed="false" title="Uhr anhalten">⏸</button>
+        </div>
+        <p class="hint">Der Zeitraffer gilt für die Zeitphasen Eindring- und Entwicklungszeit. Sprühen und Abwischen laufen in normaler Geschwindigkeit.</p>
+      </div>
+
+      <div class="panel">
+        <p class="stage-title"><span>STEUERUNG</span></p>
+
+        <div class="ctl-row">
+          <label>Prüfstück-Fehler</label>
+          <select id="defect">
+            <option value="fine">Feiner Ermüdungsriss (eng, tief)</option>
+            <option value="wide">Grober Riss (breit, mitteltief)</option>
+            <option value="porosity">Oberflächenpore (rund, flach)</option>
+            <option value="none">Fehlerfrei</option>
+          </select>
+        </div>
+
+        <div class="toggle">
+          <button id="btnVisible" class="sel">Farbeindringverfahren</button>
+          <button id="btnFluor">Fluoreszierend (UV)</button>
+        </div>
+
+        <div class="ctl-row">
+          <label>Prüftemperatur <b id="tempV">20 °C</b></label>
+          <input type="range" id="temp" min="5" max="50" value="20" step="1">
+          <div class="note" id="tempNote">Normbereich 10–50 °C</div>
+        </div>
+
+        <div class="ctl-row">
+          <label>Eindringzeit (Verweildauer) <b id="dwellV">10 min</b></label>
+          <input type="range" id="dwell" min="0" max="30" value="10" step="1">
+        </div>
+
+        <div class="ctl-row">
+          <label>Entfernung Überschuss <b id="wipeV">korrekt</b></label>
+          <input type="range" id="wipe" min="0" max="2" value="1" step="1">
+          <div class="note">Das Abwischen startet mit „Überschuss abwischen“ im Ablauf – hier legst du nur fest, wie gründlich.</div>
+        </div>
+
+        <div class="ctl-row">
+          <label>Entwicklungszeit <b id="devV">7 min</b></label>
+          <input type="range" id="dev" min="0" max="20" value="7" step="1">
+        </div>
+
+        <div class="btnrow">
+          <button class="primary" id="btnNext">▶ Nächster Schritt</button>
+          <button id="btnReset">Zurücksetzen</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <p class="stage-title"><span>AUSWERTUNG</span><span class="sub" id="evalSub"></span></p>
+        <div class="stats">
+          <div class="stat"><div class="k">Anzeige-Kontrast</div><div class="v" id="stContrast">0 %</div></div>
+          <div class="stat" id="stBox"><div class="k">Befund</div><div class="v" id="stFind">–</div></div>
+          <div class="stat" id="stFillBox"><div class="k">Kapillar-Füllgrad</div><div class="v" id="stFill">–</div></div>
+          <div class="stat" id="stDwBox"><div class="k">Eindringzeit ist / soll</div><div class="v" id="stDw">–</div></div>
+        </div>
+        <div class="callout" id="callout" aria-live="polite">
+          Wähle einen Fehlertyp und starte den Ablauf: Vorreinigung → Penetrant auftragen
+          (die Eindringzeit läuft ab dem Auftragen) → Überschuss entfernen → Entwickler auftragen → Auswertung.
+        </div>
+      </div>
+
+      <div class="panel">
+        <p class="stage-title"><span>PRÜFABLAUF</span><span class="sub" id="procCount">—</span></p>
+        <div class="proc" id="proc"></div>
+        <p class="hint">Richtwerte vereinfacht nach DIN EN ISO 3452-1 (Prüftemperatur 10–50 °C, Eindring- und Entwicklungszeit je nach Prüfmittel und Fehlerart). Die Modellwerte dienen der Schulung und ersetzen keine Prüfanweisung.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const cv=$('cv'), ctx=cv.getContext('2d');
+const cvSec=$('cvSec'), sctx=cvSec.getContext('2d');
+const CW=900, CH=560, SW=900, SH=250;
+function hiDPI(){
+  const dpr = Math.max(1, window.devicePixelRatio||1);
+  cv.width=CW*dpr; cv.height=CH*dpr; cv.style.aspectRatio=(CW/CH); ctx.setTransform(dpr,0,0,dpr,0,0);
+  cvSec.width=SW*dpr; cvSec.height=SH*dpr; cvSec.style.aspectRatio=(SW/SH); sctx.setTransform(dpr,0,0,dpr,0,0);
+}
+hiDPI();
+// Deterministischer Zufall: Texturen flackern nicht mehr bei jedem Bild
+let _rs=1; function srand(n){ _rs=(n>>>0)||1; } function rnd(){ _rs=(_rs*1664525+1013904223)>>>0; return _rs/4294967296; }
+const TIME_STEP=0;
+
+// ---- Noise-Utility für organische Texturen (statt geometrischer Formen) ----
+function makeValueNoise(seed, size){
+  let s = seed;
+  function rnd(){ s=(s*9301+49297)%233280; return s/233280; }
+  const grid = new Float32Array(size*size);
+  for(let i=0;i<grid.length;i++) grid[i]=rnd();
+  return function(x,y){
+    x = ((x%1)+1)%1; y = ((y%1)+1)%1;
+    const gx=x*(size-1), gy=y*(size-1);
+    const x0=Math.floor(gx), y0=Math.floor(gy);
+    const x1=Math.min(size-1,x0+1), y1=Math.min(size-1,y0+1);
+    const fx=gx-x0, fy=gy-y0;
+    const v00=grid[y0*size+x0], v10=grid[y0*size+x1], v01=grid[y1*size+x0], v11=grid[y1*size+x1];
+    const sx=fx*fx*(3-2*fx), sy=fy*fy*(3-2*fy);
+    const a=v00+(v10-v00)*sx, b=v01+(v11-v01)*sx;
+    return a+(b-a)*sy;
+  };
+}
+const noiseLo = makeValueNoise(71, 6);
+const noiseMid = makeValueNoise(133, 18);
+const noiseHi = makeValueNoise(9, 64);
+function fbm(x,y){ return noiseLo(x,y)*0.5 + noiseMid(x,y)*0.32 + noiseHi(x,y)*0.18; }
+
+// Ein echter Ermüdungsriss ist unregelmäßig verästelt, kein mechanischer Zickzack.
+// Ein Mal berechnet (fester Seed) und von Outline/Defekt/Bleed gemeinsam genutzt,
+// damit alle drei Darstellungen exakt demselben Rissverlauf folgen.
+function buildCrackPath(cx,cy,len,amp){
+  let s=777;
+  function rnd(){ s=(s*9301+49297)%233280; return s/233280; }
+  const pts=[]; const n=14;
+  for(let i=0;i<=n;i++){
+    const t=i/n;
+    const x=cx-len/2+t*len;
+    const y=cy + Math.sin(t*6.2)*amp*0.5 + (rnd()-0.5)*amp*1.4*(0.4+Math.sin(t*3.1)*0.6);
+    pts.push({x,y});
+  }
+  return pts;
+}
+const crackPts = buildCrackPath(0,0,130,11); // relativ zum Mittelpunkt, wird pro Aufruf verschoben
+function strokeCrack(cx,cy,extraJitter){
+  ctx.beginPath();
+  crackPts.forEach((p,i)=>{
+    const x=cx+p.x, y=cy+p.y+(extraJitter?Math.sin(i*2.3)*extraJitter:0);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+}
+
+const stepsEl=document.getElementById('steps'), stepLabel=document.getElementById('stepLabel');
+const defectSel=document.getElementById('defect');
+const dwellEl=document.getElementById('dwell'), wipeEl=document.getElementById('wipe'), devEl=document.getElementById('dev');
+const dwellV=document.getElementById('dwellV'), wipeV=document.getElementById('wipeV'), devV=document.getElementById('devV');
+const stContrast=document.getElementById('stContrast'), stFind=document.getElementById('stFind'), stBox=document.getElementById('stBox');
+const callout=document.getElementById('callout');
+const btnVisible=document.getElementById('btnVisible'), btnFluor=document.getElementById('btnFluor');
+const themeBtn=document.getElementById('themeBtn');
+const btnNext=document.getElementById('btnNext');
+
+const stepNames=['Vorreinigung','Penetrant auftragen','Überschuss entfernen','Entwickler + Auswertung'];
+const stepIcons=['🧼','🎨','🧽','🌫'];
+// interner Zustand → angezeigter Schritt (die Eindringzeit ist kein eigener Schritt, sie läuft ab dem Auftragen)
+function devDone(){ return step>=5 && animT>=parseFloat(devEl.value)-0.001; }
+function dispStep(){ if(step>=5) return devDone()?4:3; return [0,1,1,2,3][step]; }
+let step=0;
+let mode='visible';
+let light=false;
+let animT=0, rafId=null;
+let sprayAnimT=1, sprayRafId=null;
+let wipeAnimT=1, wipeRafId=null;
+let dwellAnimT=0;
+let wipeMaxReach=0;
+let speed=60, paused=false, effDwell=null, tempC=20, ready=false;
+let wipeStarted=false; // true erst, sobald die Wisch-Animation für Schritt 3 wirklich gestartet wurde
+let pendingStep = null; // wenn gesetzt, wird nach beendeter Animation der Schritt erhöht
+
+const wipeLabels=['zu wenig entfernt (Hintergrund)','korrekt','zu stark entfernt (Anzeige verloren)'];
+
+function applyTheme(theme){
+  light = theme === 'light';
+  document.body.classList.toggle('light-mode',light);
+  themeBtn.textContent = light ? '☾' : '☀';
+  if(ready) draw();
+}
+// Theme global über ZfPContext (wie in den anderen Apps); lokaler Fallback ohne /shared/zfp-context.js
+const ctxTheme = window.ZfPContext || (()=>{ let cb=()=>{}, mode='dark'; return { onTheme(f){cb=f; f(mode);}, toggleTheme(){ mode=mode==='light'?'dark':'light'; cb(mode);} }; })();
+ctxTheme.onTheme(applyTheme);
+themeBtn.addEventListener('click',()=>{ ctxTheme.toggleTheme(); if(ready) draw(); });
+
+function renderSteps(){
+  stepsEl.innerHTML='';
+  const ds=dispStep();
+  stepNames.forEach((n,i)=>{
+    const d=document.createElement('div');
+    d.className='step'+(i===ds?' active':(i<ds?' done':''));
+    d.innerHTML='<span class="ico">'+stepIcons[i]+'</span><span>'+(i+1)+'. '+n+'</span>';
+    stepsEl.appendChild(d);
+  });
+  let lbl = ds>=4 ? '4 / 4 — Prüfablauf abgeschlossen' : (ds+1)+' / 4 — '+stepNames[ds];
+  if(step===2) lbl += ' · Eindringzeit läuft';
+  if(step>=5 && !devDone()) lbl += ' · Entwicklungszeit läuft';
+  stepLabel.textContent=lbl;
+}
+
+btnVisible.addEventListener('click',()=>{mode='visible';btnVisible.classList.add('sel');btnFluor.classList.remove('sel'); draw();});
+btnFluor.addEventListener('click',()=>{mode='fluor';btnFluor.classList.add('sel');btnVisible.classList.remove('sel'); draw();});
+
+function defectGeom(){
+  const type=defectSel.value;
+  if(type==='fine') return {w:2.2, depth:0.9, shape:'crack'};
+  if(type==='wide') return {w:6, depth:0.55, shape:'crack'};
+  if(type==='porosity') return {w:9, depth:0.25, shape:'circle'};
+  return {w:0, depth:0, shape:'none'};
+}
+
+function bleedFactor(t){
+  const dwell=(effDwell!==null?effDwell:parseFloat(dwellEl.value));
+  const wipe=parseInt(wipeEl.value);
+  const dev = t!==undefined ? t : parseFloat(devEl.value);
+  const g=defectGeom();
+  if(g.shape==='none') return 0;
+  const capillary = g.depth/(g.w/3+0.4);
+  let uptake = 1-Math.exp(-dwell*capillary*0.35*tempF());
+  let wipePenalty = wipe===1?1:(wipe===0?0.55:0.25);
+  let devFactor = Math.min(1, dev/6);
+  let contrast = uptake*wipePenalty*devFactor;
+  return Math.max(0,Math.min(1,contrast));
+}
+
+// ---- textures --------------------------------------------------------
+let metalCache={key:'',cv:null};
+function paintMetal(c,w,h,uv){
+  const grad=c.createLinearGradient(0,0,w,h);
+  if(uv){ grad.addColorStop(0,'#0b1c24'); grad.addColorStop(0.5,'#0d222b'); grad.addColorStop(1,'#0a1a22'); }
+  else if(light){ grad.addColorStop(0,'#c9d0d7'); grad.addColorStop(0.5,'#aab3bc'); grad.addColorStop(1,'#8f98a2'); }
+  else { grad.addColorStop(0,'#aab4bd'); grad.addColorStop(0.5,'#8b95a0'); grad.addColorStop(1,'#6d7781'); }
+  c.fillStyle=grad; roundRect(c,0,0,w,h,14); c.fill();
+  c.save(); roundRect(c,0,0,w,h,14); c.clip();
+  const CELL=5;
+  for(let y=0;y<h;y+=CELL) for(let x=0;x<w;x+=CELL){
+    const n=fbm(x/w,y/h), shade=(n-0.5)*(uv?8:14);
+    c.fillStyle= shade>=0 ? `rgba(255,255,255,${Math.min(0.12,shade/70)})` : `rgba(0,0,0,${Math.min(0.12,-shade/70)})`;
+    c.fillRect(x,y,CELL,CELL);
+  }
+  // gefräste Oberfläche: feine Bearbeitungsspuren
+  srand(4242);
+  c.globalAlpha= uv? 0.06 : 0.12; c.strokeStyle = uv ? '#8effea' : '#fff';
+  for(let i=0;i<90;i++){ const yy=rnd()*h; c.beginPath(); c.moveTo(0,yy); c.lineTo(w, yy+(rnd()*4-2)); c.lineWidth=0.4+rnd()*0.8; c.stroke(); }
+  // Glanzlicht
+  c.globalAlpha=1;
+  const sh=c.createLinearGradient(0,0,0,h); sh.addColorStop(0,'rgba(255,255,255,'+(uv?0.03:0.16)+')'); sh.addColorStop(0.45,'rgba(255,255,255,0)'); sh.addColorStop(1,'rgba(0,0,0,'+(uv?0.2:0.14)+')');
+  c.fillStyle=sh; c.fillRect(0,0,w,h);
+  c.restore();
+}
+function metalTexture(x0,y0,w,h,uv){
+  const dpr=cv.width/CW, key=(uv?'u':(light?'l':'d'))+w+'x'+h+'@'+dpr;
+  if(metalCache.key!==key){
+    const oc=document.createElement('canvas'); oc.width=Math.round(w*dpr); oc.height=Math.round(h*dpr);
+    const c=oc.getContext('2d'); c.scale(dpr,dpr); paintMetal(c,w,h,uv); metalCache={key,cv:oc};
+  }
+  ctx.drawImage(metalCache.cv,x0,y0,w,h);
+  // Kantenlicht (Fase)
+  ctx.save(); roundRect(ctx,x0+0.5,y0+0.5,w-1,h-1,14);
+  const eg=ctx.createLinearGradient(x0,y0,x0+w,y0+h); eg.addColorStop(0,uv?'rgba(120,200,220,.35)':'rgba(255,255,255,.65)'); eg.addColorStop(0.5,'rgba(255,255,255,0.05)'); eg.addColorStop(1,'rgba(0,0,0,.45)');
+  ctx.strokeStyle=eg; ctx.lineWidth=1.6; ctx.stroke(); ctx.restore();
+}
+
+function roundRect(c,x,y,w,h,r){
+  c.beginPath();
+  c.moveTo(x+r,y);
+  c.arcTo(x+w,y,x+w,y+h,r);
+  c.arcTo(x+w,y+h,x,y+h,r);
+  c.arcTo(x,y+h,x,y,r);
+  c.arcTo(x,y,x+w,y,r);
+  c.closePath();
+}
+
+function drawScene(uvDark){
+  const w=CW,h=CH;
+  if(uvDark){
+    const g=ctx.createRadialGradient(w/2,h/2,40,w/2,h/2,w*0.72); g.addColorStop(0,'#0b1220'); g.addColorStop(1,'#02030a');
+    ctx.fillStyle=g; ctx.fillRect(0,0,w,h);
+    // UV-A-Lampe mit Lichtkegel
+    const lx=96, ly=30, cg=ctx.createLinearGradient(lx,ly,w/2,h/2);
+    cg.addColorStop(0,'rgba(160,100,255,.38)'); cg.addColorStop(1,'rgba(110,60,220,0)');
+    ctx.fillStyle=cg; ctx.beginPath(); ctx.moveTo(lx,ly); ctx.lineTo(w/2+260,h/2-60); ctx.lineTo(w/2-120,h/2+230); ctx.closePath(); ctx.fill();
+    const lg=ctx.createRadialGradient(lx,ly,2,lx,ly,34); lg.addColorStop(0,'#f3e8ff'); lg.addColorStop(0.35,'#b18cff'); lg.addColorStop(1,'rgba(150,90,255,0)');
+    ctx.fillStyle=lg; ctx.beginPath(); ctx.arc(lx,ly,34,0,7); ctx.fill();
+    ctx.fillStyle='#2a2540'; roundRect(ctx,lx-38,ly-14,76,14,5); ctx.fill();
+    ctx.fillStyle='#b9a6e8'; ctx.font='10px "JetBrains Mono",monospace'; ctx.fillText('UV-A · Abdunkelung',lx-44,ly+36);
+    return;
+  }
+  // Wand
+  const wall=ctx.createLinearGradient(0,0,0,h*0.78);
+  if(light){ wall.addColorStop(0,'#e5eaef'); wall.addColorStop(1,'#cfd7de'); } else { wall.addColorStop(0,'#3b4249'); wall.addColorStop(1,'#272c31'); }
+  ctx.fillStyle=wall; ctx.fillRect(0,0,w,h);
+  // Werkbank
+  const by=h*0.78, bench=ctx.createLinearGradient(0,by,0,h);
+  if(light){ bench.addColorStop(0,'#aeb7bf'); bench.addColorStop(1,'#8d979f'); } else { bench.addColorStop(0,'#4a525a'); bench.addColorStop(1,'#2f353b'); }
+  ctx.fillStyle=bench; ctx.fillRect(0,by,w,h-by);
+  ctx.fillStyle=light?'rgba(255,255,255,.7)':'rgba(255,255,255,.12)'; ctx.fillRect(0,by,w,2);
+  // weiche Randabschattung
+  const vg=ctx.createRadialGradient(w/2,h*0.5,h*0.35,w/2,h*0.5,w*0.75); vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,light?'rgba(30,50,70,.18)':'rgba(0,0,0,.35)');
+  ctx.fillStyle=vg; ctx.fillRect(0,0,w,h);
+}
+
+function draw(){
+  const w=CW,h=CH;
+  srand(12345);
+  ctx.clearRect(0,0,w,h);
+
+  const uvDark = (mode==='fluor' && step>=4);
+  drawScene(uvDark);
+
+  const cx=w/2, cy=h/2, cw=560, ch=280;
+  // Schatten des Prüfstücks auf der Werkbank
+  ctx.save();
+  ctx.shadowColor=uvDark?'rgba(0,0,0,.7)':'rgba(0,0,0,.42)'; ctx.shadowBlur=30; ctx.shadowOffsetY=18;
+  ctx.fillStyle='#000'; roundRect(ctx,cx-cw/2,cy-ch/2,cw,ch,14); ctx.fill();
+  ctx.restore();
+  metalTexture(cx-cw/2, cy-ch/2, cw, ch, uvDark);
+
+  const g=defectGeom();
+  const dx=cx, dy=cy;
+
+  if(step===0){
+    const partLeft=cx-cw/2, partRight=cx+cw/2;
+    const canX = sprayAnimT<1 ? sweepCanX(sprayAnimT, partLeft, cw) : sweepCanX(0, partLeft, cw);
+    const cleanedUpTo = clampNum(canX, partLeft, partRight);
+    ctx.save();ctx.globalAlpha=0.3;ctx.fillStyle='#4a3a20';
+    for(let i=0;i<50;i++){
+      const gx=cx-cw/2+30+rnd()*(cw-60);
+      if(sprayAnimT<1 && gx<cleanedUpTo-14) continue;
+      ctx.beginPath();ctx.arc(gx, cy-ch/2+20+rnd()*(ch-40), 1.5+rnd()*2.5,0,7);ctx.fill();
+    }
+    ctx.restore();
+    drawDefectOutline(dx,dy,g,0.45);
+    drawSprayCan(canX, 14, SPRAY_KINDS.cleaner, sprayRafId!==null, sprayAnimT);
+    label('Vorreinigung: Fett, Zunder und Verunreinigungen werden entfernt.', cx-cw/2, cy+ch/2+30);
+    if(sprayRafId!==null){
+      ctx.fillStyle='#ffc94d'; ctx.font='11px "JetBrains Mono",monospace';
+      ctx.fillText('⏳ Reinigung läuft …', cx+70, cy+ch/2+30);
+    }
+  }
+
+  if(step===1){
+    const partLeft=cx-cw/2;
+    const canX = sweepCanX(sprayAnimT, partLeft, cw);
+    const revealX = clampNum(canX, partLeft, partLeft+cw);
+    drawSprayCoat(partLeft,cy-ch/2,cw,ch, mode==='fluor' ? '#39fff0' : '#c22a20', 0.85, sprayAnimT<1?revealX:null);
+    drawDefectOutline(dx,dy,g,0.12);
+    drawSprayCan(canX, 14, mode==='fluor'?SPRAY_KINDS.penetrantF:SPRAY_KINDS.penetrant, sprayRafId!==null, sprayAnimT);
+    label('Penetrant wird gleichmäßig aufgetragen (Sprühen/Tauchen/Pinseln).', cx-cw/2, cy+ch/2+30);
+    if(sprayRafId!==null){
+      ctx.fillStyle='#ffc94d'; ctx.font='11px "JetBrains Mono",monospace';
+      ctx.fillText('⏳ Auftragen …', cx+70, cy+ch/2+30);
+    }
+  }
+
+  if(step===2){
+    const dwell=parseFloat(dwellEl.value);
+    const shownDwell = Math.min(dwell, dwellAnimT);
+    const pct=dwell>0 ? Math.min(1,shownDwell/dwell) : 1;
+    const uptakeGlow = 0.55 + 0.45*pct;
+    drawSprayCoat(cx-cw/2,cy-ch/2,cw,ch, mode==='fluor' ? '#39fff0' : '#c22a20', 0.5);
+    drawDefect(dx,dy,g, mode==='fluor'?'#39fff0':'#ff2a20', uptakeGlow);
+    ctx.fillStyle='#1c2733'; ctx.fillRect(cx-cw/2, cy+ch/2+18, cw, 10);
+    ctx.fillStyle='#ffc94d'; ctx.fillRect(cx-cw/2, cy+ch/2+18, cw*pct, 10);
+    drawClock(cx+cw/2-38, 18, pct, shownDwell, dwell, 'Eindringzeit');
+    label('Eindringzeit: '+fmtClock(shownDwell)+' / '+fmtClock(dwell)+' min — Penetrant zieht per Kapillarwirkung in den Fehler ein.', cx-cw/2, cy+ch/2+46);
+    if(g.shape!=='none'){
+      if(shownDwell<dwell-0.001){ callout.className='callout'; callout.innerHTML='<b>Eindringzeit läuft …</b> Der Penetrant steigt per Kapillarwirkung in den Fehler. Die Eindringzeit läuft seit dem Auftragen. Mit „Überschuss abwischen“ beendest du sie – die tatsächlich abgewartete Zeit zählt.'; }
+      else { callout.className='callout good'; callout.innerHTML='<b>Eindringzeit erreicht.</b> Füllgrad '+Math.round(uptakeAt(dwellAnimT)*100)+' %. Du kannst jetzt den Überschuss abwischen.'; }
+    }
+  }
+
+  if(step===3){
+    const wipe=parseInt(wipeEl.value);
+    const partLeft=cx-cw/2;
+    const clothActive = wipeAnimT<1;
+    const PASSES = 5;
+    const clothX = clothActive ? wipeClothX(wipeAnimT, partLeft, cw, PASSES) : partLeft+cw+999;
+    if(clothActive){ wipeMaxReach = Math.max(wipeMaxReach, clothX); }
+    // Vor dem ersten Start (wipeStarted=false) ist noch nichts abgewischt -> wipedUpTo=partLeft.
+    // Erst nach abgeschlossenem Lauf (wipeStarted=true, nicht mehr aktiv) gilt die volle Breite.
+    const wipedUpTo = clothActive
+      ? clampNum(wipeMaxReach, partLeft, partLeft+cw)
+      : (wipeStarted ? partLeft+cw : partLeft);
+
+    drawSprayCoat(partLeft,cy-ch/2,cw,ch, mode==='fluor' ? '#39fff0' : '#c22a20', 0.85);
+
+    ctx.save();
+    roundRect(ctx,partLeft,cy-ch/2,cw,ch,14); ctx.clip();
+    ctx.beginPath(); ctx.rect(partLeft,cy-ch/2,wipedUpTo-partLeft,ch); ctx.clip();
+    if(wipe===0){ drawSprayCoat(partLeft,cy-ch/2,cw,ch, mode==='fluor' ? '#39fff0' : '#c22a20', 0.42); }
+    else {
+      ctx.globalAlpha=0.12; ctx.strokeStyle = mode==='fluor' ? '#39fff0' : '#c22a20';
+      for(let i=0;i<26;i++){ ctx.beginPath(); const yy=cy-ch/2+rnd()*ch; ctx.moveTo(partLeft,yy); ctx.lineTo(partLeft+cw,yy+(rnd()*8-4)); ctx.lineWidth=1+rnd()*2; ctx.stroke(); }
+    }
+    ctx.restore();
+
+    ctx.save();
+    roundRect(ctx,partLeft,cy-ch/2,cw,ch,14); ctx.clip();
+    ctx.beginPath(); ctx.rect(partLeft,cy-ch/2,wipedUpTo-partLeft,ch); ctx.clip();
+    drawDefect(dx,dy,g, mode==='fluor'?'#39fff0':'#ff2a20', wipe===2?0.15:1);
+    ctx.restore();
+
+    drawWipeCloth(clothX, cy, ch, clothActive);
+    label('Zustand: '+wipeLabels[wipe], cx-cw/2, cy+ch/2+30);
+    if(clothActive){
+      ctx.fillStyle='#ffc94d'; ctx.font='11px "JetBrains Mono",monospace';
+      ctx.fillText('⏳ Wischen …', cx+70, cy+ch/2+30);
+    }
+  }
+
+  if(step>=4){
+    const partLeft=cx-cw/2;
+    const canX = sweepCanX(sprayAnimT, partLeft, cw);
+    const devRevealX = clampNum(canX, partLeft, partLeft+cw);
+    ctx.save();
+    roundRect(ctx,cx-cw/2,cy-ch/2,cw,ch,14); ctx.clip();
+    if(sprayAnimT<1){ ctx.beginPath(); ctx.rect(partLeft,cy-ch/2,devRevealX-partLeft,ch); ctx.clip(); }
+    ctx.globalAlpha= uvDark? 0.85 : 0.92;
+    ctx.fillStyle= uvDark? '#12181c' : '#efeee6';
+    ctx.fillRect(cx-cw/2,cy-ch/2,cw,ch);
+    ctx.globalAlpha=0.08;
+    ctx.fillStyle = uvDark ? '#fff' : '#8a8676';
+    for(let i=0;i<900;i++){
+      const x=cx-cw/2+rnd()*cw, y=cy-ch/2+rnd()*ch;
+      ctx.fillRect(x,y,1,1);
+    }
+    ctx.restore();
+
+    drawSprayCan(canX, 14, SPRAY_KINDS.developer, sprayRafId!==null, sprayAnimT);
+
+    const targetDev = parseFloat(devEl.value);
+    // Entwicklungszeit darf erst laufen, wenn der Entwickler tatsächlich fertig aufgesprüht ist.
+    const devReady = sprayAnimT>=1;
+    const shownDev = devReady ? Math.min(targetDev, animT) : 0;
+    const bf=bleedFactor(shownDev);
+    drawBleed(dx,dy,g,bf, uvDark);
+    const devPct = targetDev>0 ? Math.min(1,shownDev/targetDev) : 1;
+    drawClock(cx+cw/2-38, 18, devPct, shownDev, targetDev, 'Entwicklung');
+    stContrast.textContent=Math.round(bf*100)+' %';
+    let found = bf>0.22 && g.shape!=='none';
+    stFind.textContent = g.shape==='none' ? 'kein Fehler' : (found?'Anzeige erkennbar':'keine auswertbare Anzeige');
+    stBox.classList.toggle('warn', found);
+    stBox.classList.toggle('ok', g.shape==='none' || (!found && g.shape!=='none' && bf<0.05));
+    label('Entwicklungszeit: '+shownDev.toFixed(1)+' / '+targetDev+' min', cx-cw/2, cy+ch/2+30);
+
+    if(sprayRafId!==null){
+      ctx.fillStyle='#ffc94d'; ctx.font='11px "JetBrains Mono",monospace';
+      ctx.fillText('⏳ Entwickler auftragen …', cx+70, cy+ch/2+30);
+    }
+
+    const devRunning = !devReady || shownDev < targetDev-0.001;
+    if(devRunning){
+      callout.className='callout';
+      callout.innerHTML='<b>Entwicklung läuft …</b> Der Entwickler saugt den Penetrant aus dem Fehler; die Anzeige baut sich mit der Zeit auf (aktuell '+Math.round(bf*100)+' % Kontrast).';
+    } else if(g.shape!=='none'){
+      if(found){ callout.className='callout bad'; callout.innerHTML='<b>Anzeige gefunden.</b> Kontrast '+Math.round(bf*100)+'% – Fehlerindikation ist auswertbar. Bewertung nach Regelwerk erforderlich.'; }
+      else { callout.className='callout'; callout.innerHTML='<b>Keine auswertbare Anzeige.</b> Prüfe Eindringzeit, Wischtechnik und Entwicklungszeit — Parameter evtl. nicht optimal gewählt.'; }
+    } else {
+      callout.className='callout good'; callout.innerHTML='<b>Fehlerfrei.</b> Keine relevante Anzeige, Bauteil i.O.';
+    }
+
+  }
+  drawSection();
+  syncUI();
+}
+
+function label(txt,x,y){
+  ctx.save();
+  ctx.font='12px "JetBrains Mono",monospace';
+  const w=ctx.measureText(txt).width+16;
+  ctx.fillStyle= (mode==='fluor'&&step>=4) ? 'rgba(6,10,18,.82)' : (light ? 'rgba(255,255,255,.82)' : 'rgba(14,18,22,.72)');
+  roundRect(ctx,x-8,y-14,w,22,6); ctx.fill();
+  ctx.fillStyle= (mode==='fluor'&&step>=4) ? '#b8c6d6' : (light? '#1d2f3f' : '#d5dce3');
+  ctx.fillText(txt, x, y);
+  ctx.restore();
+}
+
+function clampNum(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function sweepCanX(t, left, width){
+  const pad=50;
+  return left - pad + t*(width + 2*pad);
+}
+
+function drawSprayCoat(x0,y0,w,h,color,maxAlpha,revealX){
+  ctx.save();
+  roundRect(ctx,x0,y0,w,h,14); ctx.clip();
+  const hasReveal = revealX!=null && revealX < x0+w;
+  if(hasReveal){
+    ctx.beginPath(); ctx.rect(x0, y0, Math.max(0,revealX-x0), h); ctx.clip();
+  }
+  ctx.globalAlpha = maxAlpha;
+  ctx.fillStyle=color;
+  if(color==='#39fff0'){ ctx.shadowColor=color; ctx.shadowBlur=16; }
+  ctx.fillRect(x0,y0,w,h);
+  ctx.globalAlpha = maxAlpha*0.35;
+  for(let i=0;i<260;i++){
+    const x=x0+rnd()*w, y=y0+rnd()*h;
+    if(hasReveal && x>revealX) continue;
+    ctx.beginPath(); ctx.arc(x,y,1+rnd()*2.4,0,7); ctx.fill();
+  }
+  if(hasReveal && revealX>x0){
+    const edgeGrad=ctx.createLinearGradient(revealX-22,0,revealX,0);
+    edgeGrad.addColorStop(0,'rgba(255,255,255,0)');
+    edgeGrad.addColorStop(1,'rgba(255,255,255,.5)');
+    ctx.globalAlpha=maxAlpha;
+    ctx.fillStyle=edgeGrad;
+    ctx.fillRect(revealX-22,y0,22,h);
+  }
+  ctx.restore();
+}
+
+const SPRAY_KINDS = {
+  cleaner:   { label:'REINIGER',        sub:'Vorreiniger', body:'#c7cdd3', bodyDark:'#8b93a0', cap:'#2f6fb0', mist:'#bcd4ea' },
+  penetrant: { label:'ROT-EINDRING-\nMITTEL', sub:'Penetrant', body:'#b02418', bodyDark:'#6e120a', cap:'#1c1c1c', mist:'#ff6a52' },
+  penetrantF:{ label:'FLUORESZ.-\nEINDRINGMITTEL', sub:'Penetrant UV', body:'#233', bodyDark:'#122', cap:'#39fff0', mist:'#39fff0' },
+  developer: { label:'ENTWICKLER',      sub:'Weißentwickler', body:'#eef1ec', bodyDark:'#c7cabf', cap:'#d94b2b', mist:'#ffffff' }
+};
+function sprayKindFor(){
+  if(step===0) return SPRAY_KINDS.cleaner;
+  if(step===1) return mode==='fluor' ? SPRAY_KINDS.penetrantF : SPRAY_KINDS.penetrant;
+  if(step>=4)  return SPRAY_KINDS.developer;
+  return null;
+}
+function drawSprayCan(cx, topY, kind, active, t){
+  const cw=46, chh=92;
+  const x0=cx-cw/2, y0=topY;
+  ctx.save();
+  ctx.globalAlpha=0.18; ctx.fillStyle='#000';
+  ctx.beginPath(); ctx.ellipse(cx+6, y0+chh+6, cw*0.55, 6, 0, 0, 7); ctx.fill();
+  ctx.globalAlpha=1;
+
+  const grad=ctx.createLinearGradient(x0,0,x0+cw,0);
+  grad.addColorStop(0, kind.bodyDark); grad.addColorStop(0.18, kind.body);
+  grad.addColorStop(0.5, kind.body); grad.addColorStop(0.85, kind.body);
+  grad.addColorStop(1, kind.bodyDark);
+  ctx.fillStyle=grad;
+  roundRect(ctx, x0, y0+14, cw, chh-14, 6); ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.lineWidth=1; roundRect(ctx,x0,y0+14,cw,chh-14,6); ctx.stroke();
+
+  ctx.fillStyle=kind.cap;
+  roundRect(ctx, x0+cw*0.22, y0, cw*0.56, 16, 3); ctx.fill();
+  ctx.fillStyle='#1a1a1a';
+  ctx.fillRect(x0+cw*0.36, y0-6, cw*0.28, 7);
+  ctx.beginPath(); ctx.arc(x0+cw*0.5, y0-6, 2, 0, 7); ctx.fill();
+
+  ctx.save();
+  roundRect(ctx, x0, y0+14, cw, chh-14, 6); ctx.clip();
+  ctx.fillStyle='rgba(255,255,255,.92)';
+  ctx.fillRect(x0, y0+chh*0.42, cw, chh*0.4);
+  ctx.fillStyle = kind===SPRAY_KINDS.penetrantF ? '#0a5a52' : (kind.body==='#eef1ec' ? '#8a2510' : kind.bodyDark);
+  ctx.font='6.5px "JetBrains Mono",monospace'; ctx.textAlign='center';
+  const lines = kind.label.split('\n');
+  lines.forEach((ln,i)=> ctx.fillText(ln, cx, y0+chh*0.42+11+i*8));
+  ctx.font='6px "JetBrains Mono",monospace'; ctx.fillStyle='#555';
+  ctx.fillText(kind.sub, cx, y0+chh*0.42+11+lines.length*8+6);
+  ctx.textAlign='left';
+  ctx.restore();
+
+  ctx.globalAlpha=0.35; ctx.fillStyle='#fff';
+  ctx.fillRect(x0+3, y0+18, 4, chh-22);
+  ctx.globalAlpha=1;
+  ctx.restore();
+
+  if(active){
+    const nozzleX=cx, nozzleY=y0-8;
+    const dirAng=Math.PI/2 + 0.32;
+    const reach = 30 + t*150;
+    const spread = 0.22 + t*0.10;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, 0.62*(1-t*0.65));
+    const coneGrad = ctx.createLinearGradient(nozzleX,nozzleY, nozzleX+Math.cos(dirAng)*reach, nozzleY+Math.sin(dirAng)*reach);
+    coneGrad.addColorStop(0, kind.mist); coneGrad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle=coneGrad;
+    ctx.beginPath();
+    ctx.moveTo(nozzleX,nozzleY);
+    ctx.lineTo(nozzleX+Math.cos(dirAng-spread)*reach, nozzleY+Math.sin(dirAng-spread)*reach);
+    ctx.lineTo(nozzleX+Math.cos(dirAng+spread)*reach, nozzleY+Math.sin(dirAng+spread)*reach);
+    ctx.closePath(); ctx.fill();
+    ctx.globalAlpha = Math.max(0, 0.55*(1-t*0.6));
+    ctx.strokeStyle=kind.mist; ctx.lineWidth=1;
+    ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    for(let i=0;i<34;i++){
+      const localT = ((t*2.2 + i/34) % 1);
+      const a = dirAng + (((i*137)%100)/100 - 0.5)*spread*2;
+      const dist = 12 + localT*(reach+14);
+      const px = nozzleX+Math.cos(a)*dist, py = nozzleY+Math.sin(a)*dist;
+      const psize = 1.4+((i*53)%3)*0.7;
+      ctx.globalAlpha = Math.max(0, (1-localT)*0.9);
+      ctx.fillStyle = kind.mist;
+      ctx.beginPath(); ctx.arc(px,py, psize+1, 0, 7); ctx.fill();
+      ctx.globalAlpha = Math.max(0, (1-localT)*0.85);
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(px,py, psize*0.5, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.fillStyle='#333';
+    ctx.fillRect(x0+cw*0.62, y0-3, 9, 4);
+    ctx.restore();
+  }
+}
+
+function drawClock(cx, topY, pct, elapsedMin, totalMin, title){
+  const r=30, cyc=topY+r+2;
+  ctx.save();
+  ctx.globalAlpha=0.16; ctx.fillStyle='#000';
+  ctx.beginPath(); ctx.ellipse(cx+3,cyc+r+5,r*0.55,5,0,0,7); ctx.fill();
+  ctx.globalAlpha=1;
+  ctx.fillStyle= light? '#f4f1e8' : '#eef1ec';
+  ctx.beginPath(); ctx.arc(cx,cyc,r,0,7); ctx.fill();
+  ctx.strokeStyle='#8a8f92'; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.strokeStyle='#c7cabf'; ctx.lineWidth=1; ctx.beginPath(); ctx.arc(cx,cyc,r-3,0,7); ctx.stroke();
+
+  ctx.strokeStyle='#ffc94d'; ctx.lineWidth=3.5; ctx.lineCap='round';
+  ctx.beginPath(); ctx.arc(cx,cyc,r-3, -Math.PI/2, -Math.PI/2 + pct*2*Math.PI); ctx.stroke();
+
+  ctx.strokeStyle='#9a9d92'; ctx.lineWidth=1;
+  for(let i=0;i<12;i++){
+    const a=i/12*2*Math.PI;
+    const r1= i%3===0 ? r-8 : r-6, r2=r-4;
+    ctx.beginPath();
+    ctx.moveTo(cx+Math.cos(a)*r1, cyc+Math.sin(a)*r1);
+    ctx.lineTo(cx+Math.cos(a)*r2, cyc+Math.sin(a)*r2);
+    ctx.stroke();
+  }
+
+  const handAng = -Math.PI/2 + pct*2*Math.PI;
+  ctx.strokeStyle='#2b3e4f'; ctx.lineWidth=2.2; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(cx,cyc); ctx.lineTo(cx+Math.cos(handAng)*(r-9), cyc+Math.sin(handAng)*(r-9)); ctx.stroke();
+  ctx.fillStyle='#2b3e4f'; ctx.beginPath(); ctx.arc(cx,cyc,2,0,7); ctx.fill();
+
+  ctx.fillStyle= light? '#2b3e4f' : '#2b3e4f';
+  ctx.font='9px "JetBrains Mono",monospace'; ctx.textAlign='center';
+  ctx.fillText(fmtClock(Math.max(0,totalMin-elapsedMin)), cx, cyc+r+16);
+  if(title){ ctx.fillStyle=(mode==='fluor'&&step>=4)?'#9fb0c0':'#2b3e4f'; ctx.fillText(title, cx, cyc-r-6); }
+  ctx.textAlign='left';
+  ctx.restore();
+}
+
+function drawWipeCloth(cx, partCy, partCh, active){
+  const w=54, h=40;
+  const topY=partCy-partCh/2-30;
+  ctx.save();
+  ctx.globalAlpha=0.16; ctx.fillStyle='#000';
+  ctx.beginPath(); ctx.ellipse(cx+4, partCy, 26, 8, 0, 0, 7); ctx.fill();
+  ctx.globalAlpha=1;
+
+  const rot = active ? Math.sin(wipeAnimT*22)*0.06 : 0.03;
+  ctx.translate(cx, topY+h/2);
+  ctx.rotate(rot);
+  const colors=['#7fa6c9','#6f97bb','#8fb2d1'];
+  for(let i=0;i<3;i++){
+    ctx.fillStyle=colors[i];
+    ctx.save();
+    ctx.rotate((i-1)*0.09);
+    roundRect(ctx, -w/2+i*2, -h/2+i*1.5, w-i*4, h-i*3, 5);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.strokeStyle='rgba(255,255,255,.35)'; ctx.lineWidth=1;
+  for(let i=-2;i<=2;i++){
+    ctx.beginPath(); ctx.moveTo(i*10,-h/2+3); ctx.lineTo(i*10,h/2-3); ctx.stroke();
+  }
+  ctx.restore();
+
+  if(active){
+    ctx.save();
+    ctx.fillStyle='#d9b48f';
+    ctx.beginPath(); ctx.ellipse(cx, topY-8, 12, 9, 0, 0, 7); ctx.fill();
+    ctx.restore();
+  }
+}
+
+function wipeClothX(t, left, width, passes){
+  const u = (t*passes) % 1;
+  const goingRight = Math.floor(t*passes) % 2 === 0;
+  const local = goingRight ? u : 1-u;
+  return sweepCanX(local, left, width);
+}
+
+function drawDefectOutline(cx,cy,g,alpha){
+  if(g.shape==='none') return;
+  ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle='#000';ctx.lineWidth=1;
+  if(g.shape==='crack'){ strokeCrack(cx,cy,0); }
+  else { ctx.beginPath();ctx.arc(cx,cy,10,0,7);ctx.stroke(); }
+  ctx.restore();
+}
+
+function drawDefect(cx,cy,g,color,alpha){
+  if(g.shape==='none') return;
+  ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle=color;ctx.lineWidth=g.w;
+  if(color==='#39fff0'){ ctx.shadowColor=color; ctx.shadowBlur=14; }
+  if(g.shape==='crack'){
+    strokeCrack(cx,cy,0);
+  } else {
+    ctx.beginPath();ctx.arc(cx,cy,g.w,0,7);ctx.stroke();
+    ctx.fillStyle=color;ctx.globalAlpha=alpha*0.6;ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawBleed(cx,cy,g,bf,uvDark){
+  if(g.shape==='none' || bf<=0) return;
+  const col = mode==='fluor' ? '#39fff0' : '#ff2a20';
+  ctx.save();
+  ctx.globalAlpha=Math.min(1,bf*1.3);
+  ctx.fillStyle=col; ctx.strokeStyle=col;
+  if(mode==='fluor'){ ctx.shadowColor=col; ctx.shadowBlur=(uvDark?26:18)*bf; }
+  const bloom = 4+bf*22;
+  if(g.shape==='crack'){
+    ctx.lineWidth=2+bf*6;
+    strokeCrack(cx,cy,0);
+    ctx.globalAlpha=Math.min(0.5,bf*0.7);
+    ctx.lineWidth=bloom;
+    strokeCrack(cx,cy,0);
+    ctx.globalAlpha=Math.min(0.6,bf*0.8);
+    crackPts.forEach((p,i)=>{
+      if(i%2!==0) return;
+      const jig = (fbm(i/crackPts.length,0.3)-0.5)*bloom*1.6;
+      ctx.beginPath();
+      ctx.arc(cx+p.x+jig, cy+p.y+jig*0.6, 1+fbm(i/crackPts.length,0.7)*bloom*0.35, 0, 7);
+      ctx.fill();
+    });
+  } else {
+    ctx.beginPath();ctx.arc(cx,cy,6+bloom*0.5,0,7);ctx.fill();
+  }
+  ctx.restore();
+}
+
+/* ═══════════════ Prozessuhr + Zeitraffer ═══════════════ */
+function fmtClock(min){ const s=Math.max(0,Math.round(min*60)); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function tempF(){ return clampNum(Math.exp((tempC-20)*0.025),0.55,1.7); }
+function capOf(g){ return g.depth/(g.w/3+0.4); }
+function uptakeAt(tMin){ const g=defectGeom(); if(g.shape==='none') return 0; return 1-Math.exp(-tMin*capOf(g)*0.35*tempF()); }
+function recDwell(){ const g=defectGeom(); return g.shape==='none'?null:Math.log(10)/(capOf(g)*0.35*tempF()); }   // Zeit bis 90 % Füllgrad
+
+function activePhase(){
+  if(step===2) return {name:'Eindringzeit', target:parseFloat(dwellEl.value), el:dwellAnimT};
+  if(step>=4 && sprayAnimT>=1 && sprayRafId===null) return {name:'Entwicklungszeit', target:parseFloat(devEl.value), el:animT};
+  return null;
+}
+function advanceClock(dtSec){
+  if(paused) return false;
+  const ph=activePhase(); if(!ph) return false;
+  if(ph.el>=ph.target-1e-6) return false;
+  const dtMin=dtSec/60*speed;                     // 1× = Echtzeit (1 min simuliert = 60 s real)
+  if(step===2) dwellAnimT=Math.min(ph.target,dwellAnimT+dtMin); else animT=Math.min(ph.target,animT+dtMin);
+  return true;
+}
+let lastFrame=performance.now();
+function frame(now){
+  const dt=Math.min(0.1,(now-lastFrame)/1000); lastFrame=now;
+  if(advanceClock(dt)) draw();
+  requestAnimationFrame(frame);
+}
+
+function updateClockUI(){
+  const ph=activePhase(), st=$('clkState');
+  if(!ph){
+    st.textContent='keine Zeitphase aktiv'; st.className='live-state';
+    $('clkTime').innerHTML='–'; $('clkBar').style.width='0%'; $('clkPhaseSub').textContent='';
+    $('clkSub').textContent = step<2 ? 'Die Eindringzeit startet automatisch, sobald der Penetrant aufgetragen ist.' : (step===3 ? 'Eindringzeit beendet'+(effDwell!==null?' ('+fmtClock(effDwell)+' min)':'')+' · Die Entwicklungszeit startet nach dem Auftragen des Entwicklers.' : (step===4 ? 'Die Entwicklungszeit startet automatisch nach dem Auftragen des Entwicklers.' :  (step>=5 ? 'Prozess abgeschlossen' : (sprayRafId!==null ? 'Entwickler wird aufgetragen – danach startet die Entwicklungszeit' : '—'))));
+    return;
+  }
+  const running=!paused && ph.el<ph.target-1e-6;
+  st.textContent = paused ? 'angehalten' : (running ? ph.name+' läuft' : ph.name+' abgeschlossen');
+  st.className='live-state'+(running?' run':'');
+  $('clkTime').innerHTML=fmtClock(ph.el)+' <small>/ '+fmtClock(ph.target)+' min</small>';
+  $('clkBar').style.width=(ph.target>0?clampNum(ph.el/ph.target,0,1)*100:100)+'%';
+  $('clkPhaseSub').textContent=ph.name;
+  const restReal=(ph.target-ph.el)*60/speed;
+  $('clkSub').textContent='Zeitraffer '+speed+'× · 1 s real ≙ '+speed+' s simuliert'+(running?' · Rest real ≈ '+fmtClock(restReal/60):'');
+}
+
+/* ═══════════════ Rissquerschnitt ═══════════════ */
+const secState={fill:0,surf:0};
+function defPath(g,cx,y0,wpx,dpx,shape){
+  g.beginPath();
+  if(shape==='crack'){
+    g.moveTo(cx-wpx/2,y0); g.lineTo(cx-wpx*0.30,y0+dpx*0.35); g.lineTo(cx-wpx*0.14,y0+dpx*0.72); g.lineTo(cx-1.5,y0+dpx);
+    g.lineTo(cx+2,y0+dpx); g.lineTo(cx+wpx*0.16,y0+dpx*0.7); g.lineTo(cx+wpx*0.32,y0+dpx*0.34); g.lineTo(cx+wpx/2,y0); g.closePath();
+  } else {
+    g.moveTo(cx-wpx,y0); g.bezierCurveTo(cx-wpx,y0+dpx*1.5,cx+wpx,y0+dpx*1.5,cx+wpx,y0); g.closePath();
+  }
+}
+function secChip(g,txt,x,y,col){
+  g.font='11px "JetBrains Mono",monospace'; const w=g.measureText(txt).width+14;
+  g.fillStyle=(mode==='fluor'&&step>=4)?'rgba(6,10,18,.85)':(light?'rgba(255,255,255,.88)':'rgba(14,18,22,.78)');
+  roundRect(g,x,y-13,w,21,6); g.fill();
+  g.fillStyle=col||((mode==='fluor'&&step>=4)?'#b8c6d6':(light?'#1d2f3f':'#d5dce3')); g.fillText(txt,x+7,y+2);
+}
+function drawSection(){
+  const g=sctx, W=SW, H=SH, df=defectGeom(), fl=mode==='fluor', uv=fl&&step>=4;
+  const pen=fl?'#39fff0':'#d3281d', hasD=df.shape!=='none';
+  srand(777);
+  g.clearRect(0,0,W,H);
+  const bg=g.createLinearGradient(0,0,0,H);
+  if(uv){ bg.addColorStop(0,'#03050a'); bg.addColorStop(1,'#0a1018'); }
+  else if(light){ bg.addColorStop(0,'#eef2f6'); bg.addColorStop(1,'#d6dee6'); }
+  else { bg.addColorStop(0,'#252b31'); bg.addColorStop(1,'#171b1f'); }
+  g.fillStyle=bg; g.fillRect(0,0,W,H);
+
+  const y0=122, cx=W/2, X0=30, X1=W-30;
+  const wpx = df.shape==='crack' ? clampNum(df.w*7,14,64) : (df.shape==='circle' ? df.w*4.6 : 0);
+  const dpx = df.shape==='crack' ? df.depth*105 : (df.shape==='circle' ? df.depth*90 : 0);
+  const ddep = df.shape==='circle' ? dpx*1.12 : dpx;
+
+  // Zustand je Prozessschritt
+  const wipeMode=parseInt(wipeEl.value);
+  const f0=uptakeAt(effDwell!==null?effDwell:dwellAnimT);
+  let surf=0, dirt=0, fill=0, topCut=0, dev=0, bleed=0;
+  if(step===0){ dirt = sprayRafId!==null ? 1-sprayAnimT : 1; }
+  else if(step===1){ surf=sprayAnimT; fill=hasD?0.12*sprayAnimT:0; }
+  else if(step===2){ surf=1; fill=uptakeAt(dwellAnimT); }
+  else if(step===3){ const p=wipeStarted?(wipeAnimT<1?wipeAnimT:1):0; surf=wipeMode===0?1-p*0.55:1-p; fill=f0; topCut=wipeMode===2?p*0.45:0; }
+  else {
+    surf=wipeMode===0?0.45:0; fill=f0; topCut=wipeMode===2?0.45:0; dev=sprayAnimT;
+    const shown=(sprayAnimT>=1)?Math.min(parseFloat(devEl.value),animT):0; bleed=bleedFactor(shown); fill=fill*(1-0.5*bleed);
+  }
+  secState.fill=hasD?fill:0; secState.surf=surf;
+
+  // Prüfstück-Körper (Schnitt, schraffiert)
+  const bodyG=g.createLinearGradient(0,y0,0,H);
+  if(uv){ bodyG.addColorStop(0,'#10252d'); bodyG.addColorStop(1,'#0a171d'); }
+  else if(light){ bodyG.addColorStop(0,'#b4bec7'); bodyG.addColorStop(1,'#8693a0'); }
+  else { bodyG.addColorStop(0,'#7f8b96'); bodyG.addColorStop(1,'#46505a'); }
+  g.fillStyle=bodyG; g.fillRect(X0,y0,X1-X0,H-y0-10);
+  g.save(); g.beginPath(); g.rect(X0,y0,X1-X0,H-y0-10); g.clip();
+  g.strokeStyle=uv?'rgba(120,200,220,.07)':'rgba(0,0,0,.14)'; g.lineWidth=1;
+  for(let k=-300;k<W+300;k+=9){ g.beginPath(); g.moveTo(k,y0); g.lineTo(k+(H-y0),H); g.stroke(); }
+  g.restore();
+  g.fillStyle=uv?'rgba(120,200,220,.35)':'rgba(255,255,255,.55)'; g.fillRect(X0,y0-1,X1-X0,1.6);
+
+  // Fehler (leerer Hohlraum)
+  if(hasD){
+    defPath(g,cx,y0,wpx,dpx,df.shape); g.fillStyle=uv?'#02060a':'#0a0d11'; g.fill();
+    g.strokeStyle=uv?'rgba(120,200,220,.25)':'rgba(0,0,0,.55)'; g.lineWidth=1; g.stroke();
+  }
+
+  // Verschmutzung (Vorreinigung)
+  if(dirt>0){
+    g.save(); g.globalAlpha=Math.min(1,dirt);
+    for(let i=0;i<70;i++){ const x=X0+10+rnd()*(X1-X0-20); if(Math.abs(x-cx)<wpx/2+2&&hasD) continue; g.fillStyle=(i%3?'#6b4a2a':'#3a2a18'); g.beginPath(); g.ellipse(x,y0-1.5,2+rnd()*5,1+rnd()*2.4,0,0,7); g.fill(); }
+    if(hasD){ g.save(); defPath(g,cx,y0,wpx,dpx,df.shape); g.clip(); g.fillStyle='#6b4a2a'; g.globalAlpha=Math.min(1,dirt)*0.92; g.fillRect(cx-wpx-4,y0,wpx*2+8,ddep*0.78); g.restore(); }
+    g.restore();
+  }
+
+  // Penetrant im Fehler (Kapillarfront)
+  if(hasD && fill>0.002){
+    g.save(); defPath(g,cx,y0,wpx,dpx,df.shape); g.clip();
+    const yTop=y0+topCut*ddep, yFront=y0+fill*ddep;
+    if(yFront>yTop){
+      if(fl){ g.shadowColor=pen; g.shadowBlur=14; }
+      const pg=g.createLinearGradient(0,yTop,0,yFront); pg.addColorStop(0,pen); pg.addColorStop(1,fl?'#1fd6c6':'#9b1d14');
+      g.fillStyle=pg; g.globalAlpha=0.96; g.fillRect(cx-wpx-4,yTop,wpx*2+8,yFront-yTop);
+      g.shadowBlur=0; g.globalAlpha=0.75; g.fillStyle='rgba(255,255,255,.75)';
+      g.beginPath(); g.ellipse(cx,yFront,Math.max(2,wpx*0.18),1.6,0,0,7); g.fill();     // Meniskus
+    }
+    g.restore();
+  }
+
+  // Penetrantfilm auf der Oberfläche
+  if(surf>0.01){
+    const th=11*surf;
+    if(fl){ g.save(); g.shadowColor=pen; g.shadowBlur=12; }
+    g.fillStyle=pen; g.globalAlpha=0.9*Math.min(1,surf+0.1); g.fillRect(X0,y0-th,X1-X0,th);
+    g.globalAlpha=0.35; g.fillStyle='#fff'; g.fillRect(X0,y0-th,X1-X0,1.6);
+    g.globalAlpha=1; if(fl) g.restore();
+  }
+
+  // Kapillarkraft-Pfeile am Fehlereingang
+  if(hasD && step===2 && fill<0.97){
+    g.save(); g.strokeStyle=fl?'#39fff0':'#ff7a6e'; g.fillStyle=g.strokeStyle; g.lineWidth=1.6;
+    [-1,0,1].forEach(k=>{ const ax=cx+k*(wpx/2+22), ay=y0-34; g.beginPath(); g.moveTo(ax,ay); g.lineTo(ax-k*(wpx/2+12)*0.55,y0-6); g.stroke();
+      g.beginPath(); g.moveTo(ax-k*(wpx/2+12)*0.55,y0-4); g.lineTo(ax-k*(wpx/2+12)*0.55-4,y0-11); g.lineTo(ax-k*(wpx/2+12)*0.55+4,y0-11); g.closePath(); g.fill(); });
+    g.restore();
+  }
+
+  // Entwickler: poröse Schicht, saugt Penetrant aus dem Fehler
+  if(dev>0.01){
+    const th=30*dev;
+    g.save(); g.beginPath(); g.rect(X0,y0-th,X1-X0,th); g.clip();
+    g.fillStyle=uv?'rgba(34,46,54,.9)':'rgba(241,239,230,.94)'; g.fillRect(X0,y0-th,X1-X0,th);
+    for(let i=0;i<340;i++){ const x=X0+rnd()*(X1-X0), y=y0-th+rnd()*th; g.fillStyle=uv?'rgba(120,150,170,'+(0.1+rnd()*0.2)+')':'rgba(150,146,130,'+(0.12+rnd()*0.2)+')'; g.beginPath(); g.arc(x,y,0.8+rnd()*1.6,0,7); g.fill(); }
+    if(hasD && bleed>0){
+      const rx=18+bleed*(wpx*1.5+62), ry=th*0.95;
+      g.save(); if(fl){ g.shadowColor=pen; g.shadowBlur=22*bleed; }
+      g.translate(cx,y0-th*0.45); g.scale(rx/ry,1);
+      const rg=g.createRadialGradient(0,0,0,0,0,ry); rg.addColorStop(0,pen); rg.addColorStop(0.55,fl?'rgba(57,255,240,.45)':'rgba(211,40,29,.5)'); rg.addColorStop(1,'rgba(0,0,0,0)');
+      g.globalAlpha=Math.min(1,bleed*1.25); g.fillStyle=rg; g.beginPath(); g.arc(0,0,ry,0,7); g.fill(); g.restore();
+      g.globalAlpha=Math.min(1,bleed*1.2); g.fillStyle=pen; g.fillRect(cx-Math.max(2,wpx*0.16),y0-th,Math.max(4,wpx*0.32),th); g.globalAlpha=1;
+    }
+    g.restore();
+  }
+
+  // Beschriftungen
+  g.font='11px "JetBrains Mono",monospace';
+  const txtC=uv?'#8fa3b5':(light?'#2b3e4f':'#c5cdd5');
+  g.fillStyle=txtC; g.fillText('Prüfstück (Schnitt)',X0+8,y0+22);
+  g.fillText('Oberfläche',X0+8,y0-(dev>0?36:(surf>0.3?16:8)));
+  if(hasD){
+    g.strokeStyle=txtC; g.lineWidth=1; g.beginPath(); g.moveTo(cx+wpx/2+6,y0+ddep*0.55); g.lineTo(cx+wpx/2+54,y0+ddep*0.55+14); g.stroke();
+    g.fillStyle=txtC; g.fillText(df.shape==='crack'?'Riss':'Oberflächenpore',cx+wpx/2+58,y0+ddep*0.55+18);
+  }
+  const caps=['Vorreinigung: Schmutz und Fett verschließen den Fehler – Penetrant könnte nicht eindringen.',
+              'Penetrant benetzt die Oberfläche und erreicht den Fehlereingang.',
+              hasD?('Kapillarwirkung: Penetrant steigt in den Fehler – Füllgrad '+Math.round(fill*100)+' %.'):'Fehlerfrei: Penetrant liegt nur als Film auf der Oberfläche.',
+              wipeMode===1?'Überschuss entfernt: Penetrant bleibt nur im Fehler.':(wipeMode===0?'Zu wenig abgewischt: Restfilm erzeugt Untergrundanzeige.':'Zu stark abgewischt: Penetrant wird aus dem Fehler gewaschen.'),
+              hasD?('Entwickler saugt Penetrant aus dem Fehler – Anzeigenkontrast '+Math.round(bleed*100)+' %.'):'Entwickler aufgetragen: keine Anzeige, Bauteil fehlerfrei.'];
+  secChip(g,caps[Math.min(step,4)],12,22);
+  $('secHint').textContent=caps[Math.min(step,4)];
+  $('lgPen').style.background=pen;
+}
+
+/* ═══════════════ Auswertung + Prüfablauf ═══════════════ */
+let procKey='';
+function buildProc(){
+  const g=defectGeom(), hasD=g.shape!=='none', dwell=parseFloat(dwellEl.value), dev=parseFloat(devEl.value), wipe=parseInt(wipeEl.value);
+  const rec=recDwell(), eff=effDwell!==null?effDwell:(step===2?dwellAnimT:0);
+  const tOK=tempC>=10&&tempC<=50;
+  const bf=bleedFactor(Math.min(dev,animT)), finished=step>=5 && animT>=dev-0.001;
+  const found=bf>0.22&&hasD;
+  const dwellShort=hasD&&rec!==null&&step>=3&&eff<rec*0.8;
+  const items=[
+    {t:'Vorreinigung & Trocknen', val:step>0?'erledigt':'offen', warn:false,
+     d:'Prüffläche reinigen und vollständig trocknen: Öl, Fett, Zunder und Farbreste verschließen den Fehler und verhindern den Penetranteintritt.'},
+    {t:'Penetrant auftragen · Eindringzeit', val:step<2?tempC+' °C':fmtClock(eff)+' / '+fmtClock(dwell)+' min', warn:(!tOK&&step>=1)||dwellShort,
+     d:'Penetrant gleichmäßig auftragen (Sprühen, Tauchen, Pinseln), Prüftemperatur 10–50 °C. Die Eindringzeit läuft ab dem Auftragen, bis mit dem Abwischen begonnen wird: Die Kapillarkraft zieht den Penetrant in den Fehler'+(rec!==null?' (empfohlen ≈ '+fmtClock(rec)+' min bis 90 % Füllgrad)':'')+'.',
+     fix:!tOK?'Prüftemperatur in den Normbereich 10–50 °C bringen.':'Mit dem Abwischen länger warten bzw. die Eindringzeit auf ≈ '+(rec!==null?fmtClock(rec):'–')+' min erhöhen.'},
+    {t:'Überschuss entfernen', val:step<3?'offen':['zu wenig','korrekt','zu stark'][wipe], warn:wipe!==1&&step>=3,
+     d:'Überschuss mit leicht angefeuchtetem Lappen entfernen. Zu wenig lässt Untergrund stehen, zu viel wäscht Penetrant aus dem Fehler.', fix:wipe===0?'Gründlicher abwischen.':'Weniger stark wischen.'},
+    {t:'Entwickeln', val:step<5?'offen':fmtClock(Math.min(dev,animT))+' / '+fmtClock(dev)+' min', warn:dev<6&&step>=4,
+     d:'Entwickler dünn und gleichmäßig aufbringen. Die Entwicklungszeit läuft ab dem Auftragen; der Entwickler saugt Penetrant aus dem Fehler (hier ≥ 6 min).', fix:'Entwicklungszeit auf mindestens 6 min stellen.'},
+    {t:'Auswertung & Nachreinigung', val:!finished?'offen':(hasD?(found?'Anzeige':'keine Anzeige'):'fehlerfrei'), warn:finished&&hasD&&!found,
+     d:'Anzeigen bei ausreichendem Licht (Weißlicht ≥ 500 lx bzw. UV-A bei Abdunkelung) bewerten und dokumentieren, danach das Prüfteil nachreinigen.', fix:'Es ist keine auswertbare Anzeige entstanden – Eindringzeit, Wischtechnik und Entwicklungszeit prüfen.'}
+  ];
+  const cur = finished ? 5 : [0,1,1,2,3,3][Math.min(step,5)];
+  items.forEach((it,i)=>{ it.st = i<cur ? (it.warn?'warn':'ok') : (i===cur ? (it.warn?'warn':'cur') : 'idle'); });
+  return items;
+}
+function renderProc(){
+  const items=buildProc(), key=items.map(i=>i.st+i.val).join('|');
+  const ok=items.filter(i=>i.st==='ok').length;
+  $('procCount').textContent=ok+' von '+items.length+' Schritten erfüllt';
+  if(key===procKey) return; procKey=key;
+  $('proc').innerHTML=items.map((x,i)=>'<div class="pstep '+x.st+'"><div class="ic">'+(x.st==='ok'?'✓':(x.st==='warn'?'!':(i+1)))+'</div><div><h4><span>'+(i+1)+'. '+x.t+'</span><span class="val">'+x.val+'</span></h4><p>'+x.d+'</p>'+(x.st==='warn'&&x.fix?'<p class="fix">'+x.fix+'</p>':'')+'</div></div>').join('');
+}
+let stepsK='';
+function syncUI(){
+  const g=defectGeom(), hasD=g.shape!=='none', dwell=parseFloat(dwellEl.value), rec=recDwell();
+  updateClockUI();
+  const sk=dispStep()+'|'+step+'|'+devDone(); if(sk!==stepsK){ stepsK=sk; renderSteps(); }
+  const eff=effDwell!==null?effDwell:(step===2?dwellAnimT:0);
+  $('stFill').textContent=hasD?Math.round(secState.fill*100)+' %':'–';
+  $('stDw').innerHTML=(step<2?'–':fmtClock(eff))+' / '+fmtClock(dwell)+' min'+(rec!==null?'<small>empfohlen ≈ '+fmtClock(rec)+' min</small>':'');
+  $('stDwBox').classList.toggle('warn',hasD&&rec!==null&&step>=3&&eff<rec*0.8);
+  $('evalSub').textContent=({fine:'feiner Riss',wide:'grober Riss',porosity:'Oberflächenpore',none:'fehlerfrei'})[defectSel.value]+' · '+(mode==='fluor'?'fluoreszierend':'Farbeindringverfahren');
+  renderProc();
+  if(step===2) updateButtonState();
+}
+
+$('speedSeg').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.id==='btnPause'){ paused=!paused; b.classList.toggle('on',paused); b.setAttribute('aria-pressed',paused); b.textContent=paused?'▶':'⏸'; b.title=paused?'Uhr fortsetzen':'Uhr anhalten'; }
+  else if(b.dataset.s){ speed=parseInt(b.dataset.s,10); document.querySelectorAll('#speedSeg button[data-s]').forEach(x=>x.classList.toggle('sel',x===b)); }
+  updateClockUI();
+});
+
+function completePendingStep(){
+  if(pendingStep === null) return;
+  step = pendingStep;
+  pendingStep = null;
+  // Beim Eintritt in einen Schritt, der eine eigene Sprüh-Animation braucht (Penetrant / Entwickler),
+  // muss sprayAnimT auf 0 zurück – sonst gilt der alte Endwert (1) aus dem vorigen Schritt weiter
+  // und die Farbe erscheint sofort voll aufgetragen, bevor überhaupt gestartet wurde.
+  if(step===1 || step===4){ sprayAnimT = 0; }
+  if(step===3){ wipeStarted = false; wipeMaxReach = 0; }
+  if(step===2){ dwellAnimT = 0; }
+  if(step===4){ animT = 0; }
+  renderSteps();
+  draw();
+  updateButtonState();
+  // Wenn Schritt 5 erreicht (Ende), Button deaktivieren und Text ändern
+  if(step >= 5){
+    btnNext.disabled = true;
+    btnNext.textContent = '✔ Abgeschlossen';
+    callout.className = 'callout good';
+    callout.innerHTML = 'Prüfablauf vollständig. Auswertung abgeschlossen.';
+  }
+}
+
+function updateButtonState(){
+  if(step >= 5){
+    btnNext.disabled = true;
+    btnNext.textContent = '✔ Abgeschlossen';
+    return;
+  }
+  const animRunning = (sprayRafId!==null) || (wipeRafId!==null) || (pendingStep !== null);
+  btnNext.disabled = animRunning;
+  if(animRunning){ btnNext.textContent = '⏳ Läuft …'; return; }
+  const L=['🧼 Vorreinigung durchführen','🎨 Penetrant auftragen','🧽 Überschuss abwischen','🧽 Überschuss abwischen','🌫 Entwickler auftragen'];
+  let txt=L[step];
+  if(step===2 && dwellAnimT<parseFloat(dwellEl.value)-0.001) txt='🧽 Abwischen · Eindringzeit beenden';
+  btnNext.textContent = txt;
+}
+
+// Sprühanimationen: am Ende rufe completePendingStep auf
+function sprayTick(){
+  sprayAnimT = Math.min(1, sprayAnimT + 0.013);
+  draw();
+  if(sprayAnimT < 1){
+    sprayRafId = requestAnimationFrame(sprayTick);
+  } else {
+    sprayRafId = null;
+    completePendingStep();
+    updateButtonState();
+  }
+}
+
+function wipeTick(){
+  wipeAnimT = Math.min(1, wipeAnimT + 0.0045);
+  draw();
+  if(wipeAnimT < 1){
+    wipeRafId = requestAnimationFrame(wipeTick);
+  } else {
+    wipeRafId = null;
+    completePendingStep();
+    updateButtonState();
+  }
+}
+
+function startSprayAnim(){
+  // wird nicht mehr direkt aufgerufen; stattdessen setzen wir sprayAnimT=0 und rufen sprayTick auf
+}
+
+function startWipeAnim(){
+  // wird nicht mehr direkt aufgerufen
+}
+
+// ---- Button: Nächster Schritt ----
+function startSprayTo(next){
+  pendingStep = next; sprayAnimT = 0;
+  if(sprayRafId) cancelAnimationFrame(sprayRafId);
+  sprayRafId = requestAnimationFrame(sprayTick);
+  updateButtonState();
+}
+function startWipe(){
+  wipeAnimT = 0; wipeMaxReach = 0; wipeStarted = true;
+  if(wipeRafId) cancelAnimationFrame(wipeRafId);
+  wipeRafId = requestAnimationFrame(wipeTick);
+}
+document.getElementById('btnNext').addEventListener('click', ()=>{
+  if(pendingStep !== null) return;
+  if(step >= 5) return;
+
+  if(step === 0){
+    startSprayTo(1);                       // Vorreinigung
+  } else if(step === 1){
+    startSprayTo(2);                       // Penetrant auftragen → danach läuft die Eindringzeit
+  } else if(step === 2){
+    // Abwischen beendet die Eindringzeit: die tatsächlich abgewartete Zeit zählt
+    effDwell = Math.min(parseFloat(dwellEl.value), dwellAnimT);
+    step = 3; pendingStep = 4;
+    startWipe();
+    renderSteps(); draw(); updateButtonState();
+  } else if(step === 3){
+    if(wipeAnimT >= 1){ pendingStep = 4; startWipe(); updateButtonState(); }
+  } else if(step === 4){
+    startSprayTo(5);                       // Entwickler auftragen → danach läuft die Entwicklungszeit
+  }
+});
+
+document.getElementById('btnReset').addEventListener('click', ()=>{
+  step=0; animT=0; dwellAnimT=0; wipeAnimT=1; sprayAnimT=1; pendingStep = null; wipeStarted=false; wipeMaxReach=0; effDwell=null;
+  if(rafId){cancelAnimationFrame(rafId); rafId=null;}
+  if(wipeRafId){cancelAnimationFrame(wipeRafId); wipeRafId=null;}
+  if(sprayRafId){cancelAnimationFrame(sprayRafId); sprayRafId=null;}
+  renderSteps(); flashCanvas(); draw();
+  callout.className='callout';
+  callout.innerHTML='Wähle einen Fehlertyp und starte den Ablauf: Vorreinigung → Penetrant auftragen (die Eindringzeit läuft ab dem Auftragen) → Überschuss entfernen → Entwickler auftragen → Auswertung.';
+  btnNext.disabled = false;
+  updateButtonState();
+});
+
+const tempEl=$('temp'), tempV=$('tempV');
+function syncLabels(){
+  dwellV.textContent=dwellEl.value+' min';
+  wipeV.textContent=wipeLabels[parseInt(wipeEl.value)];
+  devV.textContent=devEl.value+' min';
+  tempC=parseInt(tempEl.value,10); tempV.textContent=tempC+' °C';
+  $('tempNote').textContent = (tempC<10||tempC>50) ? 'außerhalb des Normbereichs 10–50 °C – Ergebnis nicht verwertbar' : 'Normbereich 10–50 °C · Temperatur '+(tempC<18?'verlängert':(tempC>25?'verkürzt':'beeinflusst'))+' die Eindringzeit';
+  document.querySelectorAll('input[type=range]').forEach(i=>i.style.setProperty('--p',((i.value-i.min)/(i.max-i.min)*100)+'%'));
+}
+[dwellEl,wipeEl,devEl,defectSel,tempEl].forEach(el=>el.addEventListener('input',()=>{
+  syncLabels();
+  // Uhr läuft weiter; nur Obergrenzen nachführen
+  dwellAnimT=Math.min(dwellAnimT,parseFloat(dwellEl.value));
+  animT=Math.min(animT,parseFloat(devEl.value));
+  draw(); updateButtonState();
+}));
+
+window.addEventListener('resize', ()=>{ hiDPI(); draw(); });
+
+function flashCanvas(){
+  cv.classList.add('step-fade');
+  requestAnimationFrame(()=>{ cv.classList.remove('step-fade'); });
+}
+
+syncLabels();
+renderSteps();
+ready=true;
+draw();
+updateButtonState();
+requestAnimationFrame(frame);
+</script>
+<script id="fit-js">
+window.FIT_CFG={cols:[[0,1,2],[3,4,5]],template:'1.75fr 1fr'};
+(function(){
+  /* ═══ Kompakt-Dashboard (wie UT) – reines CSS-Pixel-Layout, KEIN Zoom-Eingriff: Browser-Zoom (Strg +/−) wirkt normal ═══ */
+  var C=window.FIT_CFG||{};
+  var app=document.querySelector('.app'); if(!app) return;
+  var container=app.querySelector(':scope > .layout, :scope > .grid'); if(!container) return;
+  var SIDEW=C.sideW||280, MINCOL=C.minCol||440, MAXK=C.maxCols||3, MAXS=C.maxSide||3,
+      SIDEGROUPS=C.sideGroups===undefined?[0]:C.sideGroups, MANUAL=C.cols||null, TEMPLATE=C.template||null;
+  var GAPS=[8,6,5], TIER=0, root=document.documentElement;
+  function isItem(c){ return c.classList.contains('panel')||c.classList.contains('stage'); }
+  function flat(g){
+    var o=[]; [].slice.call(g.children).forEach(function(ch){
+      if(ch.tagName==='SCRIPT'||ch.tagName==='STYLE') return;
+      if(getComputedStyle(ch).display==='contents'){ o.push.apply(o,flat(ch)); return; }
+      var kids=[].slice.call(ch.children);
+      if(ch.classList.contains('stagegrid') && kids.length>1 && kids.every(function(k){return k.classList.contains('stage');})){
+        var cls=['riss-only','gef-only'].filter(function(q){return ch.classList.contains(q);}), sc=ch.dataset.scn;
+        kids.forEach(function(k){ cls.forEach(function(q){k.classList.add(q);}); if(sc) k.dataset.scn=sc; o.push(k); });
+      } else o.push(ch);
+    }); return o;
+  }
+  var groups=[].slice.call(container.children).filter(function(c){return c.tagName!=='SCRIPT'&&c.tagName!=='STYLE';})
+    .map(function(c){ return isItem(c)?[c]:flat(c); });
+  var all=[]; groups.forEach(function(g,gi){ g.forEach(function(el){ all.push({el:el,g:gi,parent:el.parentElement,next:el.nextSibling}); }); });
+  var grid=null, cols=[], stash=null, curN=0, curSig='', busy=false;
+  function active(){ return window.innerWidth>=1000 && window.innerHeight>=520; }
+  function GAP(){ return GAPS[TIER]; }
+  function ensure(n){
+    if(grid&&curN===n) return;
+    if(!grid){ grid=document.createElement('div'); grid.className='fitgrid'; stash=document.createElement('div'); stash.style.display='none'; container.after(grid); container.after(stash); }
+    grid.textContent=''; cols=[]; curN=n; curSig='';
+    for(var i=0;i<n;i++){ var c=document.createElement('div'); c.className='fcol'; cols.push(c); grid.appendChild(c); }
+  }
+  function partition(hs,K){            /* zusammenhängende Aufteilung mit minimaler Maximalhöhe */
+    var n=hs.length, G=GAP(); if(K<=1||n<=1) return [hs.map(function(_,i){return i;})];
+    K=Math.min(K,n); var pre=[0]; hs.forEach(function(h,i){pre.push(pre[i]+h+G);});
+    var best=[],bestScore=1e12;
+    (function rec(start,k,cut){
+      if(k===1){ var cuts=cut.concat([n]), mx=0, sq=0; for(var j=0;j<cuts.length;j++){ var a=j?cuts[j-1]:0, h=pre[cuts[j]]-pre[a]; mx=Math.max(mx,h); sq+=h*h; }
+        var sc=mx+sq*1e-7; if(sc<bestScore){bestScore=sc;best=cuts;} return; }
+      for(var e=start+1;e<=n-(k-1);e++) rec(e,k-1,cut.concat([e]));
+    })(0,K,[]);
+    var out=[],s=0; best.forEach(function(e){ var a=[]; for(var i=s;i<e;i++) a.push(i); out.push(a); s=e; }); return out;
+  }
+  function colH(ix,list){ var t=0; ix.forEach(function(i){t+=list[i].h+GAP();}); return t; }
+  function setTier(t){ TIER=t; root.classList.remove('d1','d2'); if(t) root.classList.add('d'+t); }
+
+  function layoutOnce(){
+    var W=window.innerWidth, effW=W-26, G=GAP();
+    root.classList.add('fit'); container.style.display='none';
+    var mwrap=document.createElement('div'); mwrap.className='fitgrid'; mwrap.style.cssText='position:absolute;left:-99999px;top:0;display:block;flex:none;visibility:hidden;';
+    var meas=document.createElement('div'); meas.className='fcol'; meas.style.cssText='overflow:visible;height:auto;max-height:none;display:flex;flex-direction:column;';
+    mwrap.appendChild(meas); app.appendChild(mwrap);
+    ensure(1); grid.style.gridTemplateColumns='1fr';
+    var availH=Math.max(300,grid.clientHeight-2), plan, S, K, over=0, tpl;
+    function measure(list,w){ meas.style.width=w+'px'; list.forEach(function(a){meas.appendChild(a.el);}); list.forEach(function(a){a.h=a.el.getBoundingClientRect().height;}); }
+    if(MANUAL){
+      K=MANUAL.length; S=0; ensure(K);
+      plan=MANUAL.map(function(idxs){ return idxs.map(function(i){return all[i];}).filter(Boolean); });
+      var used={}; MANUAL.forEach(function(ix){ix.forEach(function(i){used[i]=1;});});
+      all.forEach(function(a,i){ if(!used[i]) plan[K-1].push(a); });
+      tpl=TEMPLATE||('repeat('+K+',minmax(0,1fr))');
+      plan.forEach(function(c,i){ var w=Math.floor((effW-G*(K-1))/K); measure(c,w); over=Math.max(over,colH(c.map(function(_,j){return j;}),c)-availH); });
+    } else {
+      var side=all.filter(function(a){return SIDEGROUPS.indexOf(a.g)>=0;}), rest=all.filter(function(a){return SIDEGROUPS.indexOf(a.g)<0;});
+      var best=null, sv=[];
+      var sideVis=side.length; if(side.length){ measure(side,SIDEW-6); sideVis=side.filter(function(a){return a.h>1;}).length; }
+      for(var s=(sideVis?1:0); s<=(sideVis?Math.min(MAXS,sideVis):0); s++){
+        if(effW-s*(SIDEW+G)<MINCOL) break;
+        var spart=[], oS=-1e9;
+        if(s){ measure(side,SIDEW-6); sv=side.filter(function(a){return a.h>1;}); spart=partition(sv.map(function(a){return a.h;}),s);
+          oS=Math.max.apply(null,spart.map(function(ix){return colH(ix,sv)-availH;})); }
+        var kmax=Math.max(1,Math.min(MAXK,Math.floor((effW-s*(SIDEW+G)+G)/(MINCOL+G))));
+        for(var k=1;k<=kmax;k++){
+          var mw=Math.floor((effW-s*(SIDEW+G)-G*(k-1))/k)-6;
+          measure(rest,mw);
+          var vv=rest.filter(function(a){return a.h>1;}); if(k>Math.max(1,vv.length)) break;
+          var pp=partition(vv.map(function(a){return a.h;}),k);
+          var hR=pp.map(function(ix){return colH(ix,vv);}), mxR=Math.max.apply(null,hR);
+          var solvable=(k===1&&s>=1&&vv.length<=2), ov=Math.max(0,oS,solvable?0:mxR-availH), left=solvable?0:Math.max(0,availH-mxR);
+          var score=ov>2?(1e6+ov*10):(left*0.5+s*45+k*4+(solvable?25:0));
+          if(!best||score<best.score) best={score:score,S:s,K:k,spart:spart,pp:pp,vv:vv,sv:sv,over:ov,mw:mw};
+        }
+      }
+      S=best.S; K=best.K; over=best.over;
+      ensure(S+K);
+      plan=best.spart.map(function(ix){return ix.map(function(i){return best.sv[i];});}).concat(best.pp.map(function(ix){return ix.map(function(i){return best.vv[i];});}));
+      if(S) side.filter(function(a){return a.h<=1;}).forEach(function(a){plan[0].push(a);});
+      while(plan.length<S+K) plan.push([]);
+      var sw=[]; for(var q=0;q<S;q++) sw.push(SIDEW+'px');
+      tpl=(S?sw.join(' ')+' ':'')+'repeat('+K+',minmax(0,1fr))';
+    }
+    var sig=plan.map(function(c){return c.map(function(a){return all.indexOf(a);}).join(',');}).join('|')+'@'+curN;
+    var inPlan=new Set(); plan.forEach(function(c){c.forEach(function(a){inPlan.add(a);});});
+    if(sig!==curSig){ plan.forEach(function(c,i){ cols[i].replaceChildren.apply(cols[i],c.map(function(a){return a.el;})); }); curSig=sig; }
+    else plan.forEach(function(c,i){ c.forEach(function(a){ if(a.el.parentElement!==cols[i]) cols[i].appendChild(a.el); }); });
+    all.forEach(function(a){ if(!inPlan.has(a)) stash.appendChild(a.el); });
+    mwrap.remove();
+    grid.style.gridTemplateColumns=tpl;
+    window.__fitDbg={S:S,K:K,tier:TIER,over:Math.round(over),availH:availH};
+    return {over:over,S:S,K:K,availH:availH};
+  }
+  function redraw(){ window.__fitSilent=true; window.dispatchEvent(new Event('resize')); window.__fitSilent=false; }
+  function colNat(c){ var t=0,n=0; [].forEach.call(c.children,function(ch){ var h=ch.getBoundingClientRect().height; if(h>0){ t+=h; n++; } }); return t+Math.max(0,n-1)*GAP(); }
+  function isGraphicCol(c){
+    var els=c.querySelectorAll('canvas,svg'); for(var i=0;i<els.length;i++){ var e=els[i]; if(e.closest('button,.icon,.badge,.toggle,summary')) continue; var r=e.getBoundingClientRect(); if(r.width>150&&r.height>60) return true; } return false;
+  }
+  var TEXTMIN=C.textMin||300;
+  function fitWidths(avail){        /* Grafik-Spalten so breit, dass ihre Höhe die Fensterhöhe füllt (Seitenverhältnis bleibt, nichts verzerrt); Rest geht an Text-Spalten */
+    var n=cols.length; if(n<1) return 0;
+    var G=GAP(), availW=window.innerWidth-26-G*(n-1), g=cols.map(isGraphicCol), nG=g.filter(Boolean).length, nT=n-nG;
+    function tpl(w){ return cols.map(function(_,i){ return g[i]?Math.round(w[i])+'px':'minmax('+TEXTMIN+'px,1fr)'; }).join(' '); }
+    if(!nG||n===1){ grid.style.gridTemplateColumns=cols.map(function(){return 'minmax(0,1fr)';}).join(' '); redraw(); }
+    else {
+      var budget=availW-nT*TEXTMIN, w=cols.map(function(_,i){return g[i]?budget/nG:0;}), lo=MINCOL*0.7;
+      for(var it=0; it<7; it++){
+        grid.style.gridTemplateColumns=tpl(w); redraw();
+        var worst=0, nw=w.slice();
+        cols.forEach(function(c,i){ if(!g[i]) return; var h=colNat(c); worst=Math.max(worst,Math.abs(h-avail)/avail); nw[i]=Math.max(lo,Math.min(budget,w[i]*Math.pow(avail/Math.max(150,h),0.95))); });
+        var sum=0; cols.forEach(function(_,i){ if(g[i]) sum+=nw[i]; });
+        if(sum>budget) cols.forEach(function(_,i){ if(g[i]) nw[i]=Math.max(lo,nw[i]*budget/sum); });
+        w=nw; if(worst<0.02) break;
+      }
+      grid.style.gridTemplateColumns=tpl(w); grid.style.justifyContent=nT?'stretch':'center'; redraw();
+    }
+    var mx=0; cols.forEach(function(c){ mx=Math.max(mx,colNat(c)-avail); });
+    var sw=cols.map(function(c){ var hs=[].slice.call(c.querySelectorAll('.panel,.stage')); return hs.length; });
+    /* breite Einstellungsspalten: Regler zweispaltig */
+    cols.forEach(function(c){ var wide=c.getBoundingClientRect().width>=430&&!isGraphicCol(c); [].forEach.call(c.querySelectorAll('.panel'),function(pn){ var k=[].filter.call(pn.children,function(e){return e.classList.contains('ctl-row')||e.classList.contains('field');}).length; pn.classList.toggle('fit2',wide&&k>=3); }); });
+    return mx-5;
+  }
+  function relayout(){
+    if(busy) return; busy=true;
+    try{
+      if(!active()){ restore(); return; }
+      var r=null, mx=0;
+      for(var t=0;t<3;t++){ setTier(t); r=layoutOnce(); redraw(); mx=fitWidths(r.availH-5); if(mx<=0) break; }
+      window.__fitDbg.over=Math.round(Math.max(0,mx)); redraw();
+    } finally { busy=false; }
+  }
+  function restore(){
+    root.classList.remove('fit','d1','d2'); TIER=0;
+    if(!grid) return; container.style.display='';
+    all.forEach(function(a){ if(a.next&&a.next.parentNode===a.parent) a.parent.insertBefore(a.el,a.next); else a.parent.appendChild(a.el); });
+    grid.remove(); stash.remove(); grid=null; stash=null; cols=[]; curN=0; curSig='';
+  }
+  function again(){ clearTimeout(window.__fitA); window.__fitA=setTimeout(function(){ relayout(); },70); }
+  window.addEventListener('resize',function(){ if(window.__fitSilent) return; clearTimeout(window.__fitT); window.__fitT=setTimeout(relayout,90); });
+  document.addEventListener('click',function(e){ if(e.target.closest('button,.toggle,.seg,.tabs,label,summary')) again(); },true);
+  document.addEventListener('change',function(e){ if(e.target.matches('select,input[type=checkbox],input[type=radio]')) again(); },true);
+  window.__fitRelayout=again;
+  relayout();
+  setTimeout(relayout,350);
+})();
+
+</script>
+</body>
+</html>

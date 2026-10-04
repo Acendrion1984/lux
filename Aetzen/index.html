@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nital-Ätz-Simulator · Makro-/Gefügeätzung</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media=\'all\'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
+<style>
+  :root{
+    --bg:#1c1e20; --bg-2:#242628; --panel:#2a2d30; --panel-2:#2f3236;
+    --border:#4a5058; --border-soft:#3a4048; --text:#f0f2f4; --text-dim:#b8bec4; --text-faint:#7a8490;
+    --amber:#ffc94d; --amber-dim:#8a6420; --amber-glow:rgba(255,201,77,.24);
+    --cyan:#4de9d4; --cyan-dim:#1f6a61; --cyan-glow:rgba(77,233,212,.18);
+    --blue:#6cc0ec; --blue-dim:#1c4568; --red:#ff6f66; --green:#5fe072; --green-glow:rgba(95,224,114,.55);
+    --mono:'JetBrains Mono',ui-monospace,monospace; --disp:'Space Grotesk',sans-serif; --body:'Inter',sans-serif;
+  }
+  body.light-mode{
+    --bg:#e7ecf2; --bg-2:#dbe3ec; --panel:#f7f9fb; --panel-2:#eaeff4;
+    --border:#7c93a8; --border-soft:#a9bccb; --text:#0c1620; --text-dim:#2b3e4f; --text-faint:#51687a;
+    --amber:#a45f00; --amber-dim:#e0aa4a; --amber-glow:rgba(164,95,0,.16);
+    --cyan:#0a7d6e; --cyan-dim:#bfe9e1; --cyan-glow:rgba(10,125,110,.14);
+    --red:#b0241a; --green:#187a32; --green-glow:rgba(24,122,50,.25);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--body);transition:background .2s,color .2s;}
+  body{min-height:100vh;background:
+      radial-gradient(ellipse 1400px 700px at 10% -5%,#0a1e30 0%,transparent 55%),
+      radial-gradient(ellipse 900px 500px at 95% 5%,#14101e 0%,transparent 50%),
+      radial-gradient(ellipse 600px 400px at 50% 100%,#0a1420 0%,transparent 60%),
+      var(--bg);}
+  body.light-mode{background:
+      radial-gradient(ellipse 1400px 700px at 10% -5%,#c9d7e4 0%,transparent 55%),
+      radial-gradient(ellipse 900px 500px at 95% 5%,#dcd3e8 0%,transparent 50%),
+      var(--bg);}
+  .app{max-width:1200px;margin:0 auto;padding:14px 12px 48px;}
+  @media(min-width:768px){.app{padding:20px 20px 56px;}}
+  /* FIX: Breite Bildschirme nutzten bislang nur 1200px, Rest blieb leer */
+  @media(min-width:1500px){.app{max-width:1760px;}}
+  @media(min-width:1900px){.app{max-width:2000px;}}
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;margin-bottom:16px;border-bottom:1.5px solid var(--border);flex-wrap:wrap;}
+  .brand-eyebrow{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--cyan);margin:0 0 4px;display:flex;align-items:center;gap:6px;}
+  .brand-eyebrow::before{content:'';display:inline-block;width:18px;height:1.5px;background:var(--cyan);opacity:.8;}
+  h1{font-family:var(--disp);font-weight:700;font-size:20px;margin:0;background:linear-gradient(120deg,var(--text) 60%,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  h1 small{display:block;font-family:var(--body);font-weight:400;font-size:11.5px;color:var(--text-dim);margin-top:2px;-webkit-text-fill-color:var(--text-dim);}
+  @media(min-width:600px){h1{font-size:24px;}h1 small{font-size:12.5px;}}
+  .hdr-right{display:flex;align-items:center;gap:8px;}
+  .badge{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:5px 10px;border:1px solid var(--border);border-radius:20px;color:var(--text-dim);display:flex;align-items:center;gap:6px;}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green-glow);}
+  .theme-btn{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--panel-2);color:var(--text-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:.15s;}
+  .theme-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+
+  .grid{display:grid;grid-template-columns:1fr;gap:16px;}
+  @media(min-width:960px){.grid{grid-template-columns:1.3fr .9fr;align-items:start;}}
+  @media(min-width:1500px){.grid{grid-template-columns:1.7fr .9fr;gap:22px;}}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border-soft);border-radius:14px;padding:14px;}
+  .stage-title{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--cyan);margin:0 0 10px;display:flex;align-items:center;justify-content:space-between;}
+  .stage{position:relative;border-radius:10px;overflow:hidden;background:#000;border:1px solid var(--border-soft);}
+  canvas{display:block;width:100%;height:auto;}
+
+  .ctl-row{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .ctl-row label{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--text-dim);display:flex;justify-content:space-between;}
+  .ctl-row label b{color:var(--amber);font-weight:700;}
+  input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:4px;background:var(--panel-2);outline:none;border:1px solid var(--border-soft);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--amber);border:2px solid #1a1200;box-shadow:0 0 8px var(--amber-glow);cursor:pointer;}
+  select{width:100%;background:var(--panel-2);color:var(--text);border:1px solid var(--border-soft);border-radius:8px;padding:8px 10px;font-family:var(--body);font-size:13px;}
+
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  button{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:9px 14px;border-radius:8px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);cursor:pointer;transition:.15s;}
+  button:hover{border-color:var(--cyan);color:var(--cyan);}
+  button.primary{background:linear-gradient(120deg,var(--amber-dim),#5c4310);border-color:var(--amber);color:var(--amber);}
+  body.light-mode button.primary{background:linear-gradient(120deg,#f2d9a8,#e0aa4a);color:#4a2f00;}
+  button.primary:hover{box-shadow:0 0 14px var(--amber-glow);}
+  button:disabled{opacity:.35;cursor:not-allowed;}
+
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+  .stat{background:var(--panel-2);border:1px solid var(--border-soft);border-radius:8px;padding:8px 10px;}
+  .stat .k{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-faint);}
+  .stat .v{font-family:var(--disp);font-size:16px;font-weight:700;color:var(--cyan);}
+  .stat .v small{font-size:10px;color:var(--text-dim);font-weight:400;}
+  .stat.warn .v{color:var(--red);}
+  .stat.ok .v{color:var(--green);}
+
+  .callout{margin-top:12px;padding:10px 12px;border-radius:8px;border:1px solid var(--border-soft);background:var(--panel-2);font-size:12px;color:var(--text-dim);}
+  .callout.bad{border-color:#7a2a2a;color:#ffb3ac;}
+  body.light-mode .callout.bad{color:#7a1a12;background:#fbe4e2;}
+  .callout.good{border-color:#245c30;color:#b7f0c0;}
+  body.light-mode .callout.good{color:#0f4a20;background:#e2f5e6;}
+
+  .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-family:var(--mono);font-size:10px;color:var(--text-dim);}
+  .legend span{display:flex;align-items:center;gap:5px;}
+  .sw{width:10px;height:10px;border-radius:2px;display:inline-block;border:1px solid var(--border-soft);}
+
+  .tabs{display:flex;gap:6px;margin-bottom:10px;}
+  .tab{flex:1;text-align:center;padding:8px;border-radius:8px;border:1px solid var(--border-soft);font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-dim);cursor:pointer;}
+  .tab.active{background:var(--cyan-glow);border-color:var(--cyan);color:var(--cyan);}
+  .info{font-size:12px;line-height:1.55;color:var(--text-dim);margin-top:12px;}
+  .info b{color:var(--text);}
+</style>
+<script src="/shared/zfp-context.js"></script>
+<script id="zfp-offline">
+/* Offline-Fallback: läuft die App ohne Server (file://), fehlt /shared/zfp-context.js – dann wird der Theme-Kontext lokal bereitgestellt. */
+(function(){
+  if(window.ZfPContext) return;
+  var cbs=[], mode=null, KEY='zfp-theme';
+  function store(v){ try{ if(v===undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY,v); }catch(e){} return null; }
+  function init(){ if(mode) return; var s=store(); mode=(s==='light'||s==='dark')?s:((document.body&&(document.body.classList.contains('light-mode')||document.body.classList.contains('light')))?'light':'dark'); }
+  window.ZfPContext={
+    get theme(){ init(); return mode; },
+    onTheme:function(f){ if(typeof f!=='function') return; cbs.push(f); init(); f(mode); },
+    toggleTheme:function(){ init(); mode=mode==='light'?'dark':'light'; store(mode); cbs.forEach(function(f){ try{ f(mode); }catch(e){} }); }
+  };
+})();
+</script>
+
+<style id="fit-css">
+/* ═══ Kompakt-Dashboard (wie UT): kleine Schrift, dichte Panels, alles auf einem Bildschirm ═══ */
+html.fit, html.fit body{height:100%; overflow:hidden;}
+html.fit .app{box-sizing:border-box; display:flex; flex-direction:column; padding:5px 12px 8px; gap:6px; max-width:none; width:100%; height:100vh; height:100dvh; overflow:hidden; zoom:1 !important;}
+html.fit .sfl-bar{display:none;}
+html.fit header.top{margin:0; padding:0 0 4px; flex:0 0 auto; align-items:center; gap:12px; flex-wrap:nowrap;}
+html.fit header.top .brand-eyebrow, html.fit .eyebrow{font-size:9px; margin:0 0 1px;}
+html.fit header.top h1{font-size:21px; line-height:1.05; margin:0;}
+html.fit header.top h1 small, html.fit header.top .title-group > small, html.fit header.top .sub{font-size:11.5px; line-height:1.2;}
+html.fit .badge{font-size:10.5px; padding:3px 9px;}
+html.fit .icon-btn{width:30px; height:30px; font-size:14px;}
+html.fit .fitgrid{flex:1 1 0; min-height:0; display:grid; gap:8px; margin:0; align-items:stretch;}
+html.fit .fcol{display:flex; flex-direction:column; gap:8px; min-height:0; min-width:0; overflow-y:auto; overflow-x:hidden; padding:0 2px 4px 0; scrollbar-width:thin;}
+html.fit .fcol > *{flex:0 0 auto; margin:0 !important;}
+html.fit .panel{padding:8px 10px 9px; border-radius:10px;}
+html.fit .panel h2, html.fit .stage-title, html.fit .panel > .stage-title{margin:0 0 5px; font-size:10.5px; letter-spacing:.07em; line-height:1.25;}
+html.fit .stage-head{gap:4px 10px; flex-wrap:wrap; padding:0 0 4px; margin:0 0 2px;}
+html.fit .ctl-row, html.fit .field{margin:0 0 5px;}
+html.fit .ctl-row label, html.fit .field label{font-size:11.5px; margin:0 0 1px; line-height:1.25;}
+html.fit .ctl-row label .val, html.fit .field label .val{font-size:11.5px;}
+html.fit input[type=range]{margin:1px 0; height:18px;}
+html.fit .hint, html.fit .note, html.fit .ctl-row .note, html.fit .sidebar-note, html.fit .panel .hint{font-size:10.5px; line-height:1.32; margin:2px 0 0;}
+html.fit .btnrow{gap:5px; margin:4px 0;}
+html.fit button, html.fit select{font-size:11.5px; padding:5px 9px;}
+html.fit .callout, html.fit .verdict{font-size:11.5px; line-height:1.4; padding:7px 10px; margin-top:5px; max-height:none; overflow:visible;}
+html.fit .stat{padding:5px 8px;} html.fit .stat .k{font-size:9.5px; line-height:1.2;} html.fit .stat .v{font-size:14.5px;}
+html.fit .stats{gap:5px; grid-template-columns:repeat(3,1fr);}
+html.fit .seg{gap:4px;}
+html.fit .seg button, html.fit .toggle button{padding:6px 5px; min-width:0; white-space:normal; line-height:1.2; font-size:11px;}
+html.fit .seg.mini button{padding:3px 8px; font-size:10.5px;}
+html.fit .toggle{flex-wrap:wrap; padding:5px 8px; margin:0 0 4px;}
+html.fit .legend{font-size:10px; margin-top:4px; gap:3px 12px;}
+html.fit table.res td, html.fit table.res th, html.fit table.ht td, html.fit table.ht th{padding:3px 5px; font-size:10.5px;}
+html.fit .pstep, html.fit .step{padding-top:5px; padding-bottom:5px; gap:8px;}
+html.fit .pstep p, html.fit .step p{font-size:10.5px; line-height:1.38; margin-top:2px;}
+html.fit .pstep h4{font-size:12px;}
+html.fit .frow{padding:3px 0; font-size:11.5px;}
+html.fit .frow .nm small{font-size:10px; line-height:1.25;}
+html.fit .live{padding:8px 11px; margin-bottom:6px;}
+html.fit .live-val{font-size:19px;}
+html.fit .pbar{margin:6px 0 4px;}
+html.fit .stage, html.fit .panel > .stage{margin:0;}
+html.fit .foot{font-size:10.5px; padding-top:3px;}
+html.fit .kv{font-size:11px;}
+html.fit canvas, html.fit svg.view{max-width:100%; height:auto;}
+html.fit .step p, html.fit .pstep p{display:none;}
+html.fit .step.cur p, html.fit .pstep.cur p{display:block;}
+/* Slider-reiche Panels: zwei Regler nebeneinander */
+html.fit .panel.fit2{display:grid; grid-template-columns:1fr 1fr; column-gap:12px; align-content:start;}
+html.fit .panel.fit2 > *{grid-column:1/-1;}
+html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{grid-column:auto; min-width:0;}
+
+/* Grafiken: nur Breite begrenzt, Höhe folgt dem Seitenverhältnis → nie verzerrt */
+html.fit .stage canvas, html.fit .stage svg{max-width:100%; height:auto;}
+/* Kompaktstufen (nur Abstände, Schriftgröße bleibt → Browser-Zoom wirkt normal) */
+html.fit.d1 .fitgrid, html.fit.d1 .fcol{gap:6px;}
+html.fit.d1 .panel{padding:6px 8px 7px;}
+html.fit.d1 .panel h2, html.fit.d1 .stage-title{margin-bottom:3px;}
+html.fit.d1 .ctl-row, html.fit.d1 .field{margin-bottom:3px;}
+html.fit.d1 .hint, html.fit.d1 .note, html.fit.d1 .panel .hint{margin-top:1px; line-height:1.25;}
+html.fit.d1 .stat{padding:3px 7px;} html.fit.d1 .stats{gap:4px;}
+html.fit.d1 .toggle{padding:3px 7px; margin-bottom:3px;}
+html.fit.d1 .seg button, html.fit.d1 .toggle button{padding:4px 4px;}
+html.fit.d1 button, html.fit.d1 select{padding:3px 8px;}
+html.fit.d1 .callout, html.fit.d1 .verdict{padding:5px 8px; margin-top:3px; line-height:1.3;}
+html.fit.d1 .pstep, html.fit.d1 .step{padding-top:3px; padding-bottom:3px;}
+html.fit.d1 .legend{margin-top:2px;} html.fit.d1 .btnrow{margin:2px 0;}
+html.fit.d1 header.top{padding-bottom:2px;}
+html.fit.d2 .fitgrid, html.fit.d2 .fcol{gap:4px;}
+html.fit.d2 .panel{padding:4px 7px 5px; border-radius:8px;}
+html.fit.d2 .panel h2, html.fit.d2 .stage-title{margin-bottom:2px; font-size:10px;}
+html.fit.d2 .ctl-row, html.fit.d2 .field{margin-bottom:1px;}
+html.fit.d2 input[type=range]{height:14px; margin:0;}
+html.fit.d2 .hint, html.fit.d2 .note, html.fit.d2 .panel .hint{line-height:1.18; font-size:10px; margin-top:0;}
+html.fit.d2 .stat{padding:2px 6px;} html.fit.d2 .stat .v{font-size:13px;} html.fit.d2 .stats{gap:3px;}
+html.fit.d2 .toggle{padding:2px 6px; margin-bottom:2px;}
+html.fit.d2 .seg button, html.fit.d2 .toggle button{padding:3px 3px;}
+html.fit.d2 button, html.fit.d2 select{padding:2px 7px;}
+html.fit.d2 .callout, html.fit.d2 .verdict{padding:3px 7px; margin-top:2px; line-height:1.25;}
+html.fit.d2 .pstep, html.fit.d2 .step{padding-top:2px; padding-bottom:2px;}
+html.fit.d2 header.top h1{font-size:19px;} html.fit.d2 header.top h1 small{display:none;}
+html.fit.d2 .legend{margin-top:1px;} html.fit.d2 .btnrow{margin:1px 0;} html.fit.d2 .live{padding:5px 9px; margin-bottom:3px;}
+
+html.fit .thermal-wrap{align-items:start;}
+html.fit #heat{height:auto !important; align-self:start;}
+html.fit #cbar{height:100%;}
+/* Tabellen: nie rechts abschneiden */
+html.fit .fcol div:has(> table), html.fit .fcol .tablewrap, html.fit .fcol .skiptbl-wrap{overflow-x:auto; max-width:100%;}
+html.fit .fcol table{font-size:10.5px;}
+html.fit .fcol table th, html.fit .fcol table td{padding:3px 4px; white-space:normal;}
+/* alte max-height-Kappen der Einzel-Apps aufheben: Höhe folgt nur dem Seitenverhältnis (keine Seitenbalken) */
+html.fit svg, html.fit .stage svg, html.fit #setup, html.fit #wave, html.fit #chart, html.fit #view{max-height:none !important;}
+html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{min-width:0; overflow:hidden;}
+html.fit .panel.fit2 select, html.fit .panel.fit2 input[type=range]{width:100%; max-width:100%; min-width:0;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="title-group">
+      <p class="brand-eyebrow">SCHAEFFLER · ZFP · SCHWEINFURT</p>
+      <h1>Nital-Ätz-Simulator<small>NE · Chemisches Ätzen – Makro- &amp; Gefügeprüfung</small></h1>
+    </div>
+    <div class="hdr-right">
+      <div class="badge"><span class="dot"></span>SIMULATION</div>
+      <button class="theme-btn" id="themeBtn" title="Light/Dark Mode">☀</button>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="panel">
+      <p class="stage-title">PROBENOBERFLÄCHE <span id="stagePct">0% geätzt</span></p>
+      <div class="stage"><canvas id="cv"></canvas></div>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="panel">
+      <p class="stage-title">PARAMETER</p>
+
+      <div class="ctl-row">
+        <label>Probentyp</label>
+        <select id="spec">
+          <option value="burn">Schleifteil – Fehler: Schleifbrand</option>
+          <option value="clean">Schleifteil – fehlerfrei (Referenz)</option>
+          <option value="fold">Schmiedeteil – Fehler: Schmiedefalte</option>
+          <option value="decarb">Einsatzgehärtetes Bauteil – Randentkohlung</option>
+        </select>
+      </div>
+
+      <div class="ctl-row">
+        <label>Nital-Konzentration <b id="concV">3 %</b></label>
+        <input type="range" id="conc" min="1" max="10" value="3" step="0.5">
+      </div>
+
+      <div class="ctl-row">
+        <label>Ätzzeit <b id="timeV">0 s</b></label>
+        <input type="range" id="time" min="0" max="60" value="0" step="1">
+      </div>
+
+      <div class="ctl-row">
+        <label>Bewegung / Wischen <b id="agV">mittel</b></label>
+        <input type="range" id="ag" min="0" max="2" value="1" step="1">
+      </div>
+
+      <div class="btnrow">
+        <button class="primary" id="btnRun">▶ Ätzvorgang starten</button>
+        <button id="btnStop">Anhalten</button>
+        <button id="btnReset">Zurücksetzen</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><div class="k">Ätztiefe</div><div class="v" id="stDepth">0 <small>µm</small></div></div>
+        <div class="stat"><div class="k">Kontrast</div><div class="v" id="stContrast">0 <small>%</small></div></div>
+        <div class="stat" id="stDefectBox"><div class="k">Fehler sichtbar</div><div class="v" id="stDefect">–</div></div>
+        <div class="stat" id="stQualBox"><div class="k">Ätzqualität</div><div class="v" id="stQual">–</div></div>
+      </div>
+
+      <div class="callout" id="callout">
+        Nital (Salpetersäure in Ethanol) löst Ferrit bevorzugt an Korngrenzen und
+        Bereichen mit erhöhter Versetzungsdichte / Kohlenstoffgehalt an. So werden
+        Gefügestruktur, Wärmeeinflusszonen, Faserverlauf und Fehler sichtbar gemacht.
+        Stelle Konzentration und Ätzzeit ein und starte den Vorgang.
+      </div>
+
+      <div class="info">
+        <b>Hinweis:</b> Zu kurze Ätzzeit → Struktur nicht erkennbar. Zu lange Ätzzeit /
+        zu hohe Konzentration → Überätzung, Kornausbrüche, falsche Interpretation möglich.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const CW=900, CH=620;
+function hiDPI(){
+  const dpr = Math.max(1, window.devicePixelRatio||1);
+  cv.width = CW*dpr; cv.height = CH*dpr;
+  cv.style.aspectRatio = (CW/CH);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+hiDPI();
+
+// ---- Noise-Utility für organische Texturen (statt geometrischer Sinus-/Voronoi-Optik) ----
+function makeValueNoise(seed, size){
+  let s = seed;
+  function rnd(){ s=(s*9301+49297)%233280; return s/233280; }
+  const grid = new Float32Array(size*size);
+  for(let i=0;i<grid.length;i++) grid[i]=rnd();
+  return function(x,y){
+    // FIX: Eingabe robust auf [0,1) wrappen — Aufrufe mit Multiplikatoren >1 (z.B.
+    // fbm(x/w*1.6,...)) griffen sonst außerhalb des Grid-Arrays -> NaN ->
+    // "rgba(0,0,0,NaN)" -> wird als undurchsichtiges Schwarz gerendert.
+    x = ((x%1)+1)%1; y = ((y%1)+1)%1;
+    const gx=x*(size-1), gy=y*(size-1);
+    const x0=Math.floor(gx), y0=Math.floor(gy);
+    const x1=Math.min(size-1,x0+1), y1=Math.min(size-1,y0+1);
+    const fx=gx-x0, fy=gy-y0;
+    const v00=grid[y0*size+x0], v10=grid[y0*size+x1], v01=grid[y1*size+x0], v11=grid[y1*size+x1];
+    const sx=fx*fx*(3-2*fx), sy=fy*fy*(3-2*fy);
+    const a=v00+(v10-v00)*sx, b=v01+(v11-v01)*sx;
+    return a+(b-a)*sy;
+  };
+}
+const noiseLo = makeValueNoise(71, 6);   // grobe Wolken/Mottling
+const noiseMid = makeValueNoise(133, 18); // mittlere Struktur
+const noiseHi = makeValueNoise(9, 64);    // feines Korn/Filmkorn
+function fbm(x,y){ return noiseLo(x,y)*0.5 + noiseMid(x,y)*0.32 + noiseHi(x,y)*0.18; }
+
+// ---- Referenzgetreue Schmiedefalte: feine, leicht sägezahnartige Haarrisslinie ----
+// (nach Vorlage: dünner dunkler Riss, beginnt exakt an der Bauteilkante, mit kurzem
+// versetztem Nebenriss weiter im Gefüge — statt einer glatten, dick nachgezogenen Kurve)
+function buildHairlinePath(cx,cy,len,amp,seed,n){
+  let s=seed;
+  function rnd(){ s=(s*9301+49297)%233280; return s/233280; }
+  const pts=[];
+  for(let i=0;i<=n;i++){
+    const t=i/n;
+    const x=cx + Math.sin(t*5.4)*amp*0.35 + (rnd()-0.5)*amp*1.1;
+    const y=cy - len/2 + t*len;
+    pts.push({x,y});
+  }
+  return pts;
+}
+function strokePts(pts){
+  ctx.beginPath();
+  pts.forEach((p,i)=>{ if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y); });
+  ctx.stroke();
+}
+const foldMainPts = buildHairlinePath(430, 250, 300, 7, 991, 16); // Hauptriss ab Kante
+const foldSecPts  = buildHairlinePath(455, 460, 130, 9, 473, 10); // kurzer, versetzter Nebenriss
+
+// ---- Referenzgetreue Schleifbrand-Zonen: leicht unregelmäßige (statt perfekt ovaler)
+// Kontur, damit Anlasszone/Neuhärtungskern nicht wie ein Vektor-Clipart wirken ----
+function buildJitterRing(seed, segs){
+  let s=seed;
+  function rnd(){ s=(s*9301+49297)%233280; return s/233280; }
+  const arr=[];
+  for(let i=0;i<=segs;i++) arr.push(0.88+rnd()*0.24);
+  return arr;
+}
+function jitterEllipsePts(rx,ry,jArr){
+  const segs=jArr.length-1, pts=[];
+  for(let i=0;i<=segs;i++){
+    const t=i/segs*Math.PI*2;
+    pts.push({x:Math.cos(t)*rx*jArr[i], y:Math.sin(t)*ry*jArr[i]});
+  }
+  return pts;
+}
+function fillPts(pts){
+  ctx.beginPath();
+  pts.forEach((p,i)=>{ if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y); });
+  ctx.closePath(); ctx.fill();
+}
+function strokeClosedPts(pts){
+  ctx.beginPath();
+  pts.forEach((p,i)=>{ if(i===0) ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y); });
+  ctx.closePath(); ctx.stroke();
+}
+const burnHaloJ = buildJitterRing(4471, 40);
+const burnTailJ = buildJitterRing(2237, 32);
+const burnCoreJ = buildJitterRing(919, 36);
+
+// Neuhärtungskern nach Referenzfoto: oben flacher/breiter Rand, unten spitz
+// zulaufend (schild-/tropfenförmig) statt einer generischen Ellipse.
+function addTeardropPath(){
+  ctx.beginPath();
+  ctx.moveTo(-0.82,-0.95);
+  ctx.quadraticCurveTo(0.05,-1.15, 0.88,-0.90);
+  ctx.quadraticCurveTo(1.05,-0.25, 0.55,0.55);
+  ctx.quadraticCurveTo(0.25,1.05, 0.02,1.15);
+  ctx.quadraticCurveTo(-0.22,1.05, -0.5,0.55);
+  ctx.quadraticCurveTo(-1.0,-0.2, -0.82,-0.95);
+  ctx.closePath();
+}
+
+const specSel = document.getElementById('spec');
+const concEl = document.getElementById('conc'), timeEl = document.getElementById('time'), agEl = document.getElementById('ag');
+const concV = document.getElementById('concV'), timeV = document.getElementById('timeV'), agV = document.getElementById('agV');
+const stagePct = document.getElementById('stagePct');
+const stDepth = document.getElementById('stDepth'), stContrast = document.getElementById('stContrast');
+const stDefect = document.getElementById('stDefect'), stQual = document.getElementById('stQual');
+const stDefectBox = document.getElementById('stDefectBox'), stQualBox = document.getElementById('stQualBox');
+const callout = document.getElementById('callout');
+const legend = document.getElementById('legend');
+const themeBtn = document.getElementById('themeBtn');
+
+let running = false, rafId = null;
+let light = false;
+let elapsed = 0; // tatsächlich simulierte Ätzzeit (animiert bis zur eingestellten Ziel-Ätzzeit)
+
+const agLabels = ['leicht (wenig Bewegung)','mittel','stark (Wattebausch-Wischen)'];
+
+function applyTheme(theme){
+  light = theme === 'light';
+  document.body.classList.toggle('light-mode',light);
+  themeBtn.textContent = light ? '☾' : '☀';
+}
+ZfPContext.onTheme(applyTheme);
+themeBtn.addEventListener('click',()=>{
+  ZfPContext.toggleTheme();
+  draw();
+});
+
+function updateLegend(){
+  legend.innerHTML = `
+    <span><i class="sw" style="background:#aab2ba"></i>Grundwerkstoff (Schleiffläche)</span>
+    <span><i class="sw" style="background:#4a5158"></i>Faserverlauf / Anlasszone</span>
+    <span><i class="sw" style="background:#eef1f3"></i>Neuhärtungszone (Schleifbrand-Kern)</span>`;
+}
+updateLegend();
+
+function fmt(n,d=0){ return n.toFixed(d); }
+
+function computeState(){
+  const conc = parseFloat(concEl.value);
+  const t = elapsed;
+  const ag = parseInt(agEl.value);
+  const rate = 0.9 + ag*0.35;
+  // FIX: Zeitskala war völlig unrealistisch (Überätzung erst nach ~87s bei
+  // Standardkonzentration, Regler ging bis 90s). Praxisgerecht neu kalibriert:
+  // gute Auswertbarkeit nach ca. 10–20s, Überätzung ab ca. 30s (bei 3% Nital, mittlerer Bewegung).
+  let progress = 1 - Math.exp(-(conc*t*rate)/105);
+  progress = Math.max(0, Math.min(1, progress));
+  const depth = (conc*t*0.045*(1+ag*0.25));
+  const overetch = Math.max(0, (conc*t - 60)/60);
+  return {conc,t,ag,progress,depth,overetch};
+}
+
+function brushedMetal(w,h){
+  // base ground-steel sheen (satin gray, as on a real ground/etched coupon)
+  const grad = ctx.createLinearGradient(0,0,w,h);
+  if(light){
+    grad.addColorStop(0,'#cfd5da'); grad.addColorStop(0.5,'#c1c8ce'); grad.addColorStop(1,'#b3bbc2');
+  } else {
+    grad.addColorStop(0,'#a8b0b8'); grad.addColorStop(0.5,'#9aa3ab'); grad.addColorStop(1,'#8c959d');
+  }
+  ctx.fillStyle=grad; ctx.fillRect(0,0,w,h);
+
+  // FIX: realistischere Oberfläche — organisches Wolken-/Mottling-Muster (Polierungs-
+  // und Ätzansprache variiert nie perfekt gleichmäßig) statt reinem Flächenverlauf.
+  const CELL=5;
+  for(let y=0;y<h;y+=CELL){
+    for(let x=0;x<w;x+=CELL){
+      const n = fbm(x/w, y/h);
+      const shade = (n-0.5)*(light?10:16);
+      ctx.fillStyle = shade>=0 ? `rgba(255,255,255,${Math.min(0.16,shade/60)})` : `rgba(0,0,0,${Math.min(0.16,-shade/60)})`;
+      ctx.fillRect(x,y,CELL,CELL);
+    }
+  }
+
+  // Feinere, dichtere Schleifriefen mit variabler Deckkraft/Länge statt 40 identischer Linien
+  ctx.save();
+  ctx.strokeStyle = light ? '#fff' : '#fff';
+  for(let i=0;i<130;i++){
+    const y = Math.random()*h;
+    const len = w*(0.4+Math.random()*0.6);
+    const x0 = Math.random()*(w-len);
+    ctx.globalAlpha = 0.03+Math.random()*0.09;
+    ctx.beginPath();
+    ctx.moveTo(x0,y); ctx.lineTo(x0+len,y+(Math.random()*5-2.5));
+    ctx.lineWidth=0.4+Math.random()*0.7;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function draw(){
+  const st = computeState();
+  const w = CW, h = CH;
+  ctx.clearRect(0,0,w,h);
+  brushedMetal(w,h);
+
+  const spec = specSel.value;
+  const p = st.progress;
+
+  drawMacro(spec, p, st);
+
+  if(st.overetch>0){
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.5, st.overetch*0.6);
+    for(let i=0;i<st.overetch*400;i++){
+      const x = Math.random()*w, y = Math.random()*h;
+      ctx.fillStyle = Math.random()>0.5 ? '#000' : '#fff';
+      ctx.fillRect(x,y, 1+Math.random()*2, 1+Math.random()*2);
+    }
+    ctx.restore();
+  }
+
+  stDepth.innerHTML = fmt(st.depth,0)+' <small>µm</small>';
+  stContrast.innerHTML = fmt(p*100,0)+' <small>%</small>';
+  stagePct.textContent = fmt(p*100,0)+'% geätzt';
+
+  let defectVisible = false, defectLabel = 'kein Befund';
+  if(spec==='fold'){ defectVisible = p>0.35; defectLabel = defectVisible? 'Schmiedefalte sichtbar':'noch nicht erkennbar'; }
+  if(spec==='burn'){ defectVisible = p>0.28; defectLabel = defectVisible? 'Schleifbrand sichtbar':'noch nicht erkennbar'; }
+  if(spec==='decarb'){ defectVisible = p>0.4; defectLabel = defectVisible? 'Entkohlungssaum sichtbar':'noch nicht erkennbar'; }
+  if(spec==='clean'){ defectVisible = false; defectLabel = 'fehlerfrei'; }
+
+  stDefect.textContent = defectLabel;
+  stDefectBox.classList.toggle('warn', defectVisible);
+  stDefectBox.classList.toggle('ok', spec==='clean' && p>0.3);
+
+  let qual = 'zu früh';
+  stQualBox.classList.remove('warn','ok');
+  if(p<0.15){ qual='keine Struktur'; }
+  else if(st.overetch>0.35){ qual='überätzt'; stQualBox.classList.add('warn'); }
+  else if(p>=0.35 && st.overetch<=0.35){ qual='gut auswertbar'; stQualBox.classList.add('ok'); }
+  else { qual='schwach sichtbar'; }
+  stQual.textContent = qual;
+
+  if(st.overetch>0.35){
+    callout.className='callout bad';
+    callout.innerHTML = '<b>Überätzung!</b> Bei zu hoher Konzentration/Zeit werden Körner ausgewaschen, ' +
+      'die Oberfläche wird rau und künstliche Strukturen können mit echten Fehlern verwechselt werden. Ätzzeit reduzieren.';
+  } else if(spec==='burn' && p>=0.28){
+    callout.className='callout bad';
+    callout.innerHTML = '<b>Schleifbrand erkannt.</b> Lokale Überhitzung beim Schleifen hat die Randzone erneut über Austenitisierungstemperatur ' +
+      'erwärmt: ein heller, ungeätzter Neuhärtungskern (unangelassener Martensit) ist von einer dunkler geätzten Anlasszone umgeben. ' +
+      'Bauteil i.d.R. nicht i.O. — Randhärte und Eigenspannung sind beeinträchtigt.';
+  } else if(p>=0.35){
+    callout.className='callout good';
+    callout.innerHTML = '<b>Gut auswertbar.</b> Gefüge/Faserverlauf ist ausreichend kontrastiert und kann fachgerecht beurteilt werden.';
+  } else {
+    callout.className='callout';
+    callout.innerHTML = 'Nital löst Ferrit bevorzugt an Korngrenzen und Bereichen erhöhter Versetzungsdichte an. ' +
+      'Stelle Konzentration und Ätzzeit ein und starte den Vorgang, um die Struktur sichtbar zu machen.';
+  }
+}
+
+function drawMacro(spec, p, st){
+  const w=CW, h=CH;
+  const vis = Math.min(1, p*1.6);
+
+  // FIX: realistischere Grundfläche — wolkige Schwärzungs-Mottling (echte Makroätzungen
+  // sind nie gleichmäßig grau, sondern zeigen unruhige Helligkeitswolken)
+  ctx.save();
+  ctx.globalAlpha = vis*0.55;
+  const CELL=6;
+  for(let y=0;y<h;y+=CELL){
+    for(let x=0;x<w;x+=CELL){
+      const n = fbm(x/w, y/h);
+      const shade=(n-0.5)*26;
+      ctx.fillStyle = shade>=0? `rgba(60,64,70,${Math.min(0.2,shade/70)})` : `rgba(255,255,255,${Math.min(0.16,-shade/70)})`;
+      ctx.fillRect(x,y,CELL,CELL);
+    }
+  }
+  ctx.restore();
+
+  // Faserverlauf: organisch verlaufende Linien statt exakter Sinuskurven — Position,
+  // Dicke und Deckkraft jeder Linie werden per Noise leicht gestört (wie echter Walz-/
+  // Schmiedefaserverlauf, der nie perfekt parallel/regelmäßig ist).
+  ctx.save();
+  ctx.strokeStyle = light ? '#5c646c' : '#454d55';
+  const rowsN = 30;
+  for(let i=0;i<rowsN;i++){
+    const y0 = 18 + i*(h-36)/rowsN;
+    const rowSeed = i*13.7;
+    ctx.globalAlpha = vis*(0.45+0.4*noiseMid(0.1, i/rowsN));
+    ctx.lineWidth = 1.1+noiseMid(0.8,i/rowsN)*1.8;
+    ctx.beginPath();
+    for(let x=0;x<=w;x+=10){
+      const bend = spec==='fold' ? Math.sin((x-430)/70)*Math.exp(-Math.pow((x-430)/260,2))*36*(i%3===0?1.4:1) : 0;
+      const wob = Math.sin(x/140 + i)*6 + (fbm((x+rowSeed*40)/w, (y0)/h)-0.5)*22;
+      const y = y0 + wob + (spec==='fold'? bend*(i/rowsN) : 0);
+      if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  if(spec==='fold' && p>0.3){
+    const a = Math.min(1,(p-0.3)/0.5);
+    ctx.save();
+    // dünner dunkler Riss, wie im Referenzbild — kein dicker roter Glow, das sah künstlich aus
+    ctx.globalAlpha = a*0.9;
+    ctx.strokeStyle = light ? '#332720' : '#171010';
+    ctx.lineWidth = 1.4;
+    ctx.lineCap = 'round';
+    strokePts(foldMainPts);
+    ctx.globalAlpha = a*0.55;
+    ctx.lineWidth = 3;
+    strokePts(foldMainPts);
+    ctx.globalAlpha = a*0.55;
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = light ? '#4a3a30' : '#241a16';
+    strokePts(foldSecPts);
+    ctx.restore();
+  }
+  if(spec==='burn' && p>0.28){
+    const a = Math.min(1,(p-0.28)/0.45);
+    const bx=560, by=300;
+    ctx.save();
+    ctx.globalAlpha = a;
+    // grinding direction streak (comet tail) + hot-spot
+    ctx.translate(bx,by);
+    ctx.rotate(-0.12);
+    // Anlasszone (über den Anlasspunkt hinaus erwärmt, ätzt dunkler/schneller als
+    // Grundgefüge) — Kontur leicht unregelmäßig statt einer perfekten Ellipse
+    let halo = ctx.createRadialGradient(0,0,10, 0,0,150);
+    halo.addColorStop(0, 'rgba(40,44,50,0)');
+    halo.addColorStop(0.45, light ? 'rgba(70,76,84,0.55)' : 'rgba(30,34,40,0.65)');
+    halo.addColorStop(1, 'rgba(40,44,50,0)');
+    ctx.fillStyle = halo;
+    fillPts(jitterEllipsePts(150,58,burnHaloJ));
+    // Schleifschlepp-Ausläufer in Schleifrichtung
+    ctx.fillStyle = halo;
+    ctx.save(); ctx.translate(-120,0);
+    fillPts(jitterEllipsePts(110,30,burnTailJ));
+    ctx.restore();
+
+    // feine Textur/Mottling in der Anlasszone, damit sie nicht wie ein glatter
+    // Vektor-Farbverlauf wirkt, sondern wie geätztes Gefüge
+    ctx.save();
+    ctx.beginPath();
+    jitterEllipsePts(150,58,burnHaloJ).forEach((pp,i)=>{ if(i===0) ctx.moveTo(pp.x,pp.y); else ctx.lineTo(pp.x,pp.y); });
+    ctx.closePath(); ctx.clip();
+    ctx.globalAlpha = a*0.45;
+    for(let i=0;i<120;i++){
+      const ang=Math.random()*Math.PI*2, rr=Math.random()*150;
+      const x=Math.cos(ang)*rr, y=Math.sin(ang)*rr*(58/150);
+      ctx.fillStyle = Math.random()>0.5 ? 'rgba(20,22,26,0.10)' : 'rgba(255,255,255,0.07)';
+      ctx.fillRect(x,y,2,2);
+    }
+    ctx.restore();
+
+    // Neuhärtungskern (untempered Martensit, ätzresistent -> bleibt hell):
+    // schild-/tropfenförmig mit flacherem oberen Rand und spitz zulaufendem unteren
+    // Ende — nach dem Referenzfoto, statt einer generischen Ellipse
+    let core = ctx.createRadialGradient(14,-6,2, 14,10,66);
+    core.addColorStop(0, light? 'rgba(255,255,255,0.97)':'rgba(240,243,244,0.97)');
+    core.addColorStop(0.75, light? 'rgba(255,255,255,0.92)':'rgba(238,241,243,0.9)');
+    core.addColorStop(1, 'rgba(238,241,243,0)');
+    ctx.fillStyle = core;
+    ctx.save();
+    ctx.translate(14,4);
+    ctx.scale(56,46);
+    addTeardropPath();
+    ctx.restore();
+    ctx.fill();
+
+    // dünne, im Schliffbild deutlich sichtbare Grenzlinie zwischen Neuhärtungskern
+    // und Anlasszone
+    ctx.globalAlpha = a*0.5;
+    ctx.strokeStyle = light ? 'rgba(90,70,55,0.5)' : 'rgba(15,12,10,0.5)';
+    ctx.lineWidth = 1;
+    ctx.save();
+    ctx.translate(14,4);
+    ctx.scale(59,49);
+    addTeardropPath();
+    ctx.restore();
+    ctx.stroke();
+    ctx.restore();
+  }
+  if(spec==='decarb' && p>0.35){
+    const a = Math.min(1,(p-0.35)/0.4);
+    ctx.save();
+    ctx.globalAlpha=a*0.7;
+    ctx.fillStyle = '#e9ecec';
+    ctx.fillRect(0,0,w,26);
+    ctx.fillRect(0,h-26,w,26);
+    ctx.fillRect(0,0,26,h);
+    ctx.fillRect(w-26,0,26,h);
+    ctx.restore();
+  }
+}
+
+let targetTime = 0; // beim Klick auf "Start" erfasster Zielwert des Reglers
+let lastTs = null;   // Zeitstempel des letzten Frames für Echtzeit-Fortschritt
+
+function tick(ts){
+  if(!running) return;
+  if(lastTs===null) lastTs = ts;
+  // Echtzeit: Fortschritt basiert auf der tatsächlich vergangenen Wanduhrzeit
+  // zwischen zwei Frames, nicht auf einem festen Inkrement pro Frame.
+  // Cap gegen Ausreißer (z.B. Tab im Hintergrund gedrosselt).
+  const dt = Math.min(0.5, Math.max(0, (ts-lastTs)/1000));
+  lastTs = ts;
+  elapsed = Math.min(targetTime, elapsed+dt);
+  timeV.textContent = fmt(elapsed,0)+' / '+fmt(targetTime,0)+' s';
+  draw();
+  if(elapsed>=targetTime){ running=false; lastTs=null; return; }
+  rafId = requestAnimationFrame(tick);
+}
+
+document.getElementById('btnRun').addEventListener('click',()=>{
+  targetTime = parseFloat(timeEl.value);
+  elapsed = 0;
+  running=true;
+  lastTs = null;
+  if(rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(tick);
+});
+document.getElementById('btnStop').addEventListener('click',()=>{ running=false; if(rafId) cancelAnimationFrame(rafId); });
+document.getElementById('btnReset').addEventListener('click',()=>{
+  running=false; if(rafId) cancelAnimationFrame(rafId);
+  elapsed=0; targetTime=0; lastTs=null;
+  timeEl.value=0; timeV.textContent='0 s'; draw();
+});
+
+[concEl,timeEl,agEl,specSel].forEach(el=>el.addEventListener('input', ()=>{
+  concV.textContent = concEl.value+' %';
+  // Manuelles Ziehen am Zeitregler (nicht während der Animation) zeigt sofort eine
+  // Vorschau bei genau diesem Zeitpunkt — Regler = Ätzzeit, die simuliert werden soll.
+  if(!running){
+    elapsed = parseFloat(timeEl.value);
+    timeV.textContent = timeEl.value+' s';
+  }
+  agV.textContent = agLabels[parseInt(agEl.value)];
+  draw();
+}));
+window.addEventListener('resize', ()=>{ hiDPI(); draw(); });
+
+concV.textContent = concEl.value+' %';
+timeV.textContent = timeEl.value+' s';
+agV.textContent = agLabels[parseInt(agEl.value)];
+draw();
+</script>
+<script id="fit-js">
+window.FIT_CFG={sideGroups:[1],sideW:280,maxCols:3,minCol:440,};
+(function(){
+  /* ═══ Kompakt-Dashboard (wie UT) – reines CSS-Pixel-Layout, KEIN Zoom-Eingriff: Browser-Zoom (Strg +/−) wirkt normal ═══ */
+  var C=window.FIT_CFG||{};
+  var app=document.querySelector('.app'); if(!app) return;
+  var container=app.querySelector(':scope > .layout, :scope > .grid'); if(!container) return;
+  var SIDEW=C.sideW||280, MINCOL=C.minCol||440, MAXK=C.maxCols||3, MAXS=C.maxSide||3,
+      SIDEGROUPS=C.sideGroups===undefined?[0]:C.sideGroups, MANUAL=C.cols||null, TEMPLATE=C.template||null;
+  var GAPS=[8,6,5], TIER=0, root=document.documentElement;
+  function isItem(c){ return c.classList.contains('panel')||c.classList.contains('stage'); }
+  function flat(g){
+    var o=[]; [].slice.call(g.children).forEach(function(ch){
+      if(ch.tagName==='SCRIPT'||ch.tagName==='STYLE') return;
+      if(getComputedStyle(ch).display==='contents'){ o.push.apply(o,flat(ch)); return; }
+      var kids=[].slice.call(ch.children);
+      if(ch.classList.contains('stagegrid') && kids.length>1 && kids.every(function(k){return k.classList.contains('stage');})){
+        var cls=['riss-only','gef-only'].filter(function(q){return ch.classList.contains(q);}), sc=ch.dataset.scn;
+        kids.forEach(function(k){ cls.forEach(function(q){k.classList.add(q);}); if(sc) k.dataset.scn=sc; o.push(k); });
+      } else o.push(ch);
+    }); return o;
+  }
+  var groups=[].slice.call(container.children).filter(function(c){return c.tagName!=='SCRIPT'&&c.tagName!=='STYLE';})
+    .map(function(c){ return isItem(c)?[c]:flat(c); });
+  var all=[]; groups.forEach(function(g,gi){ g.forEach(function(el){ all.push({el:el,g:gi,parent:el.parentElement,next:el.nextSibling}); }); });
+  var grid=null, cols=[], stash=null, curN=0, curSig='', busy=false;
+  function active(){ return window.innerWidth>=1000 && window.innerHeight>=520; }
+  function GAP(){ return GAPS[TIER]; }
+  function ensure(n){
+    if(grid&&curN===n) return;
+    if(!grid){ grid=document.createElement('div'); grid.className='fitgrid'; stash=document.createElement('div'); stash.style.display='none'; container.after(grid); container.after(stash); }
+    grid.textContent=''; cols=[]; curN=n; curSig='';
+    for(var i=0;i<n;i++){ var c=document.createElement('div'); c.className='fcol'; cols.push(c); grid.appendChild(c); }
+  }
+  function partition(hs,K){            /* zusammenhängende Aufteilung mit minimaler Maximalhöhe */
+    var n=hs.length, G=GAP(); if(K<=1||n<=1) return [hs.map(function(_,i){return i;})];
+    K=Math.min(K,n); var pre=[0]; hs.forEach(function(h,i){pre.push(pre[i]+h+G);});
+    var best=[],bestScore=1e12;
+    (function rec(start,k,cut){
+      if(k===1){ var cuts=cut.concat([n]), mx=0, sq=0; for(var j=0;j<cuts.length;j++){ var a=j?cuts[j-1]:0, h=pre[cuts[j]]-pre[a]; mx=Math.max(mx,h); sq+=h*h; }
+        var sc=mx+sq*1e-7; if(sc<bestScore){bestScore=sc;best=cuts;} return; }
+      for(var e=start+1;e<=n-(k-1);e++) rec(e,k-1,cut.concat([e]));
+    })(0,K,[]);
+    var out=[],s=0; best.forEach(function(e){ var a=[]; for(var i=s;i<e;i++) a.push(i); out.push(a); s=e; }); return out;
+  }
+  function colH(ix,list){ var t=0; ix.forEach(function(i){t+=list[i].h+GAP();}); return t; }
+  function setTier(t){ TIER=t; root.classList.remove('d1','d2'); if(t) root.classList.add('d'+t); }
+
+  function layoutOnce(){
+    var W=window.innerWidth, effW=W-26, G=GAP();
+    root.classList.add('fit'); container.style.display='none';
+    var mwrap=document.createElement('div'); mwrap.className='fitgrid'; mwrap.style.cssText='position:absolute;left:-99999px;top:0;display:block;flex:none;visibility:hidden;';
+    var meas=document.createElement('div'); meas.className='fcol'; meas.style.cssText='overflow:visible;height:auto;max-height:none;display:flex;flex-direction:column;';
+    mwrap.appendChild(meas); app.appendChild(mwrap);
+    ensure(1); grid.style.gridTemplateColumns='1fr';
+    var availH=Math.max(300,grid.clientHeight-2), plan, S, K, over=0, tpl;
+    function measure(list,w){ meas.style.width=w+'px'; list.forEach(function(a){meas.appendChild(a.el);}); list.forEach(function(a){a.h=a.el.getBoundingClientRect().height;}); }
+    if(MANUAL){
+      K=MANUAL.length; S=0; ensure(K);
+      plan=MANUAL.map(function(idxs){ return idxs.map(function(i){return all[i];}).filter(Boolean); });
+      var used={}; MANUAL.forEach(function(ix){ix.forEach(function(i){used[i]=1;});});
+      all.forEach(function(a,i){ if(!used[i]) plan[K-1].push(a); });
+      tpl=TEMPLATE||('repeat('+K+',minmax(0,1fr))');
+      plan.forEach(function(c,i){ var w=Math.floor((effW-G*(K-1))/K); measure(c,w); over=Math.max(over,colH(c.map(function(_,j){return j;}),c)-availH); });
+    } else {
+      var side=all.filter(function(a){return SIDEGROUPS.indexOf(a.g)>=0;}), rest=all.filter(function(a){return SIDEGROUPS.indexOf(a.g)<0;});
+      var best=null, sv=[];
+      var sideVis=side.length; if(side.length){ measure(side,SIDEW-6); sideVis=side.filter(function(a){return a.h>1;}).length; }
+      for(var s=(sideVis?1:0); s<=(sideVis?Math.min(MAXS,sideVis):0); s++){
+        if(effW-s*(SIDEW+G)<MINCOL) break;
+        var spart=[], oS=-1e9;
+        if(s){ measure(side,SIDEW-6); sv=side.filter(function(a){return a.h>1;}); spart=partition(sv.map(function(a){return a.h;}),s);
+          oS=Math.max.apply(null,spart.map(function(ix){return colH(ix,sv)-availH;})); }
+        var kmax=Math.max(1,Math.min(MAXK,Math.floor((effW-s*(SIDEW+G)+G)/(MINCOL+G))));
+        for(var k=1;k<=kmax;k++){
+          var mw=Math.floor((effW-s*(SIDEW+G)-G*(k-1))/k)-6;
+          measure(rest,mw);
+          var vv=rest.filter(function(a){return a.h>1;}); if(k>Math.max(1,vv.length)) break;
+          var pp=partition(vv.map(function(a){return a.h;}),k);
+          var hR=pp.map(function(ix){return colH(ix,vv);}), mxR=Math.max.apply(null,hR);
+          var solvable=(k===1&&s>=1&&vv.length<=2), ov=Math.max(0,oS,solvable?0:mxR-availH), left=solvable?0:Math.max(0,availH-mxR);
+          var score=ov>2?(1e6+ov*10):(left*0.5+s*45+k*4+(solvable?25:0));
+          if(!best||score<best.score) best={score:score,S:s,K:k,spart:spart,pp:pp,vv:vv,sv:sv,over:ov,mw:mw};
+        }
+      }
+      S=best.S; K=best.K; over=best.over;
+      ensure(S+K);
+      plan=best.spart.map(function(ix){return ix.map(function(i){return best.sv[i];});}).concat(best.pp.map(function(ix){return ix.map(function(i){return best.vv[i];});}));
+      if(S) side.filter(function(a){return a.h<=1;}).forEach(function(a){plan[0].push(a);});
+      while(plan.length<S+K) plan.push([]);
+      var sw=[]; for(var q=0;q<S;q++) sw.push(SIDEW+'px');
+      tpl=(S?sw.join(' ')+' ':'')+'repeat('+K+',minmax(0,1fr))';
+    }
+    var sig=plan.map(function(c){return c.map(function(a){return all.indexOf(a);}).join(',');}).join('|')+'@'+curN;
+    var inPlan=new Set(); plan.forEach(function(c){c.forEach(function(a){inPlan.add(a);});});
+    if(sig!==curSig){ plan.forEach(function(c,i){ cols[i].replaceChildren.apply(cols[i],c.map(function(a){return a.el;})); }); curSig=sig; }
+    else plan.forEach(function(c,i){ c.forEach(function(a){ if(a.el.parentElement!==cols[i]) cols[i].appendChild(a.el); }); });
+    all.forEach(function(a){ if(!inPlan.has(a)) stash.appendChild(a.el); });
+    mwrap.remove();
+    grid.style.gridTemplateColumns=tpl;
+    window.__fitDbg={S:S,K:K,tier:TIER,over:Math.round(over),availH:availH};
+    return {over:over,S:S,K:K,availH:availH};
+  }
+  function redraw(){ window.__fitSilent=true; window.dispatchEvent(new Event('resize')); window.__fitSilent=false; }
+  function colNat(c){ var t=0,n=0; [].forEach.call(c.children,function(ch){ var h=ch.getBoundingClientRect().height; if(h>0){ t+=h; n++; } }); return t+Math.max(0,n-1)*GAP(); }
+  function isGraphicCol(c){
+    var els=c.querySelectorAll('canvas,svg'); for(var i=0;i<els.length;i++){ var e=els[i]; if(e.closest('button,.icon,.badge,.toggle,summary')) continue; var r=e.getBoundingClientRect(); if(r.width>150&&r.height>60) return true; } return false;
+  }
+  var TEXTMIN=C.textMin||300;
+  function fitWidths(avail){        /* Grafik-Spalten so breit, dass ihre Höhe die Fensterhöhe füllt (Seitenverhältnis bleibt, nichts verzerrt); Rest geht an Text-Spalten */
+    var n=cols.length; if(n<1) return 0;
+    var G=GAP(), availW=window.innerWidth-26-G*(n-1), g=cols.map(isGraphicCol), nG=g.filter(Boolean).length, nT=n-nG;
+    function tpl(w){ return cols.map(function(_,i){ return g[i]?Math.round(w[i])+'px':'minmax('+TEXTMIN+'px,1fr)'; }).join(' '); }
+    if(!nG||n===1){ grid.style.gridTemplateColumns=cols.map(function(){return 'minmax(0,1fr)';}).join(' '); redraw(); }
+    else {
+      var budget=availW-nT*TEXTMIN, w=cols.map(function(_,i){return g[i]?budget/nG:0;}), lo=MINCOL*0.7;
+      for(var it=0; it<7; it++){
+        grid.style.gridTemplateColumns=tpl(w); redraw();
+        var worst=0, nw=w.slice();
+        cols.forEach(function(c,i){ if(!g[i]) return; var h=colNat(c); worst=Math.max(worst,Math.abs(h-avail)/avail); nw[i]=Math.max(lo,Math.min(budget,w[i]*Math.pow(avail/Math.max(150,h),0.95))); });
+        var sum=0; cols.forEach(function(_,i){ if(g[i]) sum+=nw[i]; });
+        if(sum>budget) cols.forEach(function(_,i){ if(g[i]) nw[i]=Math.max(lo,nw[i]*budget/sum); });
+        w=nw; if(worst<0.02) break;
+      }
+      grid.style.gridTemplateColumns=tpl(w); grid.style.justifyContent=nT?'stretch':'center'; redraw();
+    }
+    var mx=0; cols.forEach(function(c){ mx=Math.max(mx,colNat(c)-avail); });
+    var sw=cols.map(function(c){ var hs=[].slice.call(c.querySelectorAll('.panel,.stage')); return hs.length; });
+    /* breite Einstellungsspalten: Regler zweispaltig */
+    cols.forEach(function(c){ var wide=c.getBoundingClientRect().width>=430&&!isGraphicCol(c); [].forEach.call(c.querySelectorAll('.panel'),function(pn){ var k=[].filter.call(pn.children,function(e){return e.classList.contains('ctl-row')||e.classList.contains('field');}).length; pn.classList.toggle('fit2',wide&&k>=3); }); });
+    return mx-5;
+  }
+  function relayout(){
+    if(busy) return; busy=true;
+    try{
+      if(!active()){ restore(); return; }
+      var r=null, mx=0;
+      for(var t=0;t<3;t++){ setTier(t); r=layoutOnce(); redraw(); mx=fitWidths(r.availH-5); if(mx<=0) break; }
+      window.__fitDbg.over=Math.round(Math.max(0,mx)); redraw();
+    } finally { busy=false; }
+  }
+  function restore(){
+    root.classList.remove('fit','d1','d2'); TIER=0;
+    if(!grid) return; container.style.display='';
+    all.forEach(function(a){ if(a.next&&a.next.parentNode===a.parent) a.parent.insertBefore(a.el,a.next); else a.parent.appendChild(a.el); });
+    grid.remove(); stash.remove(); grid=null; stash=null; cols=[]; curN=0; curSig='';
+  }
+  function again(){ clearTimeout(window.__fitA); window.__fitA=setTimeout(function(){ relayout(); },70); }
+  window.addEventListener('resize',function(){ if(window.__fitSilent) return; clearTimeout(window.__fitT); window.__fitT=setTimeout(relayout,90); });
+  document.addEventListener('click',function(e){ if(e.target.closest('button,.toggle,.seg,.tabs,label,summary')) again(); },true);
+  document.addEventListener('change',function(e){ if(e.target.matches('select,input[type=checkbox],input[type=radio]')) again(); },true);
+  window.__fitRelayout=again;
+  relayout();
+  setTimeout(relayout,350);
+})();
+
+</script>
+</body>
+</html>

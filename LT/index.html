@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dichtheitsprüf-Simulator · LT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media=\'all\'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"></noscript>
+<style>
+  :root{
+    --bg:#16191c; --bg-2:#1f2327; --panel:#262b30; --panel-2:#2b3137;
+    --border:#454d57; --border-soft:#363d45;
+    --text:#eef1f4; --text-dim:#b2bac2; --text-faint:#78828d;
+    --amber:#ffc94d; --amber-dim:#7d5b1c; --amber-glow:rgba(255,201,77,.22);
+    --cyan:#4de9d4; --cyan-glow:rgba(77,233,212,.16);
+    --blue:#6cc0ec; --red:#ff6f66; --green:#5fe072; --violet:#b48cf2;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+    --disp:'Space Grotesk',sans-serif; --body:'Inter',system-ui,sans-serif;
+    --grid:#3a4048;
+  }
+  body.light{
+    --bg:#e6ebf1; --bg-2:#f2f5f9; --panel:#fbfcfe; --panel-2:#eef2f7;
+    --border:#8098ae; --border-soft:#b3c3d1;
+    --text:#0b1520; --text-dim:#2c3f51; --text-faint:#526a7d;
+    --amber:#8a4d00; --amber-dim:#d9a441; --amber-glow:rgba(138,77,0,.14);
+    --cyan:#06665a; --cyan-glow:rgba(6,102,90,.12);
+    --blue:#0a4a6e; --red:#a8231a; --green:#166b2a; --violet:#5c3a9e;
+    --grid:#a9bccb;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg); color:var(--text); font-family:var(--body); min-height:100vh;
+    -webkit-font-smoothing:antialiased;}
+  .app{max-width:1620px; margin:0 auto; padding:14px 12px 40px;}
+  @media(min-width:820px){ .app{padding:18px 20px 44px;} }
+
+  header.top{display:flex; align-items:flex-end; justify-content:space-between; gap:14px;
+    padding-bottom:11px; margin-bottom:15px; border-bottom:1.5px solid var(--border); flex-wrap:wrap;}
+  .eyebrow{font-family:var(--mono); font-size:9.5px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--cyan); margin:0 0 5px; display:flex; align-items:center; gap:7px;}
+  .eyebrow::before{content:''; width:16px; height:1.5px; background:var(--cyan); opacity:.75;}
+  h1{font-family:var(--disp); font-weight:700; font-size:21px; margin:0; letter-spacing:-.2px;}
+  h1 small{display:block; font-family:var(--body); font-weight:400; font-size:11.5px;
+    color:var(--text-dim); margin-top:3px;}
+  @media(min-width:640px){ h1{font-size:25px;} h1 small{font-size:12.5px;} }
+  .hdr-right{display:flex; align-items:center; gap:7px; flex-wrap:wrap;}
+  .badge{font-family:var(--mono); font-size:10px; padding:4px 9px; border-radius:20px;
+    border:1.5px solid var(--border); color:var(--text-dim); background:var(--panel);
+    display:flex; align-items:center; gap:5px; white-space:nowrap;}
+  .badge.acc{border-color:var(--cyan); color:var(--cyan); background:var(--cyan-glow);}
+  .badge.ok{border-color:var(--green); color:var(--green);}
+  .badge.bad{border-color:var(--red); color:var(--red);}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+  .icon-btn{width:34px;height:34px;border-radius:9px;border:1.5px solid var(--border);
+    background:var(--panel-2); color:var(--text-dim); cursor:pointer; font-size:15px;
+    display:flex;align-items:center;justify-content:center;}
+  .icon-btn:hover{border-color:var(--cyan); color:var(--cyan);}
+  .icon-btn:focus-visible{outline:2px solid var(--cyan); outline-offset:2px;}
+
+  .layout{display:grid; grid-template-columns:1fr; gap:15px; align-items:start;}
+  @media(min-width:1000px){ .layout{grid-template-columns:300px 1fr; gap:17px;} }
+  @media(min-width:1440px){ .layout{grid-template-columns:322px 1fr;} }
+  @media(min-width:1000px){
+    .sidebar{position:sticky; top:14px; max-height:calc(100vh - 28px); overflow-y:auto; padding-right:6px;}
+    .sidebar::-webkit-scrollbar{width:7px;}
+    .sidebar::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+  }
+
+  .panel{background:var(--panel); border:1.5px solid var(--border-soft); border-radius:13px;
+    padding:13px 14px; margin-bottom:11px;}
+  .panel h2{font-family:var(--disp); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--amber); margin:0 0 10px; font-weight:700;}
+  .field{margin-bottom:11px;} .field:last-child{margin-bottom:0;}
+  .field label{display:flex; justify-content:space-between; align-items:baseline; gap:8px;
+    font-size:11.5px; color:var(--text); margin-bottom:5px; font-weight:500;}
+  .field label .val{font-family:var(--mono); color:var(--amber); font-size:11.5px; font-weight:700;}
+  .hint{font-size:10.5px; color:var(--text-dim); line-height:1.5; margin-top:5px;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:9px;}
+
+  input[type=range]{width:100%; height:4px; border-radius:3px; background:var(--border);
+    -webkit-appearance:none; appearance:none; outline:none; cursor:pointer; margin:5px 0;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none; width:16px;height:16px;
+    border-radius:50%; background:var(--amber); border:2px solid var(--bg);
+    box-shadow:0 0 0 2px var(--amber-dim); cursor:pointer;}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;
+    background:var(--amber); border:2px solid var(--bg); cursor:pointer;}
+  input[type=range]:focus-visible{outline:2px solid var(--cyan); outline-offset:3px;}
+  input[type=range]:disabled{opacity:.4; cursor:not-allowed;}
+
+  .seg{display:flex; gap:4px; flex-wrap:wrap;}
+  .seg button{flex:1 1 auto; min-width:44px; padding:7px 6px; border-radius:8px;
+    border:1.5px solid var(--border); background:var(--bg-2); color:var(--text-dim);
+    font-family:var(--mono); font-size:10.5px; font-weight:600; cursor:pointer;}
+  .seg button:hover{border-color:var(--cyan); color:var(--text);}
+  .seg button:focus-visible{outline:2px solid var(--cyan); outline-offset:2px;}
+  .seg button.on{background:var(--amber); border-color:var(--amber); color:#1c1200; font-weight:700;}
+  body.light .seg button.on{color:#fff;}
+  .seg.stack{flex-direction:column;}
+  .seg.stack button{text-align:left; padding:8px 10px;}
+
+  .btnrow{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;}
+  .btn{flex:1 1 auto; padding:9px 11px; border-radius:8px; border:1.5px solid var(--border);
+    background:var(--bg-2); color:var(--text); font-family:var(--mono); font-size:10.5px;
+    font-weight:700; cursor:pointer; white-space:nowrap;}
+  .btn:hover{border-color:var(--cyan);}
+  .btn:focus-visible{outline:2px solid var(--cyan); outline-offset:2px;}
+  .btn.primary{background:var(--amber); border-color:var(--amber); color:#1c1200;}
+  body.light .btn.primary{color:#fff;}
+  .btn.primary.stop{background:var(--red); border-color:var(--red); color:#2a0503;}
+  body.light .btn.primary.stop{color:#fff;}
+
+  .kv{background:var(--bg-2); border:1.5px solid var(--border-soft); border-radius:8px;
+    padding:8px 10px; display:grid; grid-template-columns:auto 1fr; gap:4px 10px;
+    font-family:var(--mono); font-size:10.5px; align-items:baseline;}
+  .kv .k{color:var(--text-faint); font-size:10px;}
+  .kv .v{color:var(--amber); font-weight:700; text-align:right;}
+
+  .toggle{display:flex; align-items:center; justify-content:space-between; padding:8px 11px;
+    background:var(--bg-2); border:1.5px solid var(--border); border-radius:8px; margin-bottom:9px;
+    cursor:pointer; user-select:none; gap:10px;}
+  .toggle:hover{border-color:var(--cyan);}
+  .toggle span{font-size:11.5px; font-weight:500;}
+  .switch{width:32px;height:18px;border-radius:20px;background:var(--border); position:relative; flex:none;}
+  .switch::after{content:''; position:absolute; top:2.5px; left:2.5px; width:13px; height:13px;
+    border-radius:50%; background:var(--text-faint);}
+  .toggle.on .switch{background:var(--amber-dim);}
+  .toggle.on .switch::after{left:16.5px; background:var(--amber);}
+
+  .stage{background:var(--panel); border:1.5px solid var(--border-soft); border-radius:13px;
+    padding:13px 14px; margin-bottom:14px;}
+  .stage-head{display:flex; justify-content:space-between; align-items:center; gap:10px;
+    margin-bottom:10px; flex-wrap:wrap;}
+  .stage-title{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--text-dim); font-weight:600;}
+  .legend{display:flex; gap:11px; flex-wrap:wrap;}
+  .legend span{display:flex; align-items:center; gap:5px; font-size:9.5px; color:var(--text-dim);
+    font-family:var(--mono);}
+  .legend i{width:14px;height:3px;border-radius:2px;display:inline-block;}
+  .legend i.pt{width:9px;height:9px;border-radius:50%;}
+  .stagegrid{display:grid; grid-template-columns:1fr; gap:14px;}
+  @media(min-width:1180px){ .stagegrid{grid-template-columns:1fr 1fr;} .stagegrid .stage{margin-bottom:0;} }
+
+  svg.view{display:block; width:100%; height:auto; border-radius:9px;
+    border:1.5px solid var(--border); background:var(--bg-2);}
+  .foot{display:flex; justify-content:space-between; gap:8px; margin-top:7px; flex-wrap:wrap;
+    font-family:var(--mono); font-size:9.5px; color:var(--text-faint);}
+
+  .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(122px,1fr)); gap:7px; margin-top:11px;}
+  .stat{background:var(--bg-2); border:1.5px solid var(--border-soft); border-radius:8px; padding:7px 10px;}
+  .stat .k{font-size:8.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--text-faint);
+    font-family:var(--mono); margin-bottom:4px; font-weight:600;}
+  .stat .v{font-family:var(--mono); font-size:14px; color:var(--cyan); font-weight:700; line-height:1.15;}
+  .stat .v small{font-size:9.5px; color:var(--text-dim); font-weight:500; margin-left:2px;}
+  .stat.hl{border-color:var(--amber-dim);} .stat.hl .v{color:var(--amber);}
+  .stat.ok{border-color:var(--green);} .stat.ok .v{color:var(--green);}
+  .stat.bad{border-color:var(--red);} .stat.bad .v{color:var(--red);}
+
+  .verdict{margin-top:11px; padding:10px 13px; border-radius:9px; font-size:12px; line-height:1.55;
+    border:1.5px solid var(--border-soft); background:var(--bg-2); color:var(--text-dim);}
+  .verdict.ok{border-color:var(--green); background:rgba(95,224,114,.08); color:var(--text);}
+  .verdict.bad{border-color:var(--red); background:rgba(255,111,102,.08); color:var(--text);}
+  .verdict.warn{border-color:var(--amber-dim); background:var(--amber-glow); color:var(--text);}
+  .verdict b{color:var(--text);}
+
+  table.res{width:100%; border-collapse:collapse; font-family:var(--mono); font-size:10.5px;}
+  table.res th{text-align:right; font-size:8.5px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--text-faint); font-weight:600; padding:5px 6px; border-bottom:1.5px solid var(--border);}
+  table.res th:first-child, table.res td:first-child{text-align:left;}
+  table.res td{text-align:right; padding:5px 6px; border-bottom:1px solid var(--border-soft); color:var(--text-dim);}
+  table.res td.v-ok{color:var(--green); font-weight:700;}
+  table.res td.v-bad{color:var(--red); font-weight:700;}
+  table.res tr.cur td{background:var(--cyan-glow); color:var(--text);}
+
+  details.note{margin-top:2px; padding:9px 13px; background:var(--bg-2);
+    border:1.5px solid var(--border-soft); border-radius:10px;
+    font-size:11px; color:var(--text-dim); line-height:1.6;}
+  details.note summary{cursor:pointer; font-family:var(--mono); font-size:9.5px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--text-faint); list-style:none;}
+  details.note summary::-webkit-details-marker{display:none;}
+  details.note p{margin:9px 0 0;} details.note b{color:var(--text);}
+  details.note code{font-family:var(--mono); font-size:10.5px; color:var(--cyan);}
+  details.note summary::before{content:'▸  Modell und Formeln';}
+  details.note[open] summary::before{content:'▾  Modell und Formeln';}
+
+  .only-blase,.only-druck,.only-schnueffel,.only-vakuum{display:none;}
+  body.m-blase .only-blase{display:block;}
+  body.m-druck .only-druck{display:block;}
+  body.m-schnueffel .only-schnueffel{display:block;}
+  body.m-vakuum .only-vakuum{display:block;}
+  body.m-blase .field.only-blase,body.m-druck .field.only-druck,
+  body.m-schnueffel .field.only-schnueffel,body.m-vakuum .field.only-vakuum{display:block;}
+  @media(prefers-reduced-motion:reduce){ *{transition:none!important; animation:none!important;} }
+</style>
+<script src="/shared/zfp-context.js"></script>
+<script id="zfp-offline">
+/* Offline-Fallback: läuft die App ohne Server (file://), fehlt /shared/zfp-context.js – dann wird der Theme-Kontext lokal bereitgestellt. */
+(function(){
+  if(window.ZfPContext) return;
+  var cbs=[], mode=null, KEY='zfp-theme';
+  function store(v){ try{ if(v===undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY,v); }catch(e){} return null; }
+  function init(){ if(mode) return; var s=store(); mode=(s==='light'||s==='dark')?s:((document.body&&(document.body.classList.contains('light-mode')||document.body.classList.contains('light')))?'light':'dark'); }
+  window.ZfPContext={
+    get theme(){ init(); return mode; },
+    onTheme:function(f){ if(typeof f!=='function') return; cbs.push(f); init(); f(mode); },
+    toggleTheme:function(){ init(); mode=mode==='light'?'dark':'light'; store(mode); cbs.forEach(function(f){ try{ f(mode); }catch(e){} }); }
+  };
+})();
+</script>
+
+<style id="fit-css">
+/* ═══ Kompakt-Dashboard (wie UT): kleine Schrift, dichte Panels, alles auf einem Bildschirm ═══ */
+html.fit, html.fit body{height:100%; overflow:hidden;}
+html.fit .app{box-sizing:border-box; display:flex; flex-direction:column; padding:5px 12px 8px; gap:6px; max-width:none; width:100%; height:100vh; height:100dvh; overflow:hidden; zoom:1 !important;}
+html.fit .sfl-bar{display:none;}
+html.fit header.top{margin:0; padding:0 0 4px; flex:0 0 auto; align-items:center; gap:12px; flex-wrap:nowrap;}
+html.fit header.top .brand-eyebrow, html.fit .eyebrow{font-size:9px; margin:0 0 1px;}
+html.fit header.top h1{font-size:21px; line-height:1.05; margin:0;}
+html.fit header.top h1 small, html.fit header.top .title-group > small, html.fit header.top .sub{font-size:11.5px; line-height:1.2;}
+html.fit .badge{font-size:10.5px; padding:3px 9px;}
+html.fit .icon-btn{width:30px; height:30px; font-size:14px;}
+html.fit .fitgrid{flex:1 1 0; min-height:0; display:grid; gap:8px; margin:0; align-items:stretch;}
+html.fit .fcol{display:flex; flex-direction:column; gap:8px; min-height:0; min-width:0; overflow-y:auto; overflow-x:hidden; padding:0 2px 4px 0; scrollbar-width:thin;}
+html.fit .fcol > *{flex:0 0 auto; margin:0 !important;}
+html.fit .panel{padding:8px 10px 9px; border-radius:10px;}
+html.fit .panel h2, html.fit .stage-title, html.fit .panel > .stage-title{margin:0 0 5px; font-size:10.5px; letter-spacing:.07em; line-height:1.25;}
+html.fit .stage-head{gap:4px 10px; flex-wrap:wrap; padding:0 0 4px; margin:0 0 2px;}
+html.fit .ctl-row, html.fit .field{margin:0 0 5px;}
+html.fit .ctl-row label, html.fit .field label{font-size:11.5px; margin:0 0 1px; line-height:1.25;}
+html.fit .ctl-row label .val, html.fit .field label .val{font-size:11.5px;}
+html.fit input[type=range]{margin:1px 0; height:18px;}
+html.fit .hint, html.fit .note, html.fit .ctl-row .note, html.fit .sidebar-note, html.fit .panel .hint{font-size:10.5px; line-height:1.32; margin:2px 0 0;}
+html.fit .btnrow{gap:5px; margin:4px 0;}
+html.fit button, html.fit select{font-size:11.5px; padding:5px 9px;}
+html.fit .callout, html.fit .verdict{font-size:11.5px; line-height:1.4; padding:7px 10px; margin-top:5px; max-height:none; overflow:visible;}
+html.fit .stat{padding:5px 8px;} html.fit .stat .k{font-size:9.5px; line-height:1.2;} html.fit .stat .v{font-size:14.5px;}
+html.fit .stats{gap:5px; grid-template-columns:repeat(3,1fr);}
+html.fit .seg{gap:4px;}
+html.fit .seg button, html.fit .toggle button{padding:6px 5px; min-width:0; white-space:normal; line-height:1.2; font-size:11px;}
+html.fit .seg.mini button{padding:3px 8px; font-size:10.5px;}
+html.fit .toggle{flex-wrap:wrap; padding:5px 8px; margin:0 0 4px;}
+html.fit .legend{font-size:10px; margin-top:4px; gap:3px 12px;}
+html.fit table.res td, html.fit table.res th, html.fit table.ht td, html.fit table.ht th{padding:3px 5px; font-size:10.5px;}
+html.fit .pstep, html.fit .step{padding-top:5px; padding-bottom:5px; gap:8px;}
+html.fit .pstep p, html.fit .step p{font-size:10.5px; line-height:1.38; margin-top:2px;}
+html.fit .pstep h4{font-size:12px;}
+html.fit .frow{padding:3px 0; font-size:11.5px;}
+html.fit .frow .nm small{font-size:10px; line-height:1.25;}
+html.fit .live{padding:8px 11px; margin-bottom:6px;}
+html.fit .live-val{font-size:19px;}
+html.fit .pbar{margin:6px 0 4px;}
+html.fit .stage, html.fit .panel > .stage{margin:0;}
+html.fit .foot{font-size:10.5px; padding-top:3px;}
+html.fit .kv{font-size:11px;}
+html.fit canvas, html.fit svg.view{max-width:100%; height:auto;}
+html.fit .step p, html.fit .pstep p{display:none;}
+html.fit .step.cur p, html.fit .pstep.cur p{display:block;}
+/* Slider-reiche Panels: zwei Regler nebeneinander */
+html.fit .panel.fit2{display:grid; grid-template-columns:1fr 1fr; column-gap:12px; align-content:start;}
+html.fit .panel.fit2 > *{grid-column:1/-1;}
+html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{grid-column:auto; min-width:0;}
+
+/* Grafiken: nur Breite begrenzt, Höhe folgt dem Seitenverhältnis → nie verzerrt */
+html.fit .stage canvas, html.fit .stage svg{max-width:100%; height:auto;}
+/* Kompaktstufen (nur Abstände, Schriftgröße bleibt → Browser-Zoom wirkt normal) */
+html.fit.d1 .fitgrid, html.fit.d1 .fcol{gap:6px;}
+html.fit.d1 .panel{padding:6px 8px 7px;}
+html.fit.d1 .panel h2, html.fit.d1 .stage-title{margin-bottom:3px;}
+html.fit.d1 .ctl-row, html.fit.d1 .field{margin-bottom:3px;}
+html.fit.d1 .hint, html.fit.d1 .note, html.fit.d1 .panel .hint{margin-top:1px; line-height:1.25;}
+html.fit.d1 .stat{padding:3px 7px;} html.fit.d1 .stats{gap:4px;}
+html.fit.d1 .toggle{padding:3px 7px; margin-bottom:3px;}
+html.fit.d1 .seg button, html.fit.d1 .toggle button{padding:4px 4px;}
+html.fit.d1 button, html.fit.d1 select{padding:3px 8px;}
+html.fit.d1 .callout, html.fit.d1 .verdict{padding:5px 8px; margin-top:3px; line-height:1.3;}
+html.fit.d1 .pstep, html.fit.d1 .step{padding-top:3px; padding-bottom:3px;}
+html.fit.d1 .legend{margin-top:2px;} html.fit.d1 .btnrow{margin:2px 0;}
+html.fit.d1 header.top{padding-bottom:2px;}
+html.fit.d2 .fitgrid, html.fit.d2 .fcol{gap:4px;}
+html.fit.d2 .panel{padding:4px 7px 5px; border-radius:8px;}
+html.fit.d2 .panel h2, html.fit.d2 .stage-title{margin-bottom:2px; font-size:10px;}
+html.fit.d2 .ctl-row, html.fit.d2 .field{margin-bottom:1px;}
+html.fit.d2 input[type=range]{height:14px; margin:0;}
+html.fit.d2 .hint, html.fit.d2 .note, html.fit.d2 .panel .hint{line-height:1.18; font-size:10px; margin-top:0;}
+html.fit.d2 .stat{padding:2px 6px;} html.fit.d2 .stat .v{font-size:13px;} html.fit.d2 .stats{gap:3px;}
+html.fit.d2 .toggle{padding:2px 6px; margin-bottom:2px;}
+html.fit.d2 .seg button, html.fit.d2 .toggle button{padding:3px 3px;}
+html.fit.d2 button, html.fit.d2 select{padding:2px 7px;}
+html.fit.d2 .callout, html.fit.d2 .verdict{padding:3px 7px; margin-top:2px; line-height:1.25;}
+html.fit.d2 .pstep, html.fit.d2 .step{padding-top:2px; padding-bottom:2px;}
+html.fit.d2 header.top h1{font-size:19px;} html.fit.d2 header.top h1 small{display:none;}
+html.fit.d2 .legend{margin-top:1px;} html.fit.d2 .btnrow{margin:1px 0;} html.fit.d2 .live{padding:5px 9px; margin-bottom:3px;}
+
+html.fit .thermal-wrap{align-items:start;}
+html.fit #heat{height:auto !important; align-self:start;}
+html.fit #cbar{height:100%;}
+/* Tabellen: nie rechts abschneiden */
+html.fit .fcol div:has(> table), html.fit .fcol .tablewrap, html.fit .fcol .skiptbl-wrap{overflow-x:auto; max-width:100%;}
+html.fit .fcol table{font-size:10.5px;}
+html.fit .fcol table th, html.fit .fcol table td{padding:3px 4px; white-space:normal;}
+/* alte max-height-Kappen der Einzel-Apps aufheben: Höhe folgt nur dem Seitenverhältnis (keine Seitenbalken) */
+html.fit svg, html.fit .stage svg, html.fit #setup, html.fit #wave, html.fit #chart, html.fit #view{max-height:none !important;}
+html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{min-width:0; overflow:hidden;}
+html.fit .panel.fit2 select, html.fit .panel.fit2 input[type=range]{width:100%; max-width:100%; min-width:0;}
+/* ET-spezifisch */
+html.fit .fitgrid .stagegrid, html.fit .fitgrid .stagegrid.wide{grid-template-columns:1fr !important;}
+html.fit .fitgrid .impgrid{display:grid; grid-template-columns:1fr; gap:8px; align-items:start;}
+html.fit .fitgrid .impgrid > svg{width:100%; height:auto; max-height:none;}
+html.fit .fitgrid .impside{min-width:0;}
+html.fit .fitgrid #secSvg, html.fit .fitgrid #cvMicro, html.fit .fitgrid #imp, html.fit .fitgrid #cscan, html.fit .fitgrid #strip{width:100%; max-width:100%; height:auto; max-height:none; margin:0 auto; display:block;}
+html.fit .fitgrid #tubeRefBox{display:grid; grid-template-columns:1fr 1fr; gap:4px 6px;}
+html.fit .fitgrid #tubeRefBox .toggle{margin:0; font-size:11px; padding:4px 7px;}
+html.fit .fitgrid #gefInfo{font-size:11px; line-height:1.35;}
+html.fit .fitgrid #statsGef{grid-template-columns:repeat(3,1fr);}
+html.fit .gstates{gap:4px 6px;}
+html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
+</style>
+</head>
+<body class="m-blase">
+<div class="app">
+
+  <header class="top">
+    <div>
+      <p class="eyebrow">Schaeffler · ZfP · Dichtheitsprüfung</p>
+      <h1>Dichtheitsprüf-Simulator
+        <small id="h1sub">Leckrate aus der Kapillargeometrie · Blasentest, Druckabfall, Helium</small>
+      </h1>
+    </div>
+    <div class="hdr-right">
+      <span class="badge"><span class="dot"></span>Simulation</span>
+      <span class="badge acc" id="bMethod">—</span>
+      <span class="badge" id="bQ">—</span>
+      <span class="badge" id="bRes">—</span>
+      <button class="icon-btn" id="themeBtn" aria-label="Hell/Dunkel umschalten">☀</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="sidebar">
+
+      <div class="panel">
+        <h2>Prüfverfahren</h2>
+        <div class="seg stack" id="segMethod">
+          <button data-m="blase" class="on">Blasentest im Tauchbad</button>
+          <button data-m="druck">Druckabfallprüfung</button>
+          <button data-m="schnueffel">Helium-Schnüffelprüfung</button>
+          <button data-m="vakuum">Helium-Integralprüfung im Vakuum</button>
+        </div>
+        <div class="hint" id="methodHint">—</div>
+      </div>
+
+      <div class="panel">
+        <h2>Leckstelle</h2>
+        <div class="field">
+          <label for="dia">Kapillardurchmesser <span class="val" id="vDia">—</span></label>
+          <input type="range" id="dia" min="0" max="100" step="0.5" value="52">
+          <div class="hint">Das Leck wird als durchgehende Kapillare gerechnet, nicht als Kennzahl. Aus Durchmesser, Länge, Druck und Gasart folgt die Leckrate.</div>
+        </div>
+        <div class="field">
+          <label for="len">Kanallänge <span class="val" id="vLen">1,0 mm</span></label>
+          <input type="range" id="len" min="0.2" max="10" step="0.1" value="1">
+        </div>
+        <div class="kv">
+          <span class="k">Knudsen-Zahl λ/d</span><span class="v" id="kKn">—</span>
+          <span class="k">Strömungsform</span><span class="v" id="kFlow">—</span>
+          <span class="k">Q Luft</span><span class="v" id="kQair">—</span>
+          <span class="k">Q Helium</span><span class="v" id="kQhe">—</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Prüfling</h2>
+        <div class="field">
+          <label for="press">Prüfdruck (Überdruck) <span class="val" id="vPress">2,0 bar</span></label>
+          <input type="range" id="press" min="0.2" max="10" step="0.1" value="2">
+        </div>
+        <div class="field">
+          <label for="vol">Prüfvolumen <span class="val" id="vVol">0,50 l</span></label>
+          <input type="range" id="vol" min="0.02" max="20" step="0.01" value="0.5">
+        </div>
+        <div class="field">
+          <label for="limit">Zulässige Leckrate <span class="val" id="vLimit">—</span></label>
+          <input type="range" id="limit" min="0" max="100" step="1" value="57">
+          <div class="hint">Grenzwert aus der Zeichnung, hier von 10⁻⁹ bis 10⁰ mbar·l/s einstellbar.</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Prüfzyklus</h2>
+        <div class="row2">
+          <div class="field">
+            <label for="tFill">Füllen <span class="val" id="vTFill">3 s</span></label>
+            <input type="range" id="tFill" min="1" max="20" step="1" value="3">
+          </div>
+          <div class="field">
+            <label for="tSettle">Beruhigen <span class="val" id="vTSettle">5 s</span></label>
+            <input type="range" id="tSettle" min="0" max="60" step="1" value="5">
+          </div>
+        </div>
+        <div class="field">
+          <label for="tMeas">Messzeit <span class="val" id="vTMeas">20 s</span></label>
+          <input type="range" id="tMeas" min="2" max="120" step="1" value="20">
+        </div>
+        <div class="btnrow">
+          <button class="btn primary" id="btnRun">▶ Prüfung starten</button>
+          <button class="btn" id="btnReset">⟲ Zurücksetzen</button>
+        </div>
+      </div>
+
+      <div class="panel only-druck">
+        <h2>Druckmessung</h2>
+        <div class="toggle" id="tglDiff"><span>Differenzdruck gegen Referenzteil</span><div class="switch"></div></div>
+        <div class="hint" style="margin:-4px 0 10px">Beide Volumina erfahren dieselbe Temperatur, die Drift hebt sich auf. Differenzdrucksensoren lösen zudem 0,01 bis 0,1 mbar auf statt 0,5 mbar — beides zusammen bringt den Faktor, nicht der Schalter allein.</div>
+        <div class="field">
+          <label for="pRes">Auflösung des Sensors <span class="val" id="vPRes">0,50 mbar</span></label>
+          <input type="range" id="pRes" min="0.01" max="5" step="0.01" value="0.5">
+        </div>
+        <div class="field">
+          <label for="dT">Temperaturänderung während der Messung <span class="val" id="vDT">0,20 K</span></label>
+          <input type="range" id="dT" min="0" max="2" step="0.01" value="0.2">
+          <div class="hint">Der klassische Stolperstein: eine Erwärmung um 1 K hebt den Druck stärker an, als die meisten Lecks ihn senken.</div>
+        </div>
+      </div>
+
+      <div class="panel only-schnueffel">
+        <h2>Schnüffelprüfung</h2>
+        <div class="field">
+          <label for="heConc">Helium-Anteil im Prüfgas <span class="val" id="vHeConc">100 %</span></label>
+          <input type="range" id="heConc" min="2" max="100" step="1" value="100">
+          <div class="hint">Formiergas mit 5 % Helium ist billiger und nicht zündfähig, kostet aber Faktor 20 an Empfindlichkeit.</div>
+        </div>
+        <div class="field">
+          <label for="sniffDist">Abstand der Schnüffelspitze <span class="val" id="vSniffDist">2,0 mm</span></label>
+          <input type="range" id="sniffDist" min="0.5" max="20" step="0.5" value="2">
+        </div>
+        <div class="field">
+          <label for="sniffSpeed">Führungsgeschwindigkeit <span class="val" id="vSniffSpeed">10 mm/s</span></label>
+          <input type="range" id="sniffSpeed" min="1" max="80" step="1" value="10">
+          <div class="hint">Zu schnell geführt, und die Spitze ist über dem Leck, bevor das Gerät angesprochen hat.</div>
+        </div>
+      </div>
+
+      <div class="panel only-vakuum">
+        <h2>Integralprüfung</h2>
+        <div class="field">
+          <label for="heConc2">Helium-Anteil im Prüfgas <span class="val" id="vHeConc2">100 %</span></label>
+          <input type="range" id="heConc2" min="2" max="100" step="1" value="100">
+        </div>
+        <div class="field">
+          <label for="chVol">Kammervolumen <span class="val" id="vChVol">2,0 l</span></label>
+          <input type="range" id="chVol" min="0.2" max="50" step="0.1" value="2">
+        </div>
+        <div class="field">
+          <label for="pumpS">Saugvermögen <span class="val" id="vPumpS">5,0 l/s</span></label>
+          <input type="range" id="pumpS" min="0.2" max="60" step="0.2" value="5">
+          <div class="hint">Zeitkonstante τ = V/S. Ein großes Saugvermögen macht das Gerät schnell, aber unempfindlicher.</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="main">
+
+      <div class="stage">
+        <div class="stage-head">
+          <span class="stage-title" id="setupTitle">Prüfaufbau</span>
+          <div class="legend" id="setupLegend"></div>
+        </div>
+        <svg class="view" id="setup" viewBox="0 0 900 400" role="img" aria-label="Prüfaufbau"></svg>
+        <div class="foot"><span id="setupInfo">—</span><span id="phaseInfo">bereit</span></div>
+        <div class="stats" id="stats"></div>
+        <div class="verdict" id="verdict">Prüfung starten.</div>
+      </div>
+
+      <div class="stagegrid">
+        <div class="stage">
+          <div class="stage-head">
+            <span class="stage-title" id="chartTitle">Messsignal über der Zeit</span>
+            <div class="legend" id="chartLegend"></div>
+          </div>
+          <svg class="view" id="chart" viewBox="0 0 640 320" role="img" aria-label="Messsignal"></svg>
+          <div class="foot"><span id="chartInfo">—</span></div>
+        </div>
+        <div class="stage">
+          <div class="stage-head">
+            <span class="stage-title">Nachweisbereiche der Verfahren</span>
+            <div class="legend">
+              <span><i style="background:var(--amber)"></i>Leckrate</span>
+              <span><i style="background:var(--red)"></i>Grenzwert</span>
+            </div>
+          </div>
+          <svg class="view" id="ranges" viewBox="0 0 640 320" role="img" aria-label="Nachweisbereiche"></svg>
+          <div class="foot"><span id="rangeInfo">—</span></div>
+        </div>
+      </div>
+
+      <div class="stage">
+        <div class="stage-head"><span class="stage-title">Verfahrensvergleich für dieses Leck</span></div>
+        <div style="overflow-x:auto"><table class="res" id="cmpTable"></table></div>
+      </div>
+
+      <details class="note">
+        <summary></summary>
+        <p><b>Vereinfachtes didaktisches Modell, kein kalibriertes Prüfgerät.</b> Das Leck wird als gerade Kapillare mit Durchmesser d und Länge l gerechnet. Der Leitwert setzt sich aus einem laminaren und einem molekularen Anteil zusammen, beide in der üblichen vakuumtechnischen Form (d und l in cm, p in mbar, C in l/s):</p>
+        <p><code>C_lam = 1360 · d⁴/l · p̄ · (η_Luft/η_Gas)</code> und <code>C_mol = 3,81 · √(T/M) · d³/l</code></p>
+        <p>Die Leckrate ist <code>Q = (C_lam + C_mol) · Δp</code>. Welcher Anteil überwiegt, entscheidet die <b>Knudsen-Zahl</b> λ/d. Bei weiten Kapillaren und hohem Druck ist die Strömung laminar, bei sehr engen Kapillaren molekular.</p>
+        <p><b>Warum Helium.</b> In der molekularen Strömung ist der Leitwert proportional zu <code>1/√M</code>, Helium strömt gegenüber Luft also um den Faktor √(29/4) ≈ 2,7 stärker. In der laminaren Strömung zählt dagegen die Zähigkeit, und Helium ist mit 19,6 µPa·s sogar etwas zäher als Luft. Bei großen Lecks strömt Helium daher <b>nicht</b> schneller — der Vorteil des Verfahrens liegt allein in der Empfindlichkeit des Massenspektrometers.</p>
+        <p><b>Blasentest.</b> Die Blasenrate folgt aus der Leckrate und dem Ablösevolumen einer Blase: <code>n = Q · 987 / V_Blase</code> mit Q in mbar·l/s und V in mm³. Die Nachweisgrenze ist keine Gerätekonstante, sondern ergibt sich aus der Beobachtungszeit — eine Blase in zwanzig Sekunden ist die praktische Untergrenze.</p>
+        <p><b>Druckabfall.</b> Der Druck fällt mit <code>Δp = Q · t / V</code>. Die Nachweisgrenze folgt daraus zu <code>Q_min = 3 · Δp_Auflösung · V / t_Mess</code> und wird mit größerem Prüfvolumen schlechter. Eine Temperaturänderung wirkt über <code>Δp_T = p_abs · ΔT/T</code> und ist meist die größere Störgröße; das Differenzdruckverfahren gegen ein dichtes Referenzteil hebt sie auf, weil beide Volumina dieselbe Temperatur erfahren.</p>
+        <p><b>Helium.</b> Beim Schnüffeln erreicht nur ein Teil des austretenden Gases die Spitze; der Erfassungsgrad fällt mit dem Abstand. Dazu kommt der Heliumuntergrund der Raumluft von etwa 5 ppm. Bei der Integralprüfung im Vakuum baut sich das Signal mit der Zeitkonstante <code>τ = V_Kammer/S</code> auf; das stationäre Teilstromsignal ist <code>Q/S</code>-proportional, ein großes Saugvermögen macht die Anlage also schnell und zugleich unempfindlicher.</p>
+      </details>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => Math.max(a, Math.min(b,v));
+const deC = (v,d) => v.toFixed(d).replace('.',',');
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+/* ══════════ Gase und Kapillarleitwerte ══════════ */
+const GASES = {
+  luft: {name:'Luft',   M:28.96, eta:18.2},   // g/mol, µPa·s bei 20 °C
+  he:   {name:'Helium', M:4.003, eta:19.6},
+};
+const T_K = 293.15;
+const P_ATM = 1013;                            // mbar
+
+/* Leitwert einer Kapillare in l/s. d in µm, l in mm, p̄ in mbar. */
+function conduct(dUM, lMM, pMean, gasId){
+  const d = dUM*1e-4, L = Math.max(lMM,0.01)*0.1;     // cm
+  const g = GASES[gasId];
+  const Clam = 1360 * Math.pow(d,4)/L * pMean * (GASES.luft.eta/g.eta);
+  const Cmol = 3.81 * Math.sqrt(T_K/g.M) * Math.pow(d,3)/L;
+  return {Clam, Cmol, C:Clam+Cmol};
+}
+/* Leckrate in mbar·l/s zwischen p1 und p2 (mbar absolut) */
+function leakQ(dUM, lMM, p1, p2, gasId){
+  const c = conduct(dUM, lMM, (p1+p2)/2, gasId);
+  const dp = Math.max(0, p1-p2);
+  return {Q:c.C*dp, Qlam:c.Clam*dp, Qmol:c.Cmol*dp, C:c.C};
+}
+/* mittlere freie Weglänge in µm bei p in mbar */
+const freePath = p => 68e-3 * (P_ATM/Math.max(p,1e-6));
+
+/* ══════════ Zustand ══════════ */
+const S = {
+  method:'blase',
+  diaS:52, len:1.0,
+  press:2.0, vol:0.50, limS:57,
+  tFill:3, tSettle:5, tMeas:20,
+  diffP:false, pRes:0.50, dT:0.20,
+  heConc:100, sniffDist:2.0, sniffSpeed:10,
+  chVol:2.0, pumpS:5.0,
+  running:false, t:0
+};
+const diaUM  = () => Math.pow(10, -1.3 + 3.3*S.diaS/100);      // 0,05 … 100 µm
+const limMbl = () => Math.pow(10, -9 + 9*S.limS/100);          // 1e-9 … 1e0
+const pAbs   = () => S.press*1000 + P_ATM;
+const heFrac = () => S.heConc/100;
+
+const METHODS = {
+  blase:      {name:'Blasentest',            gas:'luft', kurz:'Blasentest'},
+  druck:      {name:'Druckabfallprüfung',    gas:'luft', kurz:'Druckabfall'},
+  schnueffel: {name:'Helium-Schnüffelprüfung', gas:'he',  kurz:'He-Schnüffeln'},
+  vakuum:     {name:'Helium-Integralprüfung', gas:'he',   kurz:'He-Vakuum'},
+};
+
+/* ══════════ Verfahrensmodelle ══════════ */
+const BUBBLE_VOL = 2.0;                        // mm³ Ablösevolumen einer Blase
+const HE_BACKGROUND = 5e-7;                    // mbar·l/s äquivalenter Untergrund der Raumluft
+
+/* Leckrate, die das jeweilige Verfahren tatsächlich sieht */
+function methodQ(m){
+  const d = diaUM(), L = S.len;
+  if(m === 'blase'){
+    const pOut = P_ATM + 5;                    // 50 mm Wassersäule
+    return leakQ(d, L, pAbs(), pOut, 'luft').Q;
+  }
+  if(m === 'druck') return leakQ(d, L, pAbs(), P_ATM, 'luft').Q;
+  if(m === 'schnueffel'){
+    const q = leakQ(d, L, pAbs(), P_ATM, 'he').Q * heFrac();
+    return q * captureFrac();
+  }
+  // Integralprüfung: außen Vakuum, deshalb volle Druckdifferenz
+  return leakQ(d, L, pAbs(), 0, 'he').Q * heFrac();
+}
+/* Erfassungsgrad der Schnüffelspitze */
+function captureFrac(){
+  return 0.75*Math.exp(-S.sniffDist/3.5) + 0.02;
+}
+/* Nachweisgrenze, aus den Einstellungen abgeleitet */
+function detectionLimit(m){
+  if(m === 'blase') return BUBBLE_VOL/987/Math.max(S.tMeas,1);
+  if(m === 'druck'){
+    const res = 3*S.pRes;
+    const dpT = S.diffP ? 0 : pAbs()*S.dT/T_K;
+    return (res + dpT)*S.vol/Math.max(S.tMeas,1);
+  }
+  if(m === 'schnueffel'){
+    // Untergrund plus Ansprechzeit gegen die Verweildauer über dem Leck
+    const tDwell = 6/Math.max(S.sniffSpeed,0.1);      // s über einer 6 mm breiten Fahne
+    const resp = 1 - Math.exp(-tDwell/1.2);
+    return 3*HE_BACKGROUND/Math.max(resp,0.02);
+  }
+  const tau = S.chVol/Math.max(S.pumpS,0.05);
+  const resp = 1 - Math.exp(-Math.max(S.tMeas,1)/tau);
+  return 5e-10/Math.max(resp,0.02);
+}
+/* Zeitkonstante der Anzeige */
+function tauOf(m){
+  if(m === 'vakuum') return S.chVol/Math.max(S.pumpS,0.05);
+  if(m === 'schnueffel') return 1.2;
+  return 0;
+}
+const cycleEnd = () => S.tFill + S.tSettle + S.tMeas;
+function phaseAt(t){
+  if(t < S.tFill) return 'fuellen';
+  if(t < S.tFill + S.tSettle) return 'beruhigen';
+  return 'messen';
+}
+
+/* Rauschen mit fester Folge, damit das Bild beim Nachrechnen stabil bleibt */
+function hashNoise(i){
+  let x = Math.sin(i*12.9898 + 78.233)*43758.5453;
+  x -= Math.floor(x);
+  let y = Math.sin(i*39.3468 + 11.135)*24634.6345;
+  y -= Math.floor(y);
+  return Math.sqrt(-2*Math.log(x+1e-9))*Math.cos(2*Math.PI*y);
+}
+
+/* Druckverlauf im Prüfling */
+function pressureAt(t){
+  const p0 = pAbs();
+  const ph = phaseAt(t);
+  if(ph === 'fuellen') return P_ATM + (p0-P_ATM)*(t/Math.max(S.tFill,0.01));
+  const tm = Math.max(0, t - S.tFill);
+  const Q = methodQ('druck');
+  const dpLeak = Q*tm/Math.max(S.vol,1e-3);
+  // Ausgleich der Füllerwärmung während der Beruhigungszeit
+  const relax = Math.exp(-tm/Math.max(S.tSettle/2.5, 0.4)) * (ph==='fuellen'?0:1);
+  const dpFill = 0.004*p0*relax;
+  const tMeasEl = Math.max(0, t - S.tFill - S.tSettle);
+  const dpT = S.diffP ? 0 : p0*(S.dT*tMeasEl/Math.max(S.tMeas,1))/T_K;
+  return p0 - dpLeak + dpFill + dpT;
+}
+/* Angezeigter Messwert des Heliumgeräts */
+function heSignalAt(t){
+  const m = S.method;
+  const q = methodQ(m);
+  const tau = tauOf(m);
+  const tm = Math.max(0, t - S.tFill);
+  const rise = tau > 0 ? (1 - Math.exp(-tm/tau)) : 1;
+  const bg = (m === 'schnueffel') ? HE_BACKGROUND : 2e-10;
+  return q*rise + bg;
+}
+
+/* ══════════ Prüfaufbau ══════════ */
+function drawSetup(){
+  const W = 900, H = 400;
+  const m = S.method, t = S.t;
+  let s = `<rect width="${W}" height="${H}" fill="var(--bg-2)"/>`;
+  const lbl = (x,y,txt,o) => {
+    o = o||{};
+    return `<text x="${x}" y="${y}" font-family="JetBrains Mono" font-size="${o.size||11}" `+
+      `fill="${o.fill||'var(--text-faint)'}" text-anchor="${o.anchor||'middle'}">${esc(txt)}</text>`;
+  };
+  const part = (x,y,w,h) =>
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="10" fill="var(--panel-2)" `+
+    `stroke="var(--border)" stroke-width="2"/>`;
+
+  if(m === 'blase'){
+    s += `<defs><linearGradient id="wat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="var(--cyan)" stop-opacity=".18"/>
+      <stop offset="1" stop-color="var(--blue)" stop-opacity=".30"/></linearGradient></defs>`;
+    s += `<rect x="180" y="70" width="540" height="290" rx="8" fill="url(#wat)" stroke="var(--border)" stroke-width="2"/>`;
+    s += `<line x1="180" y1="96" x2="720" y2="96" stroke="var(--cyan)" stroke-width="1.6" opacity=".7"/>`;
+    s += lbl(200, 90, 'Wasserspiegel', {anchor:'start', size:10});
+    s += part(390, 230, 130, 90);
+    s += lbl(455, 340, 'Prüfling, luftgefüllt', {size:10});
+    s += `<line x1="455" y1="230" x2="455" y2="40" stroke="var(--border)" stroke-width="4"/>`;
+    s += `<rect x="380" y="18" width="150" height="26" rx="6" fill="var(--panel)" stroke="var(--border)" stroke-width="1.5"/>`;
+    s += lbl(455, 36, deC(S.press,1)+' bar', {fill:'var(--amber)'});
+    s += `<circle cx="520" cy="275" r="4" fill="var(--red)"/>`;
+    s += lbl(560, 279, 'Leck', {anchor:'start', size:10, fill:'var(--red)'});
+
+    const rate = bubbleRate();
+    if(S.t > S.tFill && rate > 0){
+      const tm = S.t - S.tFill;
+      const n = Math.floor(rate*tm);
+      const shown = Math.min(n, 40);
+      for(let i=0;i<shown;i++){
+        const age = tm - (n-i)/rate;
+        if(age < 0) continue;
+        const y = 275 - age*46;
+        if(y < 100) continue;
+        const r = 3.2 + 1.4*Math.sin(i*2.3);
+        const x = 520 + Math.sin(age*3.1 + i)*7;
+        s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}" `+
+             `fill="rgba(210,240,255,.75)" stroke="rgba(255,255,255,.55)" stroke-width=".8"/>`;
+      }
+    }
+  }
+
+  if(m === 'druck'){
+    s += part(300, 150, 300, 150);
+    s += lbl(450, 320, 'Prüfling, druckdicht verschlossen · '+deC(S.vol,2)+' l', {size:10});
+    s += `<line x1="300" y1="200" x2="200" y2="200" stroke="var(--border)" stroke-width="4"/>`;
+    s += `<rect x="120" y="176" width="80" height="48" rx="6" fill="var(--panel)" stroke="var(--border)" stroke-width="1.5"/>`;
+    s += lbl(160, 196, 'Ventil', {size:10});
+    s += lbl(160, 212, phaseAt(S.t)==='fuellen' ? 'offen' : 'zu',
+      {size:10, fill: phaseAt(S.t)==='fuellen' ? 'var(--green)' : 'var(--red)'});
+    // Manometer
+    const p = pressureAt(S.t), cx = 450, cy = 120, r = 54;
+    s += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="var(--bg)" stroke="var(--border)" stroke-width="2"/>`;
+    for(let i=0;i<=10;i++){
+      const a = (-210 + i*24)*Math.PI/180;
+      s += `<line x1="${(cx+Math.cos(a)*(r-8)).toFixed(1)}" y1="${(cy+Math.sin(a)*(r-8)).toFixed(1)}" `+
+           `x2="${(cx+Math.cos(a)*r).toFixed(1)}" y2="${(cy+Math.sin(a)*r).toFixed(1)}" `+
+           `stroke="var(--text-faint)" stroke-width="1.4"/>`;
+    }
+    const frac = clamp((p-P_ATM)/(pAbs()-P_ATM || 1), 0, 1.1);
+    const a = (-210 + frac*240)*Math.PI/180;
+    s += `<line x1="${cx}" y1="${cy}" x2="${(cx+Math.cos(a)*(r-14)).toFixed(1)}" y2="${(cy+Math.sin(a)*(r-14)).toFixed(1)}" `+
+         `stroke="var(--red)" stroke-width="3"/>`;
+    s += `<circle cx="${cx}" cy="${cy}" r="4.5" fill="var(--text)"/>`;
+    s += lbl(cx, cy+r+20, deC((p-P_ATM)/1000, 4)+' bar', {size:12, fill:'var(--text)'});
+    if(S.diffP){
+      s += part(650, 180, 130, 90);
+      s += lbl(715, 290, 'Referenzteil, dicht', {size:10});
+      s += `<line x1="600" y1="225" x2="650" y2="225" stroke="var(--cyan)" stroke-width="2" stroke-dasharray="5,4"/>`;
+      s += lbl(625, 216, 'Δp', {size:10, fill:'var(--cyan)'});
+    }
+    s += `<circle cx="600" cy="270" r="4" fill="var(--red)"/>`;
+    s += lbl(612, 274, 'Leck', {anchor:'start', size:10, fill:'var(--red)'});
+  }
+
+  if(m === 'schnueffel'){
+    s += part(200, 170, 260, 140);
+    s += lbl(330, 330, 'Prüfling, mit Prüfgas gefüllt · '+S.heConc+' % He', {size:10});
+    s += `<circle cx="460" cy="240" r="4" fill="var(--red)"/>`;
+    // Gasfahne
+    const q = methodQ('schnueffel');
+    const strength = clamp((Math.log10(Math.max(q,1e-12)) + 10)/6, 0, 1);
+    for(let i=1;i<=5;i++){
+      s += `<ellipse cx="${460+i*10}" cy="240" rx="${8+i*11}" ry="${5+i*7}" fill="var(--cyan)" `+
+           `fill-opacity="${(0.10*strength/i).toFixed(3)}" stroke="none"/>`;
+    }
+    const dx = 470 + S.sniffDist*6;
+    s += `<line x1="${dx}" y1="240" x2="${dx+90}" y2="200" stroke="var(--text-dim)" stroke-width="6" stroke-linecap="round"/>`;
+    s += `<circle cx="${dx}" cy="240" r="5" fill="var(--cyan)"/>`;
+    s += lbl(dx+8, 262, deC(S.sniffDist,1)+' mm', {anchor:'start', size:10, fill:'var(--cyan)'});
+    s += `<rect x="600" y="120" width="230" height="80" rx="10" fill="var(--panel)" stroke="var(--cyan)" stroke-width="2"/>`;
+    s += lbl(715, 148, 'Massenspektrometer', {size:11, fill:'var(--cyan)'});
+    const sig = heSignalAt(S.t);
+    s += lbl(715, 172, sig.toExponential(2)+' mbar·l/s', {size:12, fill:'var(--text)'});
+    s += barMeter(600, 210, 230, sig, detectionLimit('schnueffel'));
+  }
+
+  if(m === 'vakuum'){
+    s += `<rect x="200" y="90" width="420" height="230" rx="10" fill="var(--bg)" stroke="var(--border)" stroke-width="2.5"/>`;
+    s += lbl(410, 78, 'Vakuumkammer '+deC(S.chVol,1)+' l', {size:10});
+    s += part(330, 175, 160, 100);
+    s += lbl(410, 300, 'Prüfling · '+S.heConc+' % He, '+deC(S.press,1)+' bar', {size:10});
+    s += `<circle cx="490" cy="230" r="4" fill="var(--red)"/>`;
+    const q = methodQ('vakuum');
+    const strength = clamp((Math.log10(Math.max(q,1e-13)) + 12)/8, 0, 1);
+    for(let i=1;i<=4;i++){
+      s += `<ellipse cx="${500+i*14}" cy="230" rx="${10+i*16}" ry="${7+i*11}" fill="var(--cyan)" `+
+           `fill-opacity="${(0.12*strength/i).toFixed(3)}"/>`;
+    }
+    s += `<line x1="620" y1="205" x2="700" y2="205" stroke="var(--border)" stroke-width="5"/>`;
+    s += `<rect x="700" y="120" width="150" height="70" rx="8" fill="var(--panel)" stroke="var(--cyan)" stroke-width="2"/>`;
+    s += lbl(775, 145, 'Massenspektrometer', {size:10, fill:'var(--cyan)'});
+    const sig = heSignalAt(S.t);
+    s += lbl(775, 168, sig.toExponential(2), {size:12, fill:'var(--text)'});
+    s += `<rect x="700" y="220" width="150" height="60" rx="8" fill="var(--panel)" stroke="var(--border)" stroke-width="1.5"/>`;
+    s += lbl(775, 244, 'Pumpe '+deC(S.pumpS,1)+' l/s', {size:10});
+    s += lbl(775, 264, 'τ = '+deC(tauOf('vakuum'),2)+' s', {size:10, fill:'var(--amber)'});
+    s += barMeter(620, 320, 230, sig, detectionLimit('vakuum'));
+  }
+
+  // Phasenband
+  const ph = phaseAt(S.t);
+  const phases = [['fuellen','Füllen',S.tFill], ['beruhigen','Beruhigen',S.tSettle], ['messen','Messen',S.tMeas]];
+  let x0 = 40, total = cycleEnd();
+  phases.forEach(pz => {
+    const w = 820*pz[2]/total;
+    const on = (pz[0] === ph) && S.t > 0;
+    s += `<rect x="${x0.toFixed(1)}" y="368" width="${Math.max(w-3,1).toFixed(1)}" height="20" rx="4" `+
+         `fill="${on?'var(--amber)':'var(--panel)'}" stroke="var(--border)" stroke-width="1"/>`;
+    if(w > 60) s += lbl(x0+w/2, 382, pz[1], {size:10, fill:on?'#1c1200':'var(--text-faint)'});
+    x0 += w;
+  });
+  if(S.t > 0){
+    const cx = 40 + 820*clamp(S.t/total,0,1);
+    s += `<line x1="${cx.toFixed(1)}" y1="362" x2="${cx.toFixed(1)}" y2="394" stroke="var(--red)" stroke-width="2"/>`;
+  }
+  $('setup').innerHTML = s;
+}
+function barMeter(x, y, w, val, limit){
+  const lo = -11, hi = 0;
+  const f = clamp((Math.log10(Math.max(val,1e-12)) - lo)/(hi-lo), 0, 1);
+  const fl = clamp((Math.log10(Math.max(limit,1e-12)) - lo)/(hi-lo), 0, 1);
+  let s = `<rect x="${x}" y="${y}" width="${w}" height="16" rx="4" fill="var(--bg)" stroke="var(--border)" stroke-width="1.2"/>`;
+  s += `<rect x="${x}" y="${y}" width="${(w*f).toFixed(1)}" height="16" rx="4" fill="${val>=limit?'var(--green)':'var(--text-faint)'}"/>`;
+  s += `<line x1="${(x+w*fl).toFixed(1)}" y1="${y-3}" x2="${(x+w*fl).toFixed(1)}" y2="${y+19}" stroke="var(--red)" stroke-width="2"/>`;
+  s += `<text x="${x+w*fl}" y="${y-7}" font-family="JetBrains Mono" font-size="9" fill="var(--red)" text-anchor="middle">Nachweisgrenze</text>`;
+  return s;
+}
+function bubbleRate(){
+  return methodQ('blase')*987/BUBBLE_VOL;      // Blasen pro Sekunde
+}
+
+/* ══════════ Messsignal über der Zeit ══════════ */
+function drawChart(){
+  const W=640,H=320,l=64,r=16,tp=16,b=40, w=W-l-r, h=H-tp-b;
+  const total = cycleEnd();
+  const m = S.method;
+  let s = '';
+
+  // Phasenhinterlegung
+  const segs = [[0,S.tFill,'var(--panel-2)'], [S.tFill,S.tFill+S.tSettle,'var(--bg)'],
+                [S.tFill+S.tSettle,total,'var(--panel)']];
+  const toX = t => l + clamp(t/total,0,1)*w;
+  segs.forEach(sg => {
+    s += `<rect x="${toX(sg[0]).toFixed(1)}" y="${tp}" width="${(toX(sg[1])-toX(sg[0])).toFixed(1)}" `+
+         `height="${h}" fill="${sg[2]}" opacity=".55"/>`;
+  });
+  s += `<rect x="${l}" y="${tp}" width="${w}" height="${h}" fill="none" stroke="var(--border)" stroke-width="1.5"/>`;
+  for(let i=0;i<=5;i++){
+    const gx = l + w*i/5;
+    s += `<line x1="${gx.toFixed(1)}" y1="${tp}" x2="${gx.toFixed(1)}" y2="${tp+h}" stroke="var(--grid)" stroke-width="1"/>`;
+    s += txt(gx, tp+h+16, deC(total*i/5,0)+' s', {anchor:'middle', size:9.5});
+  }
+
+  if(m === 'druck'){
+    // Druck relativ zum Sollwert, in mbar
+    const pts = [];
+    for(let i=0;i<=240;i++){
+      const t = total*i/240;
+      let v = pressureAt(t) - pAbs();
+      if(t >= S.tFill) v += hashNoise(i)*S.pRes*0.6;
+      pts.push({t, v});
+    }
+    const inMeas = pts.filter(p => p.t >= S.tFill+S.tSettle*0.5);
+    let vmin = Math.min(...inMeas.map(p=>p.v)), vmax = Math.max(...inMeas.map(p=>p.v));
+    const pad = Math.max((vmax-vmin)*0.25, 3*S.pRes);
+    vmin -= pad; vmax += pad;
+    const toY = v => tp + h - (v-vmin)/((vmax-vmin)||1)*h;
+    for(let i=0;i<=4;i++){
+      const v = vmin + (vmax-vmin)*i/4, gy = toY(v);
+      s += `<line x1="${l}" y1="${gy.toFixed(1)}" x2="${l+w}" y2="${gy.toFixed(1)}" stroke="var(--grid)" stroke-width="1"/>`;
+      s += txt(l-6, gy+3.5, deC(v,2), {anchor:'end'});
+    }
+    // reiner Leckanteil als Vergleich
+    const Q = methodQ('druck');
+    let dLeak = '';
+    for(let i=0;i<=60;i++){
+      const t = S.tFill + S.tSettle + (S.tMeas)*i/60;
+      const v = -Q*(t-S.tFill)/Math.max(S.vol,1e-3);
+      dLeak += (i?'L':'M') + toX(t).toFixed(1)+','+toY(v).toFixed(1)+' ';
+    }
+    s += `<path d="${dLeak}" fill="none" stroke="var(--cyan)" stroke-width="1.6" stroke-dasharray="5,4"/>`;
+    let d = '';
+    pts.forEach((p,i)=>{ d += (i?'L':'M') + toX(p.t).toFixed(1)+','+toY(p.v).toFixed(1)+' '; });
+    s += `<path d="${d}" fill="none" stroke="var(--amber)" stroke-width="2"/>`;
+    s += txt(13, tp+h/2, 'Δp gegenüber Solldruck [mbar]', {anchor:'middle', size:10.5, fill:'var(--text-dim)', rot:-90});
+    $('chartLegend').innerHTML =
+      `<span><i style="background:var(--amber)"></i>gemessen</span>`+
+      `<span><i style="background:var(--cyan)"></i>reiner Leckanteil</span>`;
+    const dpT = S.diffP ? 0 : pAbs()*S.dT/T_K;
+    const dpL = Q*S.tMeas/Math.max(S.vol,1e-3);
+    $('chartInfo').textContent = S.diffP
+      ? `Leck bewirkt −${deC(dpL,3)} mbar. Die Temperatur fällt im Differenzverfahren heraus.`
+      : `Leck bewirkt −${deC(dpL,3)} mbar, die Temperaturänderung +${deC(dpT,3)} mbar.`;
+  } else if(m === 'blase'){
+    // Kumulierte Blasenzahl
+    const rate = bubbleRate();
+    const toY = (n,nmax) => tp + h - clamp(n/nmax,0,1)*h;
+    const nMax = Math.max(rate*S.tMeas*1.2, 3);
+    for(let i=0;i<=4;i++){
+      const v = nMax*i/4, gy = toY(v,nMax);
+      s += `<line x1="${l}" y1="${gy.toFixed(1)}" x2="${l+w}" y2="${gy.toFixed(1)}" stroke="var(--grid)" stroke-width="1"/>`;
+      s += txt(l-6, gy+3.5, deC(v,1), {anchor:'end'});
+    }
+    let d = '';
+    for(let i=0;i<=120;i++){
+      const t = total*i/120;
+      const n = t <= S.tFill ? 0 : rate*(t-S.tFill);
+      d += (i?'L':'M') + toX(t).toFixed(1)+','+toY(n,nMax).toFixed(1)+' ';
+    }
+    s += `<path d="${d}" fill="none" stroke="var(--amber)" stroke-width="2"/>`;
+    s += `<line x1="${l}" y1="${toY(1,nMax).toFixed(1)}" x2="${l+w}" y2="${toY(1,nMax).toFixed(1)}" `+
+         `stroke="var(--red)" stroke-width="1.4" stroke-dasharray="5,4"/>`;
+    s += txt(l+w-5, toY(1,nMax)-6, 'eine Blase', {anchor:'end', size:9.5, fill:'var(--red)'});
+    s += txt(13, tp+h/2, 'gezählte Blasen', {anchor:'middle', size:10.5, fill:'var(--text-dim)', rot:-90});
+    $('chartLegend').innerHTML = `<span><i style="background:var(--amber)"></i>kumulierte Blasen</span>`;
+    $('chartInfo').textContent = rate > 0
+      ? `${rate < 1 ? 'eine Blase alle '+deC(1/rate,1)+' s' : deC(rate,1)+' Blasen je Sekunde'} · in der Messzeit ${Math.floor(rate*S.tMeas)} Stück`
+      : 'keine Blasenbildung';
+  } else {
+    // Heliumsignal, logarithmisch
+    const q = methodQ(m), lim = detectionLimit(m);
+    const lo = Math.min(Math.log10(Math.max(lim,1e-12))-1, Math.log10(Math.max(q,1e-12))-1);
+    const hi = Math.max(Math.log10(Math.max(q,1e-12))+1, Math.log10(Math.max(lim,1e-12))+1);
+    const toY = v => tp + h - clamp((Math.log10(Math.max(v,1e-13))-lo)/(hi-lo),0,1)*h;
+    for(let e=Math.ceil(lo); e<=Math.floor(hi); e++){
+      const gy = toY(Math.pow(10,e));
+      s += `<line x1="${l}" y1="${gy.toFixed(1)}" x2="${l+w}" y2="${gy.toFixed(1)}" stroke="var(--grid)" stroke-width="1"/>`;
+      s += txt(l-6, gy+3.5, '1e'+e, {anchor:'end'});
+    }
+    let d = '';
+    for(let i=0;i<=200;i++){
+      const t = total*i/200;
+      const v = heSignalAt(t)*(1 + hashNoise(i)*0.05);
+      d += (i?'L':'M') + toX(t).toFixed(1)+','+toY(v).toFixed(1)+' ';
+    }
+    s += `<path d="${d}" fill="none" stroke="var(--amber)" stroke-width="2"/>`;
+    s += `<line x1="${l}" y1="${toY(lim).toFixed(1)}" x2="${l+w}" y2="${toY(lim).toFixed(1)}" `+
+         `stroke="var(--red)" stroke-width="1.4" stroke-dasharray="5,4"/>`;
+    s += txt(l+w-5, toY(lim)-6, 'Nachweisgrenze', {anchor:'end', size:9.5, fill:'var(--red)'});
+    const lm = limMbl();
+    if(Math.log10(lm) > lo && Math.log10(lm) < hi){
+      s += `<line x1="${l}" y1="${toY(lm).toFixed(1)}" x2="${l+w}" y2="${toY(lm).toFixed(1)}" `+
+           `stroke="var(--green)" stroke-width="1.4" stroke-dasharray="2,4"/>`;
+      s += txt(l+5, toY(lm)-6, 'zulässige Leckrate', {anchor:'start', size:9.5, fill:'var(--green)'});
+    }
+    s += txt(13, tp+h/2, 'angezeigte Leckrate [mbar·l/s]', {anchor:'middle', size:10.5, fill:'var(--text-dim)', rot:-90});
+    $('chartLegend').innerHTML = `<span><i style="background:var(--amber)"></i>Anzeige</span>`;
+    const tau = tauOf(m);
+    $('chartInfo').textContent = tau > 0
+      ? `Zeitkonstante τ = ${deC(tau,2)} s · nach 3 τ steht die Anzeige auf 95 % des Endwerts`
+      : 'Anzeige folgt ohne merkliche Verzögerung';
+  }
+  s += txt(l+w/2, H-6, 'Zeit im Prüfzyklus', {anchor:'middle', size:11, fill:'var(--text-dim)'});
+  if(S.t > 0){
+    const cx = toX(S.t);
+    s += `<line x1="${cx.toFixed(1)}" y1="${tp}" x2="${cx.toFixed(1)}" y2="${tp+h}" stroke="var(--red)" stroke-width="1.5"/>`;
+  }
+  $('chart').innerHTML = s;
+}
+function txt(x,y,str,o){
+  o = o||{};
+  return `<text x="${x}" y="${y}" font-family="JetBrains Mono" font-size="${o.size||10}" `+
+    `fill="${o.fill||'var(--text-faint)'}" text-anchor="${o.anchor||'start'}"`+
+    `${o.rot?` transform="rotate(${o.rot} ${x} ${y})"`:''}>${esc(str)}</text>`;
+}
+
+/* ══════════ Nachweisbereiche ══════════ */
+function drawRanges(){
+  const W=640,H=320,l=126,r=20,tp=22,b=44, w=W-l-r, h=H-tp-b;
+  const lo = -10, hi = 1;
+  const toX = v => l + clamp((Math.log10(Math.max(v,1e-12))-lo)/(hi-lo),0,1)*w;
+  let s = `<rect x="${l}" y="${tp}" width="${w}" height="${h}" fill="none" stroke="var(--border)" stroke-width="1.5"/>`;
+  for(let e=lo; e<=hi; e++){
+    const gx = toX(Math.pow(10,e));
+    s += `<line x1="${gx.toFixed(1)}" y1="${tp}" x2="${gx.toFixed(1)}" y2="${tp+h}" stroke="var(--grid)" stroke-width="1"/>`;
+    if((e-lo)%2===0) s += txt(gx, tp+h+16, '1e'+e, {anchor:'middle', size:9.5});
+  }
+  const keys = Object.keys(METHODS);
+  const rowH = h/keys.length;
+  keys.forEach((k,i) => {
+    const y = tp + i*rowH + rowH*0.22, bh = rowH*0.46;
+    const lim = detectionLimit(k);
+    const x1 = toX(lim), x2 = l + w;
+    const cur = (k === S.method);
+    s += `<rect x="${x1.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(x2-x1,2).toFixed(1)}" height="${bh.toFixed(1)}" `+
+         `rx="4" fill="var(--cyan)" fill-opacity="${cur?0.30:0.13}" stroke="var(--cyan)" stroke-width="${cur?1.8:1}"/>`;
+    s += txt(l-8, y+bh*0.72, METHODS[k].kurz, {anchor:'end', size:10, fill:cur?'var(--amber)':'var(--text-dim)'});
+    s += txt(x1+5, y+bh*0.72, lim.toExponential(1), {anchor:'start', size:9, fill:'var(--cyan)'});
+  });
+  const q = methodQ(S.method);
+  s += `<line x1="${toX(q).toFixed(1)}" y1="${tp-6}" x2="${toX(q).toFixed(1)}" y2="${tp+h}" stroke="var(--amber)" stroke-width="2.2"/>`;
+  s += txt(toX(q), tp-10, 'Q = '+q.toExponential(1), {anchor:'middle', size:9.5, fill:'var(--amber)'});
+  const lm = limMbl();
+  s += `<line x1="${toX(lm).toFixed(1)}" y1="${tp}" x2="${toX(lm).toFixed(1)}" y2="${tp+h+8}" stroke="var(--red)" stroke-width="2" stroke-dasharray="5,4"/>`;
+  s += txt(toX(lm), tp+h+30, 'Grenzwert', {anchor:'middle', size:9.5, fill:'var(--red)'});
+  s += txt(l+w/2, H-6, 'Leckrate [mbar·l/s]', {anchor:'middle', size:11, fill:'var(--text-dim)'});
+  $('ranges').innerHTML = s;
+  $('rangeInfo').textContent =
+    'Die Balken beginnen jeweils an der Nachweisgrenze, die sich aus den eingestellten Prüfbedingungen ergibt.';
+}
+
+/* ══════════ Kennzahlen, Bewertung, Tabelle ══════════ */
+function update(){
+  const m = S.method, d = diaUM();
+  const qAir = leakQ(d, S.len, pAbs(), P_ATM, 'luft');
+  const qHe  = leakQ(d, S.len, pAbs(), P_ATM, 'he');
+  const q = methodQ(m), lim = detectionLimit(m), acc = limMbl();
+  const kn = freePath(pAbs()/2)/d;
+
+  $('kKn').textContent = kn < 0.01 ? kn.toExponential(1) : deC(kn,3);
+  $('kFlow').textContent = kn < 0.01 ? 'laminar' : (kn > 1 ? 'molekular' : 'Übergang');
+  $('kQair').textContent = qAir.Q.toExponential(2);
+  $('kQhe').textContent  = qHe.Q.toExponential(2);
+
+  const detect = q >= lim;
+  const pass = qAir.Q < acc;
+  const cards = [
+    ['Leckrate Q', q.toExponential(2)+' <small>mbar·l/s</small>', 'hl'],
+    ['Nachweisgrenze', lim.toExponential(1)+' <small>mbar·l/s</small>', detect?'ok':'bad'],
+    ['Zulässig', acc.toExponential(1)+' <small>mbar·l/s</small>'],
+    ['Laminarer Anteil', Math.round(100*qAir.Qlam/Math.max(qAir.Q,1e-30))+' <small>%</small>'],
+    ['Q_He / Q_Luft', deC(qHe.Q/Math.max(qAir.Q,1e-30),2)],
+    ['Zykluszeit', cycleEnd()+' <small>s</small>'],
+  ];
+  $('stats').innerHTML = cards.map(c =>
+    `<div class="stat${c[2]?' '+c[2]:''}"><div class="k">${c[0]}</div><div class="v">${c[1]}</div></div>`).join('');
+
+  const v = $('verdict');
+  if(!detect){
+    v.className = 'verdict bad';
+    v.innerHTML = `<b>Das Leck bleibt mit diesem Verfahren unentdeckt.</b> Q = ${q.toExponential(2)} liegt unter der Nachweisgrenze ${lim.toExponential(1)} mbar·l/s. `
+      + hintFor(m, q, lim);
+  } else if(!pass){
+    v.className = 'verdict bad';
+    v.innerHTML = `<b>Nachgewiesen und über dem Grenzwert — Bauteil n.i.O.</b> Die tatsächliche Luftleckrate beträgt ${qAir.Q.toExponential(2)} mbar·l/s gegenüber zulässig ${acc.toExponential(1)}.`;
+  } else {
+    v.className = 'verdict ok';
+    v.innerHTML = `<b>Nachgewiesen, aber innerhalb des Grenzwerts — Bauteil i.O.</b> Luftleckrate ${qAir.Q.toExponential(2)} mbar·l/s gegenüber zulässig ${acc.toExponential(1)}.`;
+  }
+  if(detect && acc < lim){
+    v.className = 'verdict warn';
+    v.innerHTML += ` <b>Achtung:</b> der geforderte Grenzwert liegt unter der Nachweisgrenze des Verfahrens. Eine Freigabe wäre damit nicht belegbar.`;
+  }
+
+  $('bMethod').textContent = METHODS[m].kurz;
+  $('bQ').textContent = 'Q = '+q.toExponential(1);
+  $('bRes').textContent = !detect ? 'nicht nachweisbar' : (pass ? 'i.O.' : 'n.i.O.');
+  $('bRes').className = 'badge ' + (!detect ? '' : (pass ? 'ok' : 'bad'));
+
+  let html = `<thead><tr><th>Verfahren</th><th>Prüfgas</th><th>Q im Verfahren</th>`+
+             `<th>Nachweisgrenze</th><th>Reserve</th><th>nachweisbar</th><th>Besonderheit</th></tr></thead><tbody>`;
+  Object.keys(METHODS).forEach(k => {
+    const qq = methodQ(k), ll = detectionLimit(k), ok = qq >= ll;
+    html += `<tr class="${k===m?'cur':''}"><td>${METHODS[k].name}</td>`+
+      `<td>${GASES[METHODS[k].gas].name}</td>`+
+      `<td>${qq.toExponential(2)}</td><td>${ll.toExponential(1)}</td>`+
+      `<td>${(qq/ll).toExponential(1)} ×</td>`+
+      `<td class="${ok?'v-ok':'v-bad'}">${ok?'ja':'nein'}</td>`+
+      `<td style="text-align:left">${esc(featureOf(k))}</td></tr>`;
+  });
+  $('cmpTable').innerHTML = html + '</tbody>';
+
+  const rate = bubbleRate();
+  $('setupInfo').textContent = m === 'blase'
+    ? (rate>0 ? (rate<1 ? 'eine Blase alle '+deC(1/rate,1)+' s' : deC(rate,1)+' Blasen/s') : 'keine Blasen')
+    : (m === 'druck' ? 'Δp durch Leck '+deC(methodQ('druck')*S.tMeas/Math.max(S.vol,1e-3),3)+' mbar'
+                     : 'Erfassungsgrad '+(m==='schnueffel'?Math.round(captureFrac()*100)+' %':'100 %'));
+  $('phaseInfo').textContent = S.t <= 0 ? 'bereit'
+    : ({fuellen:'Füllen', beruhigen:'Beruhigen', messen:'Messen'})[phaseAt(S.t)] + ' · t = '+deC(S.t,1)+' s';
+}
+function featureOf(k){
+  if(k==='blase') return 'einfach, aber an die Beobachtungszeit gebunden';
+  if(k==='druck') return S.diffP ? 'Temperatur durch Referenzteil kompensiert'
+                                 : 'Temperaturdrift geht voll in das Ergebnis ein';
+  if(k==='schnueffel') return 'ortet die Leckstelle, Untergrund der Raumluft begrenzt';
+  return 'empfindlichstes Verfahren, ortet aber nicht';
+}
+function hintFor(m, q, lim){
+  if(m === 'blase') return 'Längere Beobachtungszeit oder ein empfindlicheres Verfahren wählen.';
+  if(m === 'druck'){
+    const dpT = S.diffP ? 0 : pAbs()*S.dT/T_K;
+    const res = 3*S.pRes;
+    return dpT > res
+      ? `Die Temperaturdrift von ${deC(dpT,2)} mbar überwiegt die Sensorauflösung von ${deC(res,2)} mbar — Differenzdruck gegen ein Referenzteil schaltet sie aus.`
+      : `Feinerer Sensor, kleineres Prüfvolumen oder längere Messzeit; die Grenze folgt aus Q = 3·Δp·V/t.`;
+  }
+  if(m === 'schnueffel') return 'Näher an die Leckstelle, langsamer führen oder auf reines Helium wechseln.';
+  return 'Längere Messzeit gegenüber τ, oder kleineres Saugvermögen.';
+}
+
+/* ══════════ Ablauf ══════════ */
+let rafId = null, lastT = 0;
+function step(now){
+  if(!S.running){ rafId = null; return; }
+  const dt = Math.min((now-lastT)/1000, 0.1);
+  lastT = now;
+  S.t = Math.min(cycleEnd(), S.t + dt*2);
+  render();
+  if(S.t >= cycleEnd()){ S.running = false; updateRunBtn(); rafId = null; return; }
+  rafId = requestAnimationFrame(step);
+}
+function updateRunBtn(){
+  $('btnRun').textContent = S.running ? '⏸ Pause' : '▶ Prüfung starten';
+  $('btnRun').classList.toggle('stop', S.running);
+}
+function render(){ drawSetup(); drawChart(); drawRanges(); update(); syncLabels(); }
+
+function syncLabels(){
+  const d = diaUM();
+  $('vDia').textContent = d < 1 ? deC(d,2)+' µm' : deC(d,1)+' µm';
+  $('vLen').textContent = deC(S.len,1)+' mm';
+  $('vPress').textContent = deC(S.press,1)+' bar';
+  $('vVol').textContent = deC(S.vol,2)+' l';
+  $('vLimit').textContent = limMbl().toExponential(1)+' mbar·l/s';
+  $('vTFill').textContent = S.tFill+' s';
+  $('vTSettle').textContent = S.tSettle+' s';
+  $('vTMeas').textContent = S.tMeas+' s';
+  $('vPRes').textContent = deC(S.pRes,2)+' mbar';
+  $('vDT').textContent = deC(S.dT,2)+' K';
+  $('vHeConc').textContent = S.heConc+' %';
+  $('vHeConc2').textContent = S.heConc+' %';
+  $('vSniffDist').textContent = deC(S.sniffDist,1)+' mm';
+  $('vSniffSpeed').textContent = S.sniffSpeed+' mm/s';
+  $('vChVol').textContent = deC(S.chVol,1)+' l';
+  $('vPumpS').textContent = deC(S.pumpS,1)+' l/s';
+}
+
+/* ══════════ Bedienung ══════════ */
+function bind(id, key, parse){
+  $(id).addEventListener('input', () => {
+    S[key] = parse ? parse(parseFloat($(id).value)) : parseFloat($(id).value);
+    render();
+  });
+}
+bind('dia','diaS'); bind('len','len');
+bind('press','press'); bind('vol','vol'); bind('limit','limS');
+bind('tFill','tFill'); bind('tSettle','tSettle'); bind('tMeas','tMeas');
+bind('pRes','pRes'); bind('dT','dT');
+bind('sniffDist','sniffDist'); bind('sniffSpeed','sniffSpeed');
+bind('chVol','chVol'); bind('pumpS','pumpS');
+['heConc','heConc2'].forEach(id => {
+  $(id).addEventListener('input', () => {
+    S.heConc = parseFloat($(id).value);
+    $('heConc').value = S.heConc; $('heConc2').value = S.heConc;
+    render();
+  });
+});
+
+const HINTS = {
+  blase: 'Prüfling unter Druck ins Wasserbad. Sichtbar wird, was als Blase austritt — die Grenze setzt die Beobachtungszeit.',
+  druck: 'Prüfling füllen, absperren, Druckabfall messen. Die Nachweisgrenze folgt aus Sensorauflösung, Volumen und Messzeit.',
+  schnueffel: 'Prüfling mit Helium füllen, Naht mit der Schnüffelspitze abfahren. Ortet die Leckstelle, begrenzt durch den Heliumuntergrund der Raumluft.',
+  vakuum: 'Prüfling mit Helium füllen, Kammer evakuieren, austretendes Helium integral messen. Empfindlichstes Verfahren, ortet aber nicht.'
+};
+$('segMethod').addEventListener('click', e => {
+  const b = e.target.closest('button'); if(!b) return;
+  [].slice.call($('segMethod').children).forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  S.method = b.dataset.m;
+  document.body.className = 'm'+'-'+S.method + (document.body.classList.contains('light') ? ' light' : '');
+  $('methodHint').textContent = HINTS[S.method];
+  $('setupTitle').textContent = 'Prüfaufbau · ' + METHODS[S.method].name;
+  reset();
+});
+$('tglDiff').addEventListener('click', () => {
+  S.diffP = $('tglDiff').classList.toggle('on');
+  render();
+});
+$('btnRun').addEventListener('click', () => {
+  if(S.t >= cycleEnd()) S.t = 0;
+  S.running = !S.running;
+  updateRunBtn();
+  if(S.running){ lastT = performance.now(); if(!rafId) rafId = requestAnimationFrame(step); }
+});
+$('btnReset').addEventListener('click', reset);
+function reset(){
+  S.running = false; S.t = 0;
+  if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
+  updateRunBtn(); render();
+}
+function applyTheme(theme){
+  document.body.classList.toggle('light', theme === 'light');
+  $('themeBtn').textContent = theme === 'light' ? '☾' : '☀';
+}
+ZfPContext.onTheme(applyTheme);
+$('themeBtn').addEventListener('click', () => {
+  ZfPContext.toggleTheme();
+  render();
+});
+let rt = null;
+window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(render, 140); });
+
+/* ══════════ Start ══════════ */
+$('methodHint').textContent = HINTS.blase;
+$('setupTitle').textContent = 'Prüfaufbau · ' + METHODS.blase.name;
+updateRunBtn();
+render();
+})();
+</script>
+<script id="fit-js">
+window.FIT_CFG={sideW:280,maxCols:3,minCol:440,};
+(function(){
+  /* ═══ Kompakt-Dashboard (wie UT) – reines CSS-Pixel-Layout, KEIN Zoom-Eingriff: Browser-Zoom (Strg +/−) wirkt normal ═══ */
+  var C=window.FIT_CFG||{};
+  var app=document.querySelector('.app'); if(!app) return;
+  var container=app.querySelector(':scope > .layout, :scope > .grid'); if(!container) return;
+  var SIDEW=C.sideW||280, MINCOL=C.minCol||440, MAXK=C.maxCols||3, MAXS=C.maxSide||3,
+      SIDEGROUPS=C.sideGroups===undefined?[0]:C.sideGroups, MANUAL=C.cols||null, TEMPLATE=C.template||null;
+  var GAPS=[8,6,5], TIER=0, root=document.documentElement;
+  function isItem(c){ return c.classList.contains('panel')||c.classList.contains('stage'); }
+  function flat(g){
+    var o=[]; [].slice.call(g.children).forEach(function(ch){
+      if(ch.tagName==='SCRIPT'||ch.tagName==='STYLE') return;
+      if(getComputedStyle(ch).display==='contents'){ o.push.apply(o,flat(ch)); return; }
+      var kids=[].slice.call(ch.children);
+      if(ch.classList.contains('stagegrid') && kids.length>1 && kids.every(function(k){return k.classList.contains('stage');})){
+        var cls=['riss-only','gef-only'].filter(function(q){return ch.classList.contains(q);}), sc=ch.dataset.scn;
+        kids.forEach(function(k){ cls.forEach(function(q){k.classList.add(q);}); if(sc) k.dataset.scn=sc; o.push(k); });
+      } else o.push(ch);
+    }); return o;
+  }
+  var groups=[].slice.call(container.children).filter(function(c){return c.tagName!=='SCRIPT'&&c.tagName!=='STYLE';})
+    .map(function(c){ return isItem(c)?[c]:flat(c); });
+  var all=[]; groups.forEach(function(g,gi){ g.forEach(function(el){ all.push({el:el,g:gi,parent:el.parentElement,next:el.nextSibling}); }); });
+  var grid=null, cols=[], stash=null, curN=0, curSig='', busy=false;
+  function active(){ return window.innerWidth>=1000 && window.innerHeight>=520; }
+  function GAP(){ return GAPS[TIER]; }
+  function ensure(n){
+    if(grid&&curN===n) return;
+    if(!grid){ grid=document.createElement('div'); grid.className='fitgrid'; stash=document.createElement('div'); stash.style.display='none'; container.after(grid); container.after(stash); }
+    grid.textContent=''; cols=[]; curN=n; curSig='';
+    for(var i=0;i<n;i++){ var c=document.createElement('div'); c.className='fcol'; cols.push(c); grid.appendChild(c); }
+  }
+  function partition(hs,K){            /* zusammenhängende Aufteilung mit minimaler Maximalhöhe */
+    var n=hs.length, G=GAP(); if(K<=1||n<=1) return [hs.map(function(_,i){return i;})];
+    K=Math.min(K,n); var pre=[0]; hs.forEach(function(h,i){pre.push(pre[i]+h+G);});
+    var best=[],bestScore=1e12;
+    (function rec(start,k,cut){
+      if(k===1){ var cuts=cut.concat([n]), mx=0, sq=0; for(var j=0;j<cuts.length;j++){ var a=j?cuts[j-1]:0, h=pre[cuts[j]]-pre[a]; mx=Math.max(mx,h); sq+=h*h; }
+        var sc=mx+sq*1e-7; if(sc<bestScore){bestScore=sc;best=cuts;} return; }
+      for(var e=start+1;e<=n-(k-1);e++) rec(e,k-1,cut.concat([e]));
+    })(0,K,[]);
+    var out=[],s=0; best.forEach(function(e){ var a=[]; for(var i=s;i<e;i++) a.push(i); out.push(a); s=e; }); return out;
+  }
+  function colH(ix,list){ var t=0; ix.forEach(function(i){t+=list[i].h+GAP();}); return t; }
+  function setTier(t){ TIER=t; root.classList.remove('d1','d2'); if(t) root.classList.add('d'+t); }
+
+  function layoutOnce(){
+    var W=window.innerWidth, effW=W-26, G=GAP();
+    root.classList.add('fit'); container.style.display='none';
+    var mwrap=document.createElement('div'); mwrap.className='fitgrid'; mwrap.style.cssText='position:absolute;left:-99999px;top:0;display:block;flex:none;visibility:hidden;';
+    var meas=document.createElement('div'); meas.className='fcol'; meas.style.cssText='overflow:visible;height:auto;max-height:none;display:flex;flex-direction:column;';
+    mwrap.appendChild(meas); app.appendChild(mwrap);
+    ensure(1); grid.style.gridTemplateColumns='1fr';
+    var availH=Math.max(300,grid.clientHeight-2), plan, S, K, over=0, tpl;
+    function measure(list,w){ meas.style.width=w+'px'; list.forEach(function(a){meas.appendChild(a.el);}); list.forEach(function(a){a.h=a.el.getBoundingClientRect().height;}); }
+    if(MANUAL){
+      K=MANUAL.length; S=0; ensure(K);
+      plan=MANUAL.map(function(idxs){ return idxs.map(function(i){return all[i];}).filter(Boolean); });
+      var used={}; MANUAL.forEach(function(ix){ix.forEach(function(i){used[i]=1;});});
+      all.forEach(function(a,i){ if(!used[i]) plan[K-1].push(a); });
+      tpl=TEMPLATE||('repeat('+K+',minmax(0,1fr))');
+      plan.forEach(function(c,i){ var w=Math.floor((effW-G*(K-1))/K); measure(c,w); over=Math.max(over,colH(c.map(function(_,j){return j;}),c)-availH); });
+    } else {
+      var side=all.filter(function(a){return SIDEGROUPS.indexOf(a.g)>=0;}), rest=all.filter(function(a){return SIDEGROUPS.indexOf(a.g)<0;});
+      var best=null, sv=[];
+      var sideVis=side.length; if(side.length){ measure(side,SIDEW-6); sideVis=side.filter(function(a){return a.h>1;}).length; }
+      for(var s=(sideVis?1:0); s<=(sideVis?Math.min(MAXS,sideVis):0); s++){
+        if(effW-s*(SIDEW+G)<MINCOL) break;
+        var spart=[], oS=-1e9;
+        if(s){ measure(side,SIDEW-6); sv=side.filter(function(a){return a.h>1;}); spart=partition(sv.map(function(a){return a.h;}),s);
+          oS=Math.max.apply(null,spart.map(function(ix){return colH(ix,sv)-availH;})); }
+        var kmax=Math.max(1,Math.min(MAXK,Math.floor((effW-s*(SIDEW+G)+G)/(MINCOL+G))));
+        for(var k=1;k<=kmax;k++){
+          var mw=Math.floor((effW-s*(SIDEW+G)-G*(k-1))/k)-6;
+          measure(rest,mw);
+          var vv=rest.filter(function(a){return a.h>1;}); if(k>Math.max(1,vv.length)) break;
+          var pp=partition(vv.map(function(a){return a.h;}),k);
+          var hR=pp.map(function(ix){return colH(ix,vv);}), mxR=Math.max.apply(null,hR);
+          var solvable=(k===1&&s>=1&&vv.length<=2), ov=Math.max(0,oS,solvable?0:mxR-availH), left=solvable?0:Math.max(0,availH-mxR);
+          var score=ov>2?(1e6+ov*10):(left*0.5+s*45+k*4+(solvable?25:0));
+          if(!best||score<best.score) best={score:score,S:s,K:k,spart:spart,pp:pp,vv:vv,sv:sv,over:ov,mw:mw};
+        }
+      }
+      S=best.S; K=best.K; over=best.over;
+      ensure(S+K);
+      plan=best.spart.map(function(ix){return ix.map(function(i){return best.sv[i];});}).concat(best.pp.map(function(ix){return ix.map(function(i){return best.vv[i];});}));
+      if(S) side.filter(function(a){return a.h<=1;}).forEach(function(a){plan[0].push(a);});
+      while(plan.length<S+K) plan.push([]);
+      var sw=[]; for(var q=0;q<S;q++) sw.push(SIDEW+'px');
+      tpl=(S?sw.join(' ')+' ':'')+'repeat('+K+',minmax(0,1fr))';
+    }
+    var sig=plan.map(function(c){return c.map(function(a){return all.indexOf(a);}).join(',');}).join('|')+'@'+curN;
+    var inPlan=new Set(); plan.forEach(function(c){c.forEach(function(a){inPlan.add(a);});});
+    if(sig!==curSig){ plan.forEach(function(c,i){ cols[i].replaceChildren.apply(cols[i],c.map(function(a){return a.el;})); }); curSig=sig; }
+    else plan.forEach(function(c,i){ c.forEach(function(a){ if(a.el.parentElement!==cols[i]) cols[i].appendChild(a.el); }); });
+    all.forEach(function(a){ if(!inPlan.has(a)) stash.appendChild(a.el); });
+    mwrap.remove();
+    grid.style.gridTemplateColumns=tpl;
+    window.__fitDbg={S:S,K:K,tier:TIER,over:Math.round(over),availH:availH};
+    return {over:over,S:S,K:K,availH:availH};
+  }
+  function redraw(){ window.__fitSilent=true; window.dispatchEvent(new Event('resize')); window.__fitSilent=false; }
+  function colNat(c){ var t=0,n=0; [].forEach.call(c.children,function(ch){ var h=ch.getBoundingClientRect().height; if(h>0){ t+=h; n++; } }); return t+Math.max(0,n-1)*GAP(); }
+  function isGraphicCol(c){
+    var els=c.querySelectorAll('canvas,svg'); for(var i=0;i<els.length;i++){ var e=els[i]; if(e.closest('button,.icon,.badge,.toggle,summary')) continue; var r=e.getBoundingClientRect(); if(r.width>150&&r.height>60) return true; } return false;
+  }
+  var TEXTMIN=C.textMin||300;
+  function fitWidths(avail){        /* Grafik-Spalten so breit, dass ihre Höhe die Fensterhöhe füllt (Seitenverhältnis bleibt, nichts verzerrt); Rest geht an Text-Spalten */
+    var n=cols.length; if(n<1) return 0;
+    var G=GAP(), availW=window.innerWidth-26-G*(n-1), g=cols.map(isGraphicCol), nG=g.filter(Boolean).length, nT=n-nG;
+    function tpl(w){ return cols.map(function(_,i){ return g[i]?Math.round(w[i])+'px':'minmax('+TEXTMIN+'px,1fr)'; }).join(' '); }
+    if(!nG||n===1){ grid.style.gridTemplateColumns=cols.map(function(){return 'minmax(0,1fr)';}).join(' '); redraw(); }
+    else {
+      var budget=availW-nT*TEXTMIN, w=cols.map(function(_,i){return g[i]?budget/nG:0;}), lo=MINCOL*0.7;
+      for(var it=0; it<7; it++){
+        grid.style.gridTemplateColumns=tpl(w); redraw();
+        var worst=0, nw=w.slice();
+        cols.forEach(function(c,i){ if(!g[i]) return; var h=colNat(c); worst=Math.max(worst,Math.abs(h-avail)/avail); nw[i]=Math.max(lo,Math.min(budget,w[i]*Math.pow(avail/Math.max(150,h),0.95))); });
+        var sum=0; cols.forEach(function(_,i){ if(g[i]) sum+=nw[i]; });
+        if(sum>budget) cols.forEach(function(_,i){ if(g[i]) nw[i]=Math.max(lo,nw[i]*budget/sum); });
+        w=nw; if(worst<0.02) break;
+      }
+      grid.style.gridTemplateColumns=tpl(w); grid.style.justifyContent=nT?'stretch':'center'; redraw();
+    }
+    var mx=0; cols.forEach(function(c){ mx=Math.max(mx,colNat(c)-avail); });
+    var sw=cols.map(function(c){ var hs=[].slice.call(c.querySelectorAll('.panel,.stage')); return hs.length; });
+    /* breite Einstellungsspalten: Regler zweispaltig */
+    cols.forEach(function(c){ var wide=c.getBoundingClientRect().width>=430&&!isGraphicCol(c); [].forEach.call(c.querySelectorAll('.panel'),function(pn){ var k=[].filter.call(pn.children,function(e){return e.classList.contains('ctl-row')||e.classList.contains('field');}).length; pn.classList.toggle('fit2',wide&&k>=3); }); });
+    return mx-5;
+  }
+  function relayout(){
+    if(busy) return; busy=true;
+    try{
+      if(!active()){ restore(); return; }
+      var r=null, mx=0;
+      for(var t=0;t<3;t++){ setTier(t); r=layoutOnce(); redraw(); mx=fitWidths(r.availH-5); if(mx<=0) break; }
+      window.__fitDbg.over=Math.round(Math.max(0,mx)); redraw();
+    } finally { busy=false; }
+  }
+  function restore(){
+    root.classList.remove('fit','d1','d2'); TIER=0;
+    if(!grid) return; container.style.display='';
+    all.forEach(function(a){ if(a.next&&a.next.parentNode===a.parent) a.parent.insertBefore(a.el,a.next); else a.parent.appendChild(a.el); });
+    grid.remove(); stash.remove(); grid=null; stash=null; cols=[]; curN=0; curSig='';
+  }
+  function again(){ clearTimeout(window.__fitA); window.__fitA=setTimeout(function(){ relayout(); },70); }
+  window.addEventListener('resize',function(){ if(window.__fitSilent) return; clearTimeout(window.__fitT); window.__fitT=setTimeout(relayout,90); });
+  document.addEventListener('click',function(e){ if(e.target.closest('button,.toggle,.seg,.tabs,label,summary')) again(); },true);
+  document.addEventListener('change',function(e){ if(e.target.matches('select,input[type=checkbox],input[type=radio]')) again(); },true);
+  window.__fitRelayout=again;
+  relayout();
+  setTimeout(relayout,350);
+})();
+
+</script>
+</body>
+</html>

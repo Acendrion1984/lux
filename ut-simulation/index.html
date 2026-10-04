@@ -561,7 +561,7 @@
     background: transparent; color: var(--text-dim); cursor: pointer; }
   .mnav button.on { background: var(--amber); color: #111; }
 
-  /* ── Schaeffler-Markenbalken (schlank) ─────────────────────────── */
+  /* ── Markenbalken (schlank) ─────────────────────────── */
   .sfl-bar {
     display: flex; align-items: center; gap: 10px;
     padding: 5px 10px;
@@ -3491,7 +3491,7 @@ var themeCtl=(function(){
 </script>
 <script id="pc-fit-ut-js">
 (function(){
-  /* Schaeffler-Balken auf dem PC in die Kopfzeile verschieben (spart eine ganze Zeile) */
+  /* Markenbalken auf dem PC in die Kopfzeile verschieben (spart eine ganze Zeile) */
   var bar=document.querySelector('.sfl-bar'), head=document.querySelector('header.top'), home=bar&&bar.parentNode, next=bar&&bar.nextSibling;
   if(!bar||!head) return;
   function place(){

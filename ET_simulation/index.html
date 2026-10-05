@@ -4155,7 +4155,32 @@ render();
 })();
 </script>
 <script id="fit-js">
-window.FIT_CFG={sideW:280,maxCols:3,minCol:440,};
+window.FIT_CFG={sideW:280,maxCols:3,minCol:440,
+  /* Feste Spaltenaufteilung für die Szenarien Gefüge und Korrosion (breite Bildschirme): Bedienfelder links, Grafiken rechts groß */
+  planFn:function(all){
+    if(window.innerWidth<1600) return null;
+    var mb=document.querySelector('button[data-mode].on'), mode=mb?mb.dataset.mode:'';
+    var LAYOUTS={
+      gef:{ tpl:'340px 390px minmax(0,1fr) minmax(0,1fr)', cols:[
+        [/^Prüfaufgabe/,/^Wärmebehandlung/,/^Wirbelstromprüfung/],
+        [/^Gefügezustände/,/^Gefügebestimmung/],
+        [/^Gefügebild/,/^Gefüge-Landkarte/],
+        [/^Trennbarkeit/,/^Gefüge-Atlas/]]},
+      corr:{ tpl:'330px 330px minmax(0,1.15fr) minmax(0,1fr)', cols:[
+        [/^Prüfaufgabe/,/^Werkstück/,/^Sonde und Frequenz/],
+        [/^Korrosion zwischen/,/^Prüfgerät und Scan/,/^Alarmschwelle/],
+        [/^Impedanzebene/],
+        [/^Schnittbild/,/^C-Bild/,/^Streifenschreiber/]]}
+    };
+    var L=LAYOUTS[mode]; if(!L) return null;
+    function title(a){ var h=a.el.querySelector('h2,.stage-title'); return h?h.textContent.trim():''; }
+    var vis=all.filter(function(a){ return getComputedStyle(a.el).display!=='none'; }), used=[];
+    var cols=L.cols.map(function(res){ var c=[]; res.forEach(function(re){ var m=vis.filter(function(a){ return used.indexOf(a)<0 && re.test(title(a)); }); if(m.length){ used.push(m[0]); c.push(m[0]); } }); return c; });
+    vis.forEach(function(a){ if(used.indexOf(a)<0) cols[cols.length-1].push(a); });
+    all.forEach(function(a){ if(vis.indexOf(a)<0) cols[cols.length-1].push(a); });
+    return {cols:cols, tpl:L.tpl};
+  }
+};
 (function(){
   /* ═══ Kompakt-Dashboard (wie UT) – reines CSS-Pixel-Layout, KEIN Zoom-Eingriff: Browser-Zoom (Strg +/−) wirkt normal ═══ */
   var C=window.FIT_CFG||{};
@@ -4203,6 +4228,7 @@ window.FIT_CFG={sideW:280,maxCols:3,minCol:440,};
   function setTier(t){ TIER=t; root.classList.remove('d1','d2'); if(t) root.classList.add('d'+t); }
 
   function layoutOnce(){
+    var CUSTOM=C.planFn?C.planFn(all):null; window.__fitCustom=CUSTOM?CUSTOM.tpl:null;   /* vor ensure(): solange die Elemente noch im DOM hängen */
     var W=window.innerWidth, effW=W-26, G=GAP();
     root.classList.add('fit'); container.style.display='none';
     var mwrap=document.createElement('div'); mwrap.className='fitgrid'; mwrap.style.cssText='position:absolute;left:-99999px;top:0;display:block;flex:none;visibility:hidden;';
@@ -4211,7 +4237,11 @@ window.FIT_CFG={sideW:280,maxCols:3,minCol:440,};
     ensure(1); grid.style.gridTemplateColumns='1fr';
     var availH=Math.max(300,grid.clientHeight-2), plan, S, K, over=0, tpl;
     function measure(list,w){ meas.style.width=w+'px'; list.forEach(function(a){meas.appendChild(a.el);}); list.forEach(function(a){a.h=a.el.getBoundingClientRect().height;}); }
-    if(MANUAL){
+    if(CUSTOM){
+      K=CUSTOM.cols.length; S=0; ensure(K); plan=CUSTOM.cols; tpl=CUSTOM.tpl;
+      var cw=Math.floor((effW-G*(K-1))/K);
+      plan.forEach(function(c){ measure(c,cw); over=Math.max(over,colH(c.map(function(_,j){return j;}),c)-availH); });
+    } else if(MANUAL){
       K=MANUAL.length; S=0; ensure(K);
       plan=MANUAL.map(function(idxs){ return idxs.map(function(i){return all[i];}).filter(Boolean); });
       var used={}; MANUAL.forEach(function(ix){ix.forEach(function(i){used[i]=1;});});
@@ -4263,7 +4293,9 @@ window.FIT_CFG={sideW:280,maxCols:3,minCol:440,};
     var els=c.querySelectorAll('canvas,svg'); for(var i=0;i<els.length;i++){ var e=els[i]; if(e.closest('button,.icon,.badge,.toggle,summary')) continue; var r=e.getBoundingClientRect(); if(r.width>150&&r.height>60) return true; } return false;
   }
   var TEXTMIN=C.textMin||300;
-  function fitWidths(avail){        /* Grafik-Spalten so breit, dass ihre Höhe die Fensterhöhe füllt (Seitenverhältnis bleibt, nichts verzerrt); Rest geht an Text-Spalten */
+  function fitWidths(avail){
+    if(window.__fitCustom){ grid.style.gridTemplateColumns=window.__fitCustom; grid.style.justifyContent='stretch'; redraw();
+      var mx0=0; cols.forEach(function(c){ mx0=Math.max(mx0,colNat(c)-avail); }); return mx0-5; }        /* Grafik-Spalten so breit, dass ihre Höhe die Fensterhöhe füllt (Seitenverhältnis bleibt, nichts verzerrt); Rest geht an Text-Spalten */
     var n=cols.length; if(n<1) return 0;
     var G=GAP(), availW=window.innerWidth-26-G*(n-1), g=cols.map(isGraphicCol), nG=g.filter(Boolean).length, nT=n-nG;
     function tpl(w){ return cols.map(function(_,i){ return g[i]?Math.round(w[i])+'px':'minmax('+TEXTMIN+'px,1fr)'; }).join(' '); }

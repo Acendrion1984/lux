@@ -2262,7 +2262,7 @@ function pecHTML(){
     <div class="field"><label for="pcMat">Werkstoff des Rings</label><select class="sel" id="pcMat">${selOpts(['q42','gl100','100cr6','mnsi','mo7','mn5'].map(id => [id, matById(id).name]), 'q42')}</select></div>
     ${rangeRow('pcTn','Nennwanddicke',6,25,1,12,'mm')}
     ${rangeRow('pcLift','Beschichtung + Isolierung (Abstand)',0,150,5,60,'mm')}
-    ${rangeRow('pcProbe','Sondendurchmesser',20,100,5,50,'mm')}
+    ${rangeRow('pcProbe','Sondendurchmesser',10,100,1,50,'mm')}
     <div class="hint">Die Permeabilität des Rings weicht von der Normangabe ab (Charge, Wärmebehandlung) – deshalb muss an einer intakten Stelle mit bekannter Wanddicke <b>kalibriert</b> werden.</div>
   </div>
   <div class="panel gef-only" data-scn="pec">

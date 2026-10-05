@@ -739,7 +739,7 @@ var themeCtl=(function(){
           </div>
           <div class="field">
             <label><span>Nahtüberhöhung h</span> <span class="val" id="vWeldH">2.0</span> mm</label>
-            <input type="range" id="weldH" min="0.5" max="5" step="0.1" value="2">
+            <input type="range" id="weldH" min="0" max="5" step="0.1" value="2">
           </div>
           <div class="field">
             <label>Fehler in der Naht platzieren</label>
@@ -2134,7 +2134,7 @@ var themeCtl=(function(){
   function weldDims(T){
     const g0=1.5, tn=Math.tan(rad(30));
     const halfTop=g0+T*tn;                                        // halbe Fugenbreite an der Oberfläche
-    const hc=Math.max(0.5,Math.min(5,+state.weld.hc||2));         // Nahtüberhöhung (einstellbar)
+    const hc=Math.max(0,Math.min(5,isFinite(+state.weld.hc)?+state.weld.hc:2));         // Nahtüberhöhung (einstellbar)
     const halfCap=halfTop+Math.max(1.5,hc);                       // Decklage ragt beidseitig über die Fuge
     const hr=Math.min(2,Math.max(1,0.04*T+0.5)), rhalf=g0+2;      // Wurzelüberhöhung
     return {g0,tn,halfTop,hc,halfCap,hr,rhalf};

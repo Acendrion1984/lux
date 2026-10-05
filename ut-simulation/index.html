@@ -742,14 +742,15 @@ var themeCtl=(function(){
             <input type="range" id="weldH" min="0" max="5" step="0.1" value="2">
           </div>
           <div class="field">
-            <label>Fehler in der Naht platzieren</label>
-            <div class="seg" id="weldDefBtns" style="grid-template-columns:repeat(3,1fr)">
+            <label>Fehler in der Naht oder WEZ (optional)</label>
+            <div class="seg" id="weldDefBtns" style="grid-template-columns:repeat(2,1fr)">
               <button data-wd="root">Wurzel</button>
               <button data-wd="flank">Flanke</button>
               <button data-wd="cap">Decklage</button>
+              <button data-wd="haz">WEZ</button>
             </div>
           </div>
-          <div class="hint" id="weldHint">V-Naht 60° mit Nahtüberhöhung (oben) und Wurzelüberhöhung (unten). Prüfkopf neben die Naht setzen; typische Fehler: Wurzel-/Flankenbindefehler, Schlacke, Poren.</div>
+          <div class="hint" id="weldHint">V-Naht 60° mit Nahtüberhöhung (oben) und Wurzelüberhöhung (unten). Prüfkopf neben die Naht setzen; typische Fehler: Wurzel-/Flankenbindefehler, Schlacke, Poren; in der WEZ (neben der Naht): Risse.</div>
         </div>
         <div class="toggle-row" id="toggleDefect">
           <span>Künstlicher Fehler einblenden</span>
@@ -1425,7 +1426,7 @@ var themeCtl=(function(){
   }
   // Prüfkopf darf nicht auf der Nahtüberhöhung stehen – nur Hinweis, Berechnung läuft weiter
   function updateWeldHint(entryPt){
-    const base='V-Naht 60° mit Nahtüberhöhung (oben) und Wurzelüberhöhung (unten). Prüfkopf neben die Naht setzen; typische Fehler: Wurzel-/Flankenbindefehler, Schlacke, Poren.';
+    const base='V-Naht 60° mit Nahtüberhöhung (oben) und Wurzelüberhöhung (unten). Prüfkopf neben die Naht setzen; typische Fehler: Wurzel-/Flankenbindefehler, Schlacke, Poren; in der WEZ (neben der Naht): Risse.';
     if(!weldActive(state.geometry)){ return; }
     const pd=probeDims(), front=pd.type==='WPK'?pd.len*0.4:pd.w/2, back=pd.type==='WPK'?pd.len*0.6:pd.w/2;
     let lo,hi,pos;
@@ -1441,6 +1442,7 @@ var themeCtl=(function(){
     let depth, off=0;
     if(kind==='root'){ depth=Math.max(1,T-0.5); off=0; }
     else if(kind==='flank'){ depth=Math.max(1,Math.round(T*0.6)); off=-(wd.g0+(T-depth)*tn); }   // prüfkopfzugewandte (linke) Flanke
+    else if(kind==='haz'){ depth=Math.max(1,Math.round(T*0.5)); off=-(wd.g0+(T-depth)*tn)-3.5; }   // Wärmeeinflusszone: ca. 3,5 mm neben der prüfkopfzugewandten Schmelzlinie
     else { depth=Math.max(1,Math.round(Math.max(2,T*0.12))); off=0; }                              // Decklage
     state.defect.enabled=true; state.defect.depth=depth;
     if(g==='block'){

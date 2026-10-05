@@ -65,6 +65,11 @@
   .step.done{border-color:var(--green);color:var(--green);}
 
   .ctl-row{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .ctl-grid{display:grid;grid-template-columns:1fr 1fr;column-gap:18px;align-items:start;}
+  .ctl-grid .ctl-row{min-width:0;margin-bottom:12px;}
+  .ctl-grid .toggle{margin:0;}
+  .ctl-grid select,.ctl-grid input[type=range]{width:100%;min-width:0;}
+  @media(max-width:560px){.ctl-grid{grid-template-columns:1fr;}}
   .ctl-row label{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--text-dim);display:flex;justify-content:space-between;}
   .ctl-row label b{color:var(--amber);font-weight:700;}
   input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:4px;background:var(--panel-2);outline:none;border:1px solid var(--border-soft);}
@@ -265,6 +270,10 @@ html.fit .fcol table th, html.fit .fcol table td{padding:3px 4px; white-space:no
 /* alte max-height-Kappen der Einzel-Apps aufheben: Höhe folgt nur dem Seitenverhältnis (keine Seitenbalken) */
 html.fit svg, html.fit .stage svg, html.fit #setup, html.fit #wave, html.fit #chart, html.fit #view{max-height:none !important;}
 html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{min-width:0; overflow:hidden;}
+html.fit .ctl-grid{column-gap:16px;}
+html.fit .ctl-grid .ctl-row{margin:0 0 10px;}
+html.fit.d1 .ctl-grid .ctl-row{margin-bottom:8px;}
+html.fit.d2 .ctl-grid .ctl-row{margin-bottom:6px;}
 html.fit .panel.fit2 select, html.fit .panel.fit2 input[type=range]{width:100%; max-width:100%; min-width:0;}
 </style>
 </head>
@@ -321,41 +330,50 @@ html.fit .panel.fit2 select, html.fit .panel.fit2 input[type=range]{width:100%; 
       <div class="panel">
         <p class="stage-title"><span>STEUERUNG</span></p>
 
-        <div class="ctl-row">
-          <label>Prüfstück-Fehler</label>
-          <select id="defect">
-            <option value="fine">Feiner Ermüdungsriss (eng, tief)</option>
-            <option value="wide">Grober Riss (breit, mitteltief)</option>
-            <option value="porosity">Oberflächenpore (rund, flach)</option>
-            <option value="none">Fehlerfrei</option>
-          </select>
-        </div>
+        <div class="ctl-grid">
+          <div class="ctl-row">
+            <label>Prüfstück-Fehler</label>
+            <select id="defect">
+              <option value="fine">Feiner Ermüdungsriss (eng, tief)</option>
+              <option value="wide">Grober Riss (breit, mitteltief)</option>
+              <option value="porosity">Oberflächenpore (rund, flach)</option>
+              <option value="none">Fehlerfrei</option>
+            </select>
+            <div class="note">Der Fehlertyp bestimmt, wie schnell und wie tief der Penetrant eindringt.</div>
+          </div>
 
-        <div class="toggle">
-          <button id="btnVisible" class="sel">Farbeindringverfahren</button>
-          <button id="btnFluor">Fluoreszierend (UV)</button>
-        </div>
+          <div class="ctl-row">
+            <label>Verfahren</label>
+            <div class="toggle">
+              <button id="btnVisible" class="sel">Farbeindringverfahren</button>
+              <button id="btnFluor">Fluoreszierend (UV)</button>
+            </div>
+            <div class="note">Farbe: Tageslicht · Fluoreszierend: UV-A-Licht, höhere Empfindlichkeit.</div>
+          </div>
 
-        <div class="ctl-row">
-          <label>Prüftemperatur <b id="tempV">20 °C</b></label>
-          <input type="range" id="temp" min="5" max="50" value="20" step="1">
-          <div class="note" id="tempNote">Normbereich 10–50 °C</div>
-        </div>
+          <div class="ctl-row">
+            <label>Prüftemperatur <b id="tempV">20 °C</b></label>
+            <input type="range" id="temp" min="5" max="50" value="20" step="1">
+            <div class="note" id="tempNote">Normbereich 10–50 °C</div>
+          </div>
 
-        <div class="ctl-row">
-          <label>Eindringzeit (Verweildauer) <b id="dwellV">10 min</b></label>
-          <input type="range" id="dwell" min="0" max="30" value="10" step="1">
-        </div>
+          <div class="ctl-row">
+            <label>Eindringzeit (Verweildauer) <b id="dwellV">10 min</b></label>
+            <input type="range" id="dwell" min="0" max="30" value="10" step="1">
+            <div class="note">Zu kurz: Riss füllt sich nicht · Soll siehe Auswertung.</div>
+          </div>
 
-        <div class="ctl-row">
-          <label>Entfernung Überschuss <b id="wipeV">korrekt</b></label>
-          <input type="range" id="wipe" min="0" max="2" value="1" step="1">
-          <div class="note">Das Abwischen startet mit „Überschuss abwischen“ im Ablauf – hier legst du nur fest, wie gründlich.</div>
-        </div>
+          <div class="ctl-row">
+            <label>Entfernung Überschuss <b id="wipeV">korrekt</b></label>
+            <input type="range" id="wipe" min="0" max="2" value="1" step="1">
+            <div class="note">Abgewischt wird im Ablauf – hier legst du nur fest, wie gründlich.</div>
+          </div>
 
-        <div class="ctl-row">
-          <label>Entwicklungszeit <b id="devV">7 min</b></label>
-          <input type="range" id="dev" min="0" max="20" value="7" step="1">
+          <div class="ctl-row">
+            <label>Entwicklungszeit <b id="devV">7 min</b></label>
+            <input type="range" id="dev" min="0" max="20" value="7" step="1">
+            <div class="note">Der Entwickler zieht den Penetrant aus dem Riss und macht ihn sichtbar.</div>
+          </div>
         </div>
 
         <div class="btnrow">
@@ -1425,7 +1443,7 @@ updateButtonState();
 requestAnimationFrame(frame);
 </script>
 <script id="fit-js">
-window.FIT_CFG={cols:[[0,1,2],[3,4,5]],template:'1.75fr 1fr'};
+window.FIT_CFG={cols:[[0,1],[2,3,4,5]],template:'1.75fr 1fr'};
 (function(){
   /* ═══ Kompakt-Dashboard (wie UT) – reines CSS-Pixel-Layout, KEIN Zoom-Eingriff: Browser-Zoom (Strg +/−) wirkt normal ═══ */
   var C=window.FIT_CFG||{};

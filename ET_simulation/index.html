@@ -4158,7 +4158,6 @@ render();
 window.FIT_CFG={sideW:280,maxCols:3,minCol:440,
   /* Feste Spaltenaufteilung für die Szenarien Gefüge und Korrosion (breite Bildschirme): Bedienfelder links, Grafiken rechts groß */
   planFn:function(all){
-    if(window.innerWidth<1600) return null;
     var mb=document.querySelector('button[data-mode].on'), mode=mb?mb.dataset.mode:'';
     var LAYOUTS={
       gef:{ tpl:'340px 390px minmax(0,1fr) minmax(0,1fr)', cols:[
@@ -4185,19 +4184,18 @@ window.FIT_CFG={sideW:280,maxCols:3,minCol:440,
         [/^Prüfaufgabe/,/^Lagerhülse/],
         [/^Prüflauf/,/^Frequenzen, Mischung/,/^Beurteilung/],
         [/^Mehrfrequenz-Prüfbild/,/^Auswertung der Fehler/]]},
-      pec:{ tpl:'340px 360px minmax(0,1fr) minmax(0,1fr)', cols:[
-        [/^Prüfaufgabe/],
-        [/^Großlagerring/,/^Messung/],
-        [/^Gepulster Wirbelstrom/],
-        [/^Wanddickenprofil/]]}
+      pec:{ min:1200, tpl:function(){ var cap=Math.max(520,Math.min(800,Math.floor((window.innerHeight-80)/1.15))); return 'minmax(300px,1fr) minmax(300px,1fr) minmax(0,'+cap+'px)'; }, cols:[
+        [/^Prüfaufgabe/,/^Messung/],
+        [/^Großlagerring/],
+        [/^Gepulster Wirbelstrom/,/^Wanddickenprofil/]]}
     };
-    var L=LAYOUTS[mode]; if(!L) return null;
+    var L=LAYOUTS[mode]; if(!L||window.innerWidth<(L.min||1600)) return null;
     function title(a){ var h=a.el.querySelector('h2,.stage-title'); return h?h.textContent.trim():''; }
     var vis=all.filter(function(a){ return getComputedStyle(a.el).display!=='none'; }), used=[];
     var cols=L.cols.map(function(res){ var c=[]; res.forEach(function(re){ var m=vis.filter(function(a){ return used.indexOf(a)<0 && re.test(title(a)); }); if(m.length){ used.push(m[0]); c.push(m[0]); } }); return c; });
     vis.forEach(function(a){ if(used.indexOf(a)<0) cols[cols.length-1].push(a); });
     all.forEach(function(a){ if(vis.indexOf(a)<0) cols[cols.length-1].push(a); });
-    return {cols:cols, tpl:L.tpl};
+    return {cols:cols, tpl:(typeof L.tpl==='function'?L.tpl():L.tpl)};
   }
 };
 (function(){

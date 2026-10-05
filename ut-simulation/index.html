@@ -750,7 +750,7 @@ var themeCtl=(function(){
               <button data-wd="haz">WEZ</button>
             </div>
           </div>
-          <div class="hint" id="weldHint">V-Naht 60° mit Nahtüberhöhung (oben) und Wurzelüberhöhung (unten). Prüfkopf neben die Naht setzen; typische Fehler: Wurzel-/Flankenbindefehler, Schlacke, Poren; in der WEZ (neben der Naht): Risse.</div>
+          <div class="hint" id="weldHint">Stumpfnaht mit Nahtüberhöhung (oben) und Wurzelüberhöhung (unten). Prüfkopf neben die Naht setzen; typische Fehler: Wurzel-/Flankenbindefehler, Schlacke, Poren; in der WEZ (neben der Naht): Risse.</div>
         </div>
         <div class="toggle-row" id="toggleDefect">
           <span>Künstlicher Fehler einblenden</span>
@@ -1426,7 +1426,7 @@ var themeCtl=(function(){
   }
   // Prüfkopf darf nicht auf der Nahtüberhöhung stehen – nur Hinweis, Berechnung läuft weiter
   function updateWeldHint(entryPt){
-    const base='V-Naht 60° mit Nahtüberhöhung (oben) und Wurzelüberhöhung (unten). Prüfkopf neben die Naht setzen; typische Fehler: Wurzel-/Flankenbindefehler, Schlacke, Poren; in der WEZ (neben der Naht): Risse.';
+    const base='Stumpfnaht mit Nahtüberhöhung (oben) und Wurzelüberhöhung (unten). Prüfkopf neben die Naht setzen; typische Fehler: Wurzel-/Flankenbindefehler, Schlacke, Poren; in der WEZ (neben der Naht): Risse.';
     if(!weldActive(state.geometry)){ return; }
     const pd=probeDims(), front=pd.type==='WPK'?pd.len*0.4:pd.w/2, back=pd.type==='WPK'?pd.len*0.6:pd.w/2;
     let lo,hi,pos;
@@ -2134,11 +2134,11 @@ var themeCtl=(function(){
   // Nahtüberhöhung (Decklage) oben, Wurzelüberhöhung unten. Maße grob nach Praxis: Spalt 3 mm, Flanken 30°.
   function weldActive(g){ return !!state.weld.enabled && (g==='block' || g==='halfpipe'); }
   function weldDims(T){
-    const g0=1.5, tn=Math.tan(rad(30));
-    const halfTop=g0+T*tn;                                        // halbe Fugenbreite an der Oberfläche
-    const hc=Math.max(0,Math.min(5,isFinite(+state.weld.hc)?+state.weld.hc:2));         // Nahtüberhöhung (einstellbar)
-    const halfCap=halfTop+Math.max(1.5,hc);                       // Decklage ragt beidseitig über die Fuge
-    const hr=Math.min(2,Math.max(1,0.04*T+0.5)), rhalf=g0+2;      // Wurzelüberhöhung
+    // Schmale Stumpfnaht wie im ET-Simulator: oben 9 mm breit, unten 60 % davon
+    const halfTop=4.5, g0=halfTop*0.6, tn=(halfTop-g0)/Math.max(T,1);
+    const hc=Math.max(0,Math.min(5,isFinite(+state.weld.hc)?+state.weld.hc:2));   // Nahtüberhöhung (einstellbar)
+    const halfCap=halfTop+Math.max(0.5,hc*0.6);                   // Decklage ragt leicht über die Fuge
+    const hr=Math.min(2,Math.max(1,0.04*T+0.5)), rhalf=g0+1.5;    // Wurzelüberhöhung
     return {g0,tn,halfTop,hc,halfCap,hr,rhalf};
   }
   function blockWeldX(){
@@ -2885,12 +2885,12 @@ var themeCtl=(function(){
         const Q=(x,y)=>`${X(x).toFixed(1)},${Y(y).toFixed(1)}`;
         svg+=`<rect x="${X(0)}" y="${Y(0)}" width="${state.p1*scale}" height="${T*scale}" fill="url(#steelGrad)"/>`;
         svg+=`<rect x="${X(0)}" y="${Y(0)}" width="${state.p1*scale}" height="${T*scale}" fill="url(#hatch)"/>`;
-        svg+=`<polygon points="${Q(xw-wd.halfTop-hz,0)} ${Q(xw+wd.halfTop+hz,0)} ${Q(xw+wd.g0+hz,T)} ${Q(xw-wd.g0-hz,T)}" fill="var(--amber)" fill-opacity=".10"/>`;
+        svg+=`<rect x="${X(xw-wd.halfTop-hz).toFixed(1)}" y="${Y(0)}" width="${((wd.halfTop+hz)*2*scale).toFixed(1)}" height="${T*scale}" fill="var(--amber)" fill-opacity=".10"/>`;
         const seam=`M ${Q(xw-wd.halfCap,0)} Q ${Q(xw,-2*hc)} ${Q(xw+wd.halfCap,0)} L ${Q(xw+wd.halfTop,0)} L ${Q(xw+wd.g0,T)} L ${Q(xw+wd.rhalf,T)} Q ${Q(xw,T+2*hr)} ${Q(xw-wd.rhalf,T)} L ${Q(xw-wd.g0,T)} L ${Q(xw-wd.halfTop,0)} Z`;
         svg+=`<path d="${seam}" fill="var(--amber)" fill-opacity=".38" stroke="var(--amber)" stroke-width="1.6" stroke-linejoin="round"/>`;
         svg+=`<rect x="${X(0)}" y="${Y(0)}" width="${state.p1*scale}" height="${T*scale}" fill="none" stroke="#8898a8" stroke-width="1.3"/>`;
         svg+=`<text x="${X(xw+wd.halfCap)+8}" y="${Y(0)-6}" text-anchor="start" font-family="JetBrains Mono" font-size="11.5" font-weight="700" fill="var(--amber)" paint-order="stroke" stroke="${cv('--bg')}" stroke-width="3">Schweißnaht</text>`;
-        svg+=`<text x="${X(xw+wd.halfTop+hz)+6}" y="${Y(T/2)}" text-anchor="start" font-family="JetBrains Mono" font-size="10" fill="${cv('--text-dim')}" paint-order="stroke" stroke="${cv('--bg')}" stroke-width="3">Wärmeeinflusszone</text>`;
+        svg+=`<text x="${X(xw+wd.halfTop+hz)+6}" y="${Y(T)+14}" text-anchor="start" font-family="JetBrains Mono" font-size="10" fill="${cv('--text-dim')}" paint-order="stroke" stroke="${cv('--bg')}" stroke-width="3">Wärmeeinflusszone</text>`;
       } else {
       svg+=`<rect x="${X(0)}" y="${Y(0)}" width="${state.p1*scale}" height="${state.p2*scale}" fill="url(#steelGrad)"/>`;
         svg+=`<rect x="${X(0)}" y="${Y(0)}" width="${state.p1*scale}" height="${state.p2*scale}" fill="url(#hatch)"/>`;

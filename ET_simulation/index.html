@@ -641,6 +641,10 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
             <input type="range" id="lpf" min="0" max="100" step="1" value="100">
           </div>
         </div>
+        <div class="field">
+          <label for="vProbe">Sondengeschwindigkeit (für die Filter) <span class="val" id="vVProbe">0,5 m/s</span></label>
+          <input type="range" id="vProbe" min="0.1" max="5" step="0.1" value="0.5">
+        </div>
         <div class="hint" id="fltHint">—</div>
         <div class="btnrow">
           <button class="btn" id="btnLiftH">Abhebung waagerecht nach links legen</button>
@@ -658,7 +662,7 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
           </div>
         </div>
         <div class="field">
-          <label for="scanSpeed">Scangeschwindigkeit <span class="val" id="vScanSpeed">5</span></label>
+          <label for="scanSpeed">Darstellung (Zeitlupe) <span class="val" id="vScanSpeed">5</span></label>
           <input type="range" id="scanSpeed" min="1" max="10" step="1" value="5">
         </div>
         <div class="btnrow">
@@ -1072,7 +1076,7 @@ const S = {
   material:'100cr6', plateLen:90, plateWidth:40,
   crackOn:true, crackDepth:0.5, crackOrient:90, crackX:45, crackY:20,
   crackLen:3, crackOpen:0.05,
-  gain:24, phaseRot:0, hpf:0, lpf:10000, probeX:5, probeY:20, scanSpeed:5,
+  gain:24, phaseRot:0, hpf:0, lpf:10000, vProbe:0.5, probeX:5, probeY:20, scanSpeed:5,
   scanning:false, scanIx:0, scanIy:0, scanDir:1, scanAcc:0,
   partDia:26, fill:0.80, fS:[45, 34.5, 24, 17.5], win:0, showRef:false, noise:1.5,
   matDev:0, serieN:14, serieBad:3,
@@ -3618,9 +3622,9 @@ function resetScan(){
    (alle ≈ 0,2 mm). Mit der groben Rasterweite von knapp 1 mm wäre die Schmetterlingsfigur
    der Differenzsonde ein eckiger Polygonzug. */
 /* Geräte-Filter (Hoch-/Tiefpass, 1. Ordnung) auf dem Sondensignal – wirken nur während des Scans.
-   Die Sonde läuft mit v = 100 mm/s × Scangeschwindigkeit; aus dem Wegstück zwischen zwei Messpunkten ergibt sich der Zeitschritt. */
+   Die Sonde läuft mit der eingestellten Sondengeschwindigkeit v (die Darstellung läuft in Zeitlupe); aus dem Wegstück zwischen zwei Messpunkten ergibt sich der Zeitschritt. */
 const LPF_OFF = 10000;                                   // Tiefpass am Anschlag = aus
-const probeSpeed = () => Math.max(1, S.scanSpeed*100);
+const probeSpeed = () => Math.max(1, S.vProbe*1000);    // mm/s – reale Sondengeschwindigkeit; die Darstellung läuft unabhängig davon in Zeitlupe
 const fmtHz = f => f >= 1000 ? deC(f/1000, f >= 10000 ? 0 : 1)+' kHz' : Math.round(f)+' Hz';
 const sliderHpf = v => v <= 0 ? 0 : Math.round(Math.pow(10, v/100*3.3));          // 1 Hz … 2 kHz, logarithmisch
 const sliderLpf = v => v >= 100 ? LPF_OFF : Math.round(10*Math.pow(10, v/100*3)); // 10 Hz … 10 kHz, logarithmisch
@@ -3857,9 +3861,10 @@ function syncLabels(){
   $('vProbeX').textContent = Math.round(S.probeX)+' mm';
   $('vProbeY').textContent = Math.round(S.probeY)+' mm';
   $('vScanSpeed').textContent = S.scanSpeed;
+  $('vVProbe').textContent = deC(S.vProbe,1)+' m/s';
   $('vHpf').textContent = S.hpf > 0 ? fmtHz(S.hpf) : 'aus';
   $('vLpf').textContent = S.lpf < LPF_OFF ? fmtHz(S.lpf) : 'aus';
-  $('fltHint').textContent = 'Sonde läuft mit ≈ '+probeSpeed()+' mm/s: ein 1 mm breiter Fehler erzeugt Signalanteile bis ≈ '+fmtHz(probeSpeed()/2)+'. Hochpass unterdrückt langsame Änderungen (Abhebung, Werkstoffdrift), Tiefpass Rauschen – zu enge Filter verkleinern oder verschmieren den Fehlerausschlag. Wirkt während des Scans.';
+  $('fltHint').textContent = 'Bei '+deC(S.vProbe,1)+' m/s (Darstellung in Zeitlupe): ein 1 mm breiter Fehler erzeugt Signalanteile bis ≈ '+fmtHz(probeSpeed()/2)+'. Hochpass unterdrückt langsame Änderungen (Abhebung, Werkstoffdrift), Tiefpass Rauschen – zu enge Filter verkleinern oder verschmieren den Fehlerausschlag. Wirkt während des Scans.';
   $('vPartDia').textContent = S.partDia+' mm';
   $('vFill').textContent = deC(S.fill,2);
   $('vThreshR').textContent = deC(S.threshR,2);
@@ -3882,7 +3887,7 @@ MATERIALS.forEach(m => {
   $('segMat').appendChild(b);
 });
 
-const RESET_KEYS = new Set(['coilDia','liftOff','plateLen','plateWidth','crackDepth','crackOrient','crackX','crackY','freqS','t1','t2','weldX','weldW','weldCap','tubeD','sat','tubeSec','hpf','lpf']);
+const RESET_KEYS = new Set(['coilDia','liftOff','plateLen','plateWidth','crackDepth','crackOrient','crackX','crackY','freqS','t1','t2','weldX','weldW','weldCap','tubeD','sat','tubeSec','hpf','lpf','vProbe']);
 function bindRange(id, key, parse){
   $(id).addEventListener('input', () => {
     S[key] = parse ? parse(parseFloat($(id).value)) : parseFloat($(id).value);
@@ -3903,6 +3908,7 @@ bindRange('crackY','crackY');
 bindRange('gain','gain');
 bindRange('phaseRot','phaseRot');
 bindRange('scanSpeed','scanSpeed');
+bindRange('vProbe','vProbe');
 bindRange('hpf','hpf', sliderHpf);
 bindRange('lpf','lpf', sliderLpf);
 bindRange('partDia','partDia');

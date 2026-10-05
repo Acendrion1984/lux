@@ -750,7 +750,7 @@ var themeCtl=(function(){
               <button data-wd="haz">WEZ</button>
             </div>
           </div>
-          <div class="hint" id="weldHint">Stumpfnaht mit Nahtüberhöhung (oben) und Wurzelüberhöhung (unten). Prüfkopf neben die Naht setzen; typische Fehler: Wurzel-/Flankenbindefehler, Schlacke, Poren; in der WEZ (neben der Naht): Risse.</div>
+          <div class="hint" id="weldHint">Stumpfnaht mit einstellbarer Nahtüberhöhung (Kugeldom oben), Unterseite bündig. Prüfkopf neben die Naht setzen; typische Fehler: Wurzel-/Flankenbindefehler, Schlacke, Poren; in der WEZ (neben der Naht): Risse.</div>
         </div>
         <div class="toggle-row" id="toggleDefect">
           <span>Künstlicher Fehler einblenden</span>
@@ -1426,7 +1426,7 @@ var themeCtl=(function(){
   }
   // Prüfkopf darf nicht auf der Nahtüberhöhung stehen – nur Hinweis, Berechnung läuft weiter
   function updateWeldHint(entryPt){
-    const base='Stumpfnaht mit Nahtüberhöhung (oben) und Wurzelüberhöhung (unten). Prüfkopf neben die Naht setzen; typische Fehler: Wurzel-/Flankenbindefehler, Schlacke, Poren; in der WEZ (neben der Naht): Risse.';
+    const base='Stumpfnaht mit einstellbarer Nahtüberhöhung (Kugeldom oben), Unterseite bündig. Prüfkopf neben die Naht setzen; typische Fehler: Wurzel-/Flankenbindefehler, Schlacke, Poren; in der WEZ (neben der Naht): Risse.';
     if(!weldActive(state.geometry)){ return; }
     const pd=probeDims(), front=pd.type==='WPK'?pd.len*0.4:pd.w/2, back=pd.type==='WPK'?pd.len*0.6:pd.w/2;
     let lo,hi,pos;
@@ -2137,8 +2137,8 @@ var themeCtl=(function(){
     // Schmale Stumpfnaht wie im ET-Simulator: oben 9 mm breit, unten 60 % davon
     const halfTop=4.5, g0=halfTop*0.6, tn=(halfTop-g0)/Math.max(T,1);
     const hc=Math.max(0,Math.min(5,isFinite(+state.weld.hc)?+state.weld.hc:2));   // Nahtüberhöhung (einstellbar)
-    const halfCap=halfTop+Math.max(0.5,hc*0.6);                   // Decklage ragt leicht über die Fuge
-    const hr=Math.min(2,Math.max(1,0.04*T+0.5)), rhalf=g0+1.5;    // Wurzelüberhöhung
+    const halfCap=halfTop;                                        // Kugeldom endet bündig an den Nahtkanten (kein Überstand)
+    const hr=0, rhalf=g0;                                         // keine Wurzelüberhöhung, Nahtunterseite bündig
     return {g0,tn,halfTop,hc,halfCap,hr,rhalf};
   }
   function blockWeldX(){
@@ -2209,8 +2209,8 @@ var themeCtl=(function(){
   function partPolygon(g){
     if(g==='block' && weldActive('block')){
       const w=weldDims(state.p2), xw=blockWeldX(), L=state.p1, T=state.p2;
-      return [{x:0,y:0},{x:xw-w.halfCap,y:0},{x:xw-w.halfCap+w.hc,y:-w.hc},{x:xw+w.halfCap-w.hc,y:-w.hc},{x:xw+w.halfCap,y:0},
-              {x:L,y:0},{x:L,y:T},{x:xw+w.rhalf,y:T},{x:xw+w.rhalf-w.hr,y:T+w.hr},{x:xw-w.rhalf+w.hr,y:T+w.hr},{x:xw-w.rhalf,y:T},{x:0,y:T}];
+      const dome=[]; if(w.hc>0.05) for(let i=1;i<8;i++){ const t=i/8; dome.push({x:xw-w.halfCap+2*w.halfCap*t, y:-4*w.hc*t*(1-t)}); }
+      return [{x:0,y:0},{x:xw-w.halfCap,y:0},...dome,{x:xw+w.halfCap,y:0},{x:L,y:0},{x:L,y:T},{x:0,y:T}];
     }
     if(g==='block') return [{x:0,y:0},{x:state.p1,y:0},{x:state.p1,y:state.p2},{x:0,y:state.p2}];
     const d=tjointDims();
@@ -2886,7 +2886,7 @@ var themeCtl=(function(){
         svg+=`<rect x="${X(0)}" y="${Y(0)}" width="${state.p1*scale}" height="${T*scale}" fill="url(#steelGrad)"/>`;
         svg+=`<rect x="${X(0)}" y="${Y(0)}" width="${state.p1*scale}" height="${T*scale}" fill="url(#hatch)"/>`;
         svg+=`<rect x="${X(xw-wd.halfTop-hz).toFixed(1)}" y="${Y(0)}" width="${((wd.halfTop+hz)*2*scale).toFixed(1)}" height="${T*scale}" fill="var(--amber)" fill-opacity=".10"/>`;
-        const seam=`M ${Q(xw-wd.halfCap,0)} Q ${Q(xw,-2*hc)} ${Q(xw+wd.halfCap,0)} L ${Q(xw+wd.halfTop,0)} L ${Q(xw+wd.g0,T)} L ${Q(xw+wd.rhalf,T)} Q ${Q(xw,T+2*hr)} ${Q(xw-wd.rhalf,T)} L ${Q(xw-wd.g0,T)} L ${Q(xw-wd.halfTop,0)} Z`;
+        const seam=`M ${Q(xw-wd.halfCap,0)} Q ${Q(xw,-2*hc)} ${Q(xw+wd.halfCap,0)} L ${Q(xw+wd.halfTop,0)} L ${Q(xw+wd.g0,T)} L ${Q(xw-wd.g0,T)} L ${Q(xw-wd.halfTop,0)} Z`;
         svg+=`<path d="${seam}" fill="var(--amber)" fill-opacity=".38" stroke="var(--amber)" stroke-width="1.6" stroke-linejoin="round"/>`;
         svg+=`<rect x="${X(0)}" y="${Y(0)}" width="${state.p1*scale}" height="${T*scale}" fill="none" stroke="#8898a8" stroke-width="1.3"/>`;
         svg+=`<text x="${X(xw+wd.halfCap)+8}" y="${Y(0)-6}" text-anchor="start" font-family="JetBrains Mono" font-size="11.5" font-weight="700" fill="var(--amber)" paint-order="stroke" stroke="${cv('--bg')}" stroke-width="3">Schweißnaht</text>`;
@@ -2986,7 +2986,7 @@ var themeCtl=(function(){
         const Pl=(rho,lat)=>Pp(G.P(rho,G.phi+lat/rho));            // lat = seitlicher Abstand (mm) von der Nahtmitte auf Radius rho
         const hw=wd.halfTop+hz, aR=R*scale, aI=r*scale;
         svg+=`<path d="M ${Pl(R,-hw)} A ${aR} ${aR} 0 0 1 ${Pl(R,hw)} L ${Pl(r,hw)} A ${aI} ${aI} 0 0 0 ${Pl(r,-hw)} Z" fill="var(--amber)" fill-opacity=".10"/>`;
-        const seam=`M ${Pl(R,-wd.halfCap)} Q ${Pl(R+2*hc,0)} ${Pl(R,wd.halfCap)} L ${Pl(R,wd.halfTop)} L ${Pl(r,wd.g0)} L ${Pl(r,wd.rhalf)} Q ${Pl(r-2*hr,0)} ${Pl(r,-wd.rhalf)} L ${Pl(r,-wd.g0)} L ${Pl(R,-wd.halfTop)} Z`;
+        const seam=`M ${Pl(R,-wd.halfCap)} Q ${Pl(R+2*hc,0)} ${Pl(R,wd.halfCap)} L ${Pl(R,wd.halfTop)} L ${Pl(r,wd.g0)} L ${Pl(r,-wd.g0)} L ${Pl(R,-wd.halfTop)} Z`;
         svg+=`<path d="${seam}" fill="var(--amber)" fill-opacity=".38" stroke="var(--amber)" stroke-width="1.6" stroke-linejoin="round"/>`;
         const lp=G.P(R+wd.hc,G.phi+G.dc);
         svg+=`<text x="${(X(lp.x)+8).toFixed(1)}" y="${(Y(lp.y)-6).toFixed(1)}" text-anchor="start" font-family="JetBrains Mono" font-size="11.5" font-weight="700" fill="var(--amber)" paint-order="stroke" stroke="${cv('--bg')}" stroke-width="3">Schweißnaht</text>`;

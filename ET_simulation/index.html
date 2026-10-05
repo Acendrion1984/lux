@@ -566,14 +566,11 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
           <div class="toggle on" id="tglT0"><span>Bohrung Ø 0,8 mm</span><div class="switch"></div></div>
           <div class="toggle on" id="tglT1"><span>Bohrung Ø 1,0 mm</span><div class="switch"></div></div>
           <div class="toggle on" id="tglT2"><span>Bohrung Ø 1,2 mm</span><div class="switch"></div></div>
-          <div class="toggle on" id="tglT3"><span>Längskerbe außen N5 (5 %)</span><div class="switch"></div></div>
-          <div class="toggle on" id="tglT4"><span>Längskerbe innen N10 (10 %)</span><div class="switch"></div></div>
-          <div class="toggle on" id="tglT5"><span>Querkerbe außen N10 (10 %)</span><div class="switch"></div></div>
         </div>
         <div class="field">
           <label for="tubeD">Rohrdurchmesser <span class="val" id="vTubeD">20 mm</span></label>
           <input type="range" id="tubeD" min="10" max="25" step="1" value="20">
-          <div class="hint">Wälzlagerrohre (100Cr6, 100CrMnSi6-4, 20MnCr5 …) werden meist weichgeglüht geliefert. Das Referenzrohr enthält Bohrungen (0,8 · 1,0 · 1,2 mm) sowie Kerben N5/N10 (5 % bzw. 10 % der Wanddicke) an verschiedenen Umfangslagen.</div>
+          <div class="hint">Wälzlagerrohre (100Cr6, 100CrMnSi6-4, 20MnCr5 …) werden meist weichgeglüht geliefert. Das Referenzrohr enthält Bohrungen mit Ø 0,8 · 1,0 · 1,2 mm an verschiedenen Umfangslagen; die Prüfrohre aus dem Los haben Fehler derselben Größen.</div>
         </div>
       </div>
 
@@ -1317,14 +1314,11 @@ function weldSet(){
 }
 
 /* ══════════ Rohrprüfung: Das Rohr wird einmal durch die Spule gezogen ══════════ */
-/* Referenzrohr (Justierrohr): Bohrungen 0,8 · 1,0 · 1,2 mm und Kerben N5/N10 (5 % bzw. 10 % der Wanddicke) */
+/* Referenzrohr (Justierrohr): Bohrungen Ø 0,8 · 1,0 · 1,2 mm */
 const TREF = [
   {id:'B0,8',  kind:'bore',   d:0.8, x:14, ang:0,   loc:'thru', name:'Bohrung Ø 0,8 mm',            on:true},
   {id:'B1,0',  kind:'bore',   d:1.0, x:38, ang:120, loc:'thru', name:'Bohrung Ø 1,0 mm',            on:true},
   {id:'B1,2',  kind:'bore',   d:1.2, x:62, ang:240, loc:'thru', name:'Bohrung Ø 1,2 mm',            on:true},
-  {id:'N5L',   kind:'notchL', p:5,   x:86, ang:60,  loc:'OD',   name:'Längskerbe außen N5 (5 %)',   on:true},
-  {id:'N10L',  kind:'notchL', p:10,  x:110, ang:200, loc:'ID',   name:'Längskerbe innen N10 (10 %)', on:true},
-  {id:'N10Q',  kind:'notchT', p:10,  x:134, ang:300, loc:'OD',   name:'Querkerbe außen N10 (10 %)',  on:true},
 ];
 S.tubeObj = 'ref'; S.tubeLot = []; S.tubeReveal = false; S.tubeRef = TREF;
 const tdefs = () => S.tubeObj === 'ref' ? TREF : S.tubeLot;
@@ -1337,13 +1331,13 @@ const tExp = b => b.kind !== 'notchT';                                       // 
 const tSize = b => b.kind === 'bore' ? 'Ø '+deC(b.d,1)+' mm' : deC(b.p,1)+' % Wand';
 /* Prüfrohr aus dem Los: natürliche Fehler unbekannter Größe */
 function tubeNewLot(){
-  const kinds = [['notchL','OD','Längsriss außen'],['notchL','ID','Längsriss innen'],['notchL','OD','Überlappung'],['bore','thru','Pore / Lunker'],['notchT','OD','Querriss']];
+  /* Prüfrohr aus dem Los: Bohrungen derselben Größen wie am Referenzrohr (Ø 0,8 · 1,0 · 1,2 mm) an zufälliger Längs- und Umfangslage */
+  const sizes = [0.8, 1.0, 1.2];
   const n = 2+Math.floor(Math.random()*3), defs = [], xs = [];
   for(let i=0; i<n; i++){
-    const k = kinds[Math.floor(Math.random()*kinds.length)]; let x, g = 0; do { x = 14+Math.round(Math.random()*120); } while(xs.some(v => Math.abs(v-x) < 24) && ++g < 80); xs.push(x);
-    const d = {id:'F'+(i+1), kind:k[0], loc:k[1], name:k[2], x, ang:Math.round(Math.random()*35)*10, on:true};
-    if(k[0] === 'bore') d.d = Math.round((0.4+Math.random()*1.0)*10)/10; else d.p = Math.round((3+Math.random()*15)*2)/2;
-    defs.push(d);
+    let x, g = 0; do { x = 14+Math.round(Math.random()*120); } while(xs.some(v => Math.abs(v-x) < 24) && ++g < 80); xs.push(x);
+    const d = sizes[Math.floor(Math.random()*sizes.length)];
+    defs.push({id:'F'+(i+1), kind:'bore', loc:'thru', d, name:'Bohrung Ø '+deC(d,1)+' mm', x, ang:Math.round(Math.random()*35)*10, on:true});
   }
   S.tubeLot = defs; S.tubeReveal = false; S.tubeObj = 'lot';
 }
@@ -1687,7 +1681,7 @@ function scnVerdict(C, dir, live){
       h += `${exDet} von ${ex.length} erwartbaren Referenzfehlern erkannt`+(st.some(x => x.on && !tExp(x.b)) ? (qAl ? ' (die Querkerbe spricht ebenfalls an)' : ' – die Querkerbe bleibt ohne Anzeige') : '')+'. ';
       h += (amin > 0 && S.threshR > 0.5*amin) ? `Die Schwelle liegt über 50 % der kleinsten Anzeige – senken (Faustregel für die Justierung). ` : (amin > 0 ? 'Die Schwelle liegt unter der halben Anzeige des kleinsten Referenzfehlers – gut eingestellt. ' : '');
       h += amax > 1.6 ? `Die größte Anzeige übersteuert die Skala – Verstärkung verringern. ` : (amax < 0.8*1.6*0.5 ? `Die Anzeigen sind klein – Verstärkung erhöhen (größte Anzeige auf ≈ 80 % der Skala). ` : '');
-      h += `<br>${nSec()>1 ? 'Der ansprechende Sektor liefert die <b>Lage am Umfang</b>. ' : 'Die Ringspule liefert nur die <b>Längslage</b>. '}Querkerben (N10Q) verlaufen parallel zu den Umfangswirbelströmen und zeigen mit einer Außenspule kaum an – dafür sind rotierende Sonden oder Segmentspulen mit Längsfeld nötig. `;
+      h += `<br>${nSec()>1 ? 'Der ansprechende Sektor liefert die <b>Lage am Umfang</b>. ' : 'Die Ringspule liefert nur die <b>Längslage</b>. '}`;
     } else {
       const al = st.filter(x=>x.det).length, relMiss = st.filter(x=>x.rel && !x.det), falseA = st.filter(x=>x.det && !x.rel);
       if(!done) h += 'Durchlauf läuft – Anzeigen werden beim Erreichen der Fehler gemeldet. ';
@@ -3527,13 +3521,15 @@ function ampRGB(v){
   }
   return [255,111,102];
 }
+/* Weiche Aussteuerungsgrenze: lineare Farbskala bis 0,65, darüber sanft gegen 1 – starke Anzeigen übersteuern nicht mehr hart (keine ausgebrannten Flächen) */
+function softKnee(v){ v = Math.max(0, v); return v <= 0.65 ? v : 0.65 + 0.35*Math.tanh((v-0.65)/0.35); }
 function drawCscan(){
   if(S.mode === 'tube'){ drawTubeCross(); return; }
   const g = Math.pow(10,(S.gain-24)/20);
   const px = cImg.data;
   for(let iy=0; iy<NY; iy++) for(let ix=0; ix<NX; ix++){
     const i = iy*NX+ix;
-    const c = ampRGB(scanned[iy][ix] ? clamp(grid[iy][ix]*g,0,1) : 0);
+    const c = ampRGB(scanned[iy][ix] ? softKnee(grid[iy][ix]*g*0.72) : 0);
     px[i*4]=c[0]; px[i*4+1]=c[1]; px[i*4+2]=c[2]; px[i*4+3]=255;
   }
   offCtx.putImageData(cImg, 0, 0);
@@ -4015,7 +4011,7 @@ const MODEDEF = {
   weld: {eyebrow:'Wirbelstrom-Schweißnahtprüfung', sub:'Schweißnaht mit Poren und Riss · Differenzsonde gegen Nahtuntergrund',
          hint:'Fehler in der Schweißnaht an einem Großlagerring (42CrMo4) finden: Die Naht selbst erzeugt ein starkes Signal – Nullabgleich entlang der Naht, Phasendrehung und Schwelle so einstellen, dass Poren und Riss sichtbar bleiben.',
          mat:'q42', freqS:43, probe:'abs', gain:24, thresh:0.12, along:true},
-  tube: {eyebrow:'Wirbelstrom-Rohrprüfung', sub:'Wälzlagerrohr · Referenzrohr mit Bohrungen und Kerben, Prüfrohr aus dem Los',
+  tube: {eyebrow:'Wirbelstrom-Rohrprüfung', sub:'Wälzlagerrohr · Referenzrohr mit Bohrungen Ø 0,8 · 1,0 · 1,2 mm, Prüfrohr aus dem Los',
          hint:'Wälzlagerrohr (100Cr6 weichgeglüht) prüfen: erst am Referenzrohr justieren (Auto-Einstellung, Vormagnetisierung), dann ein Prüfrohr aus dem Los durchziehen und entscheiden: i. O. oder n. i. O.?',
          mat:'gl100', freqS:58, probe:'diff', gain:24, thresh:0.12, coil:'through', sat:0},
   mix:  {eyebrow:'Wirbelstrom-Verwechslungsprüfung', sub:'Werkstoffverwechslung erkennen · Vierfrequenz-Sortierdisplay',
@@ -4095,7 +4091,7 @@ function bindToggle(id, get, set, after){
 }
 bindToggle('tglWeldSeam', null, on => { S.weldSeam = on; });
 bindToggle('tglWeldPores', null, on => { S.weldPores = on; });
-[0,1,2,3,4,5].forEach(i => bindToggle('tglT'+i, null, on => { TREF[i].on = on; }));
+[0,1,2].forEach(i => bindToggle('tglT'+i, null, on => { TREF[i].on = on; }));
 function tubeUI(){ $('tubeRefBox').style.display = S.tubeObj === 'ref' ? '' : 'none'; document.querySelectorAll('#segTubeObj button').forEach(b => b.classList.toggle('on', b.dataset.obj === S.tubeObj)); $('btnTubeReveal').style.display = S.tubeObj === 'lot' ? '' : 'none'; $('btnTubeNew').style.display = S.tubeObj === 'lot' ? '' : 'none'; $('btnTubeAuto').style.display = S.tubeObj === 'ref' ? '' : 'none'; }
 function tubeRestart(){ S.scanning = false; stopLoop(); updateScanBtn(); resetScan(); S.probeX = 0; S.probeY = S.plateWidth/2; S.impLim = null; tubeUI(); render(); }
 document.querySelectorAll('#segTubeObj button').forEach(b => b.addEventListener('click', () => { if(b.dataset.obj === 'lot' && !S.tubeLot.length) tubeNewLot(); S.tubeObj = b.dataset.obj; S.tubeReveal = false; tubeRestart(); }));

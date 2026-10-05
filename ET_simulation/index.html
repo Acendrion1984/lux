@@ -3669,9 +3669,8 @@ function advanceScan(C, dir){
   let n = 0;
   while(S.scanAcc >= 1 && n < 90){
     S.scanAcc -= 1; n++;
-    S.scanIx += S.scanDir;
-    if(S.scanIx >= NX){ S.scanIx = NX-1; S.scanDir = -1; S.scanIy++; }
-    else if(S.scanIx < 0){ S.scanIx = 0; S.scanDir = 1; S.scanIy++; }
+    S.scanIx += 1;                                   // immer von links nach rechts, dann Rücklauf zur nächsten Zeile (ohne Signal)
+    if(S.scanIx >= NX){ S.scanIx = 0; S.scanIy++; S.trX = null; S._flt = null; }
     if(S.scanIy >= NY){ S.scanning = false; S.scanIy = NY-1; updateScanBtn(); stopLoop(); break; }
     const px = (S.scanIx+0.5)*S.plateLen/NX, py = (S.scanIy+0.5)*S.plateWidth/NY;
     S.probeX = px; S.probeY = py;

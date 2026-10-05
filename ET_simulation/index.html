@@ -4170,7 +4170,26 @@ window.FIT_CFG={sideW:280,maxCols:3,minCol:440,
         [/^Prüfaufgabe/,/^Werkstück/,/^Sonde und Frequenz/],
         [/^Korrosion zwischen/,/^Prüfgerät und Scan/,/^Alarmschwelle/],
         [/^Impedanzebene/],
-        [/^Schnittbild/,/^C-Bild/,/^Streifenschreiber/]]}
+        [/^Schnittbild/,/^C-Bild/,/^Streifenschreiber/]]},
+      hole:{ tpl:'320px 380px minmax(0,1fr) minmax(0,0.8fr)', cols:[
+        [/^Prüfaufgabe/,/^Sonde und Frequenz/,/^Werkstück/],
+        [/^Bolzenloch/,/^Prüfgerät und Scan/,/^Alarmschwelle/,/^Draufsicht/],
+        [/^Impedanzebene/],
+        [/^C-Bild/,/^Streifenschreiber/]]},
+      chd:{ tpl:'340px 340px minmax(0,1fr) minmax(0,1fr)', cols:[
+        [/^Prüfaufgabe/,/^Einsatzgehärtetes Bauteil/],
+        [/^Prüfung & Kalibrierung/],
+        [/^Härteverlauf/,/^Kalibrierkurve/],
+        [/^Frequenzwahl/]]},
+      mfm:{ tpl:'330px 360px minmax(0,1fr)', cols:[
+        [/^Prüfaufgabe/,/^Lagerhülse/],
+        [/^Prüflauf/,/^Frequenzen, Mischung/,/^Beurteilung/],
+        [/^Mehrfrequenz-Prüfbild/,/^Auswertung der Fehler/]]},
+      pec:{ tpl:'340px 360px minmax(0,1fr) minmax(0,1fr)', cols:[
+        [/^Prüfaufgabe/],
+        [/^Großlagerring/,/^Messung/],
+        [/^Gepulster Wirbelstrom/],
+        [/^Wanddickenprofil/]]}
     };
     var L=LAYOUTS[mode]; if(!L) return null;
     function title(a){ var h=a.el.querySelector('h2,.stage-title'); return h?h.textContent.trim():''; }

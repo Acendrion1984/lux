@@ -2981,16 +2981,13 @@ var themeCtl=(function(){
       svg+=`<path d="M ${X(-R)} ${Y(R)} A ${R*scale} ${R*scale} 0 0 1 ${X(R)} ${Y(R)}" fill="none" stroke="#bcc8d4" stroke-width="2.2"/>`;
       if(weldActive('halfpipe') && r>0){
         const G=ringWeldGeo(), wd=G.w, Pp=q=>`${X(q.x).toFixed(1)} ${Y(q.y).toFixed(1)}`;
-        const gold='fill="var(--amber)" fill-opacity=".38" stroke="var(--amber)" stroke-width="1.6"';
-        const steel='fill="url(#steelGrad)" stroke="#8898a8" stroke-width="1.3"';
-        const capD=`M ${Pp(G.A[0])} L ${Pp(G.A[1])} L ${Pp(G.A[2])} L ${Pp(G.A[3])} A ${R*scale} ${R*scale} 0 0 0 ${Pp(G.A[0])} Z`;
-        const rootD=`M ${Pp(G.B[0])} L ${Pp(G.B[1])} L ${Pp(G.B[2])} L ${Pp(G.B[3])} A ${r*scale} ${r*scale} 0 0 0 ${Pp(G.B[0])} Z`;
-        const dt=Math.min(rad(40),wd.halfTop/R), dg=Math.min(rad(40),wd.g0/r);
-        const O0=G.P(R,G.phi-dt), O1=G.P(R,G.phi+dt), I0=G.P(r,G.phi-dg), I1=G.P(r,G.phi+dg);
-        const vD=`M ${Pp(O0)} A ${R*scale} ${R*scale} 0 0 1 ${Pp(O1)} L ${Pp(I1)} A ${r*scale} ${r*scale} 0 0 0 ${Pp(I0)} Z`;
-        const hz=3.5, hO0=G.P(R,G.phi-dt-hz/R), hO1=G.P(R,G.phi+dt+hz/R), hI0=G.P(r,G.phi-dg-hz/r), hI1=G.P(r,G.phi+dg+hz/r);
-        svg+=`<path d="M ${Pp(hO0)} A ${R*scale} ${R*scale} 0 0 1 ${Pp(hO1)} L ${Pp(hI1)} A ${r*scale} ${r*scale} 0 0 0 ${Pp(hI0)} Z" fill="var(--amber)" fill-opacity=".10"/>`;
-        svg+=`<path d="${vD}" ${gold}/><path d="${capD}" ${gold}/><path d="${rootD}" ${gold}/>`;
+        // Darstellung wie beim Quader / im ET-Simulator: eine Naht-Fläche, gewölbte Über- und Wurzelhöhung, rechteckiges WEZ-Band
+        const hz=3.5, hc=wd.hc, hr=wd.hr;
+        const Pl=(rho,lat)=>Pp(G.P(rho,G.phi+lat/rho));            // lat = seitlicher Abstand (mm) von der Nahtmitte auf Radius rho
+        const hw=wd.halfTop+hz, aR=R*scale, aI=r*scale;
+        svg+=`<path d="M ${Pl(R,-hw)} A ${aR} ${aR} 0 0 1 ${Pl(R,hw)} L ${Pl(r,hw)} A ${aI} ${aI} 0 0 0 ${Pl(r,-hw)} Z" fill="var(--amber)" fill-opacity=".10"/>`;
+        const seam=`M ${Pl(R,-wd.halfCap)} Q ${Pl(R+2*hc,0)} ${Pl(R,wd.halfCap)} L ${Pl(R,wd.halfTop)} L ${Pl(r,wd.g0)} L ${Pl(r,wd.rhalf)} Q ${Pl(r-2*hr,0)} ${Pl(r,-wd.rhalf)} L ${Pl(r,-wd.g0)} L ${Pl(R,-wd.halfTop)} Z`;
+        svg+=`<path d="${seam}" fill="var(--amber)" fill-opacity=".38" stroke="var(--amber)" stroke-width="1.6" stroke-linejoin="round"/>`;
         const lp=G.P(R+wd.hc,G.phi+G.dc);
         svg+=`<text x="${(X(lp.x)+8).toFixed(1)}" y="${(Y(lp.y)-6).toFixed(1)}" text-anchor="start" font-family="JetBrains Mono" font-size="11.5" font-weight="700" fill="var(--amber)" paint-order="stroke" stroke="${cv('--bg')}" stroke-width="3">Schweißnaht</text>`;
       }

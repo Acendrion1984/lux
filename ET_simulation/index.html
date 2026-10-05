@@ -634,11 +634,11 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
         <div class="row2">
           <div class="field">
             <label for="hpf">Hochpass <span class="val" id="vHpf">aus</span></label>
-            <input type="range" id="hpf" min="0" max="50" step="1" value="0">
+            <input type="range" id="hpf" min="0" max="100" step="1" value="0">
           </div>
           <div class="field">
             <label for="lpf">Tiefpass <span class="val" id="vLpf">aus</span></label>
-            <input type="range" id="lpf" min="5" max="200" step="5" value="200">
+            <input type="range" id="lpf" min="0" max="100" step="1" value="100">
           </div>
         </div>
         <div class="hint" id="fltHint">—</div>
@@ -1072,7 +1072,7 @@ const S = {
   material:'100cr6', plateLen:90, plateWidth:40,
   crackOn:true, crackDepth:0.5, crackOrient:90, crackX:45, crackY:20,
   crackLen:3, crackOpen:0.05,
-  gain:24, phaseRot:0, hpf:0, lpf:200, probeX:5, probeY:20, scanSpeed:5,
+  gain:24, phaseRot:0, hpf:0, lpf:10000, probeX:5, probeY:20, scanSpeed:5,
   scanning:false, scanIx:0, scanIy:0, scanDir:1, scanAcc:0,
   partDia:26, fill:0.80, fS:[45, 34.5, 24, 17.5], win:0, showRef:false, noise:1.5,
   matDev:0, serieN:14, serieBad:3,
@@ -3618,9 +3618,12 @@ function resetScan(){
    (alle ≈ 0,2 mm). Mit der groben Rasterweite von knapp 1 mm wäre die Schmetterlingsfigur
    der Differenzsonde ein eckiger Polygonzug. */
 /* Geräte-Filter (Hoch-/Tiefpass, 1. Ordnung) auf dem Sondensignal – wirken nur während des Scans.
-   Die Sonde läuft mit v = 40 mm/s × Scangeschwindigkeit; aus dem Wegstück zwischen zwei Messpunkten ergibt sich der Zeitschritt. */
-const LPF_OFF = 200;
-const probeSpeed = () => Math.max(1, S.scanSpeed*40);
+   Die Sonde läuft mit v = 100 mm/s × Scangeschwindigkeit; aus dem Wegstück zwischen zwei Messpunkten ergibt sich der Zeitschritt. */
+const LPF_OFF = 10000;                                   // Tiefpass am Anschlag = aus
+const probeSpeed = () => Math.max(1, S.scanSpeed*100);
+const fmtHz = f => f >= 1000 ? deC(f/1000, f >= 10000 ? 0 : 1)+' kHz' : Math.round(f)+' Hz';
+const sliderHpf = v => v <= 0 ? 0 : Math.round(Math.pow(10, v/100*3.3));          // 1 Hz … 2 kHz, logarithmisch
+const sliderLpf = v => v >= 100 ? LPF_OFF : Math.round(10*Math.pow(10, v/100*3)); // 10 Hz … 10 kHz, logarithmisch
 function filt(z, x, y){
   if(!S.scanning || (S.hpf <= 0 && S.lpf >= LPF_OFF)){ S._flt = null; return z; }
   let f = S._flt;
@@ -3855,9 +3858,9 @@ function syncLabels(){
   $('vProbeX').textContent = Math.round(S.probeX)+' mm';
   $('vProbeY').textContent = Math.round(S.probeY)+' mm';
   $('vScanSpeed').textContent = S.scanSpeed;
-  $('vHpf').textContent = S.hpf > 0 ? S.hpf+' Hz' : 'aus';
-  $('vLpf').textContent = S.lpf < LPF_OFF ? S.lpf+' Hz' : 'aus';
-  $('fltHint').textContent = 'Sonde läuft mit ≈ '+probeSpeed()+' mm/s: ein 1 mm breiter Fehler erzeugt Signalanteile bis ≈ '+Math.round(probeSpeed()/2)+' Hz. Hochpass unterdrückt langsame Änderungen (Abhebung, Werkstoffdrift), Tiefpass Rauschen – zu enge Filter verkleinern oder verschmieren den Fehlerausschlag. Wirkt während des Scans.';
+  $('vHpf').textContent = S.hpf > 0 ? fmtHz(S.hpf) : 'aus';
+  $('vLpf').textContent = S.lpf < LPF_OFF ? fmtHz(S.lpf) : 'aus';
+  $('fltHint').textContent = 'Sonde läuft mit ≈ '+probeSpeed()+' mm/s: ein 1 mm breiter Fehler erzeugt Signalanteile bis ≈ '+fmtHz(probeSpeed()/2)+'. Hochpass unterdrückt langsame Änderungen (Abhebung, Werkstoffdrift), Tiefpass Rauschen – zu enge Filter verkleinern oder verschmieren den Fehlerausschlag. Wirkt während des Scans.';
   $('vPartDia').textContent = S.partDia+' mm';
   $('vFill').textContent = deC(S.fill,2);
   $('vThreshR').textContent = deC(S.threshR,2);
@@ -3901,8 +3904,8 @@ bindRange('crackY','crackY');
 bindRange('gain','gain');
 bindRange('phaseRot','phaseRot');
 bindRange('scanSpeed','scanSpeed');
-bindRange('hpf','hpf');
-bindRange('lpf','lpf');
+bindRange('hpf','hpf', sliderHpf);
+bindRange('lpf','lpf', sliderLpf);
 bindRange('partDia','partDia');
 bindRange('fill','fill', v=>v/100);
 bindRange('noise','noise');

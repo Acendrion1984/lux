@@ -132,8 +132,8 @@ function route(){const id=(location.hash.replace('#/','')||'home');const root=$(
  $('nav.side').classList.remove('open');$('.scrim').classList.remove('on');const ch=CHAPTERS.find(c=>c.id===id);const wrap=h('div',{cls:'wrap'});root.append(wrap);
  if(ch){document.title=ch.num+' '+ch.title+' – ET2';$('.top .t').textContent=ch.num+' · '+ch.title;wrap.style.setProperty('--ac',chColor(ch.id));wrap.append(h('div',{cls:'hero'},h('div',{cls:'big'},ch.num),h('span',{cls:'chip'},'Vortrag '+ch.num),h('span',{cls:'chip'},'≈ '+ch.min+' Min.'),h('h2',{},ch.title),h('p',{},ch.sub)));
   const body=h('div',{html:ch.html});const toc=h('div',{cls:'toc'});wrap.append(toc,body);$$('h2',body).forEach((x,i)=>{x.id='s'+i;toc.append(h('a',{href:'javascript:void 0',onclick:()=>x.scrollIntoView({behavior:'smooth'})},x.textContent.replace(/^Vertiefung: /,'')))});if(!toc.children.length)toc.remove();
-  $$('table',body).forEach(t=>{if(!t.parentNode.classList.contains('tw')){const w=h('div',{cls:'tw'});t.replaceWith(w);w.append(t)}});
-  $$('[data-sim]',body).forEach(mountSim);$$('[data-vid]',body).forEach(mountVid);$$('[data-fc]',body).forEach(mountFC);$$('[data-lab]',body).forEach(mountLab);
+  $$('table',body).forEach(t=>{if(!t.closest('.tw')){const w=h('div',{cls:'tw'});t.replaceWith(w);w.append(t)}});
+  if(typeof mountFig==='function')$$('[data-fig]',body).forEach(mountFig);$$('[data-sim]',body).forEach(mountSim);$$('[data-vid]',body).forEach(mountVid);$$('[data-fc]',body).forEach(mountFC);$$('[data-lab]',body).forEach(mountLab);
   if(ch.quiz){const q=h('div');wrap.append(q);mountQuiz(q,ch.quiz,ch.id,'Wissens-Check · '+ch.num+' '+ch.title)}
   const i=CHAPTERS.indexOf(ch),pv=CHAPTERS[i-1],nx=CHAPTERS[i+1];wrap.append(h('div',{cls:'pn'},pv?h('a',{href:'#/'+pv.id},h('small',{},'← zurück'),pv.num+' '+pv.title):h('a',{href:'#/home'},h('small',{},'← zurück'),'Startseite'),nx?h('a',{href:'#/'+nx.id},h('small',{},'weiter →'),nx.num+' '+nx.title):h('a',{href:'#/tools'},h('small',{},'weiter →'),'Rechner & Glossar')))}
  else if(PAGES[id]){document.title='ET2 E-Learning · Wirbelstromprüfung';$('.top .t').textContent='Wirbelstromprüfung ET 2';PAGES[id](wrap)}

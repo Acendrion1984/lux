@@ -388,6 +388,7 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
           <button data-mode="riss" class="on">Rissprüfung</button>
           <button data-mode="corr">Korrosion<br>zwischen 2 Platten</button>
           <button data-mode="weld">Schweißnaht-<br>prüfung</button>
+          <button data-mode="burn">Schleifbrand<br>Anlass-/Neuhärtezone</button>
           <button data-mode="tube">Rohrprüfung<br>0,8 · 1,0 · 1,2 mm</button>
           <button data-mode="mix">Verwechslungs-<br>prüfung</button>
           <button data-mode="gef">Gefügeprüfung</button>
@@ -499,6 +500,45 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
         </div>
         <div class="btnrow"><button class="btn" id="btnCorrFields">Felder neu aus Referenz</button></div>
         <div class="hint">Zusätzlich zur Schwelle gibt es <b>Toleranzfelder in der Impedanzebene</b>: Ein Referenzkörper mit Abträgen von 10, 25 und 50 % der 2. Platte (Fügefläche und Rückseite) legt je Tiefenlage ein <b>Phasenband</b> und drei <b>Amplitudenringe</b> (Stufe 1–4) fest. Jede Anzeige wird einem Feld zugeordnet und als zulässig oder nicht zulässig bewertet. Nach Änderung von Frequenz, Verstärkung oder Phase müssen die Felder neu aus der Referenz abgeleitet werden.</div>
+      </div>
+
+      <div class="panel riss-only" data-scn="burn">
+        <h2>Schleifbrand</h2>
+        <div class="toggle on" id="tglBurn"><span>Schleifbrand im Prüfstück</span><div class="switch"></div></div>
+        <div class="field">
+          <label>Form</label>
+          <div class="seg" id="segBurnForm">
+            <button data-bform="ring" class="on">Umlaufend (in Scanrichtung)</button>
+            <button data-bform="spot">Örtlich (Fleck)</button>
+          </div>
+          <div class="hint">Kleiner umlaufender Schleifbrand: schmaler Streifen in Scanrichtung – so, wie die Sonde am Ring umläuft (Scan von links nach rechts, Zeile für Zeile quer dazu). Der örtliche Fleck ist ein einzelner Brandfleck.</div>
+        </div>
+        <div class="field">
+          <label>Zone</label>
+          <div class="seg" id="segBurnType">
+            <button data-btype="temper" class="on">Anlasszone (weicher)</button>
+            <button data-btype="rehard">Neuhärtung (härter)</button>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field" id="burnXField">
+            <label for="burnX">Lage x <span class="val" id="vBurnX">45 mm</span></label>
+            <input type="range" id="burnX" min="10" max="80" step="1" value="45">
+          </div>
+          <div class="field">
+            <label for="burnW">Breite <span class="val" id="vBurnW">3 mm</span></label>
+            <input type="range" id="burnW" min="1" max="12" step="0.5" value="3">
+          </div>
+        </div>
+        <div class="field">
+          <label for="burnSev">Ausprägung (Gefügeänderung) <span class="val" id="vBurnSev">40 %</span></label>
+          <input type="range" id="burnSev" min="10" max="100" step="5" value="40">
+          <div class="hint">Die Brandzone ist nur ca. 0,05–0,3 mm dick: eine <b>höhere Frequenz</b> (kleinere Eindringtiefe) macht sie deutlich besser sichtbar. Anlasszone und Neuhärtung drehen das Signal in entgegengesetzte Richtung.</div>
+        </div>
+        <div class="field" id="burnYField">
+          <label for="burnY">Lage y (quer zur Scanrichtung) <span class="val" id="vBurnY">20 mm</span></label>
+          <input type="range" id="burnY" min="0" max="40" step="1" value="20">
+        </div>
       </div>
 
       <div class="panel riss-only" data-scn="weld">
@@ -877,7 +917,7 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
         </div>
       </div>
 
-      <div class="stage riss-only" data-scn="corr weld tube hole">
+      <div class="stage riss-only" data-scn="corr weld tube hole burn">
         <div class="stage-head"><span class="stage-title" id="secTitle">Schnittbild</span></div>
         <svg class="view" id="secSvg" viewBox="0 0 620 230" role="img" aria-label="Schnittbild der Prüfaufgabe"></svg>
       </div>
@@ -1081,6 +1121,7 @@ const S = {
   impScale:'auto', impLim:null, peak:null,
   t1:1.5, t2:2,
   weldX:45, weldW:9, weldCap:1, weldSeam:true, weldPores:true,
+  burnOn:true, burnForm:'ring', burnType:'temper', burnX:45, burnY:20, burnW:3, burnSev:0.4,
   tubeD:20, bore:[true,true,true],
   pair:0, soll:'100cr6', abw:'mn5',
   tubeCoil:'through', sat:0, bal:{re:0,im:0}, scanAlong:true, alIx:0, alIy:-1, alDir:1
@@ -1095,7 +1136,7 @@ const hzSlider  = f => clamp((Math.log10(f) - 1.7)/2.9*100, 0, 100);
 const freqSet = () => S.fS.map(sliderHz);
 
 /* ══════════ Prüfaufgaben: Moduslogik ══════════ */
-const SCAN_MODES = ['riss','corr','weld','tube','hole'], SORT_MODES = ['mix','gef'];
+const SCAN_MODES = ['riss','corr','weld','tube','hole','burn'], SORT_MODES = ['mix','gef'];
 const isScan = () => SCAN_MODES.indexOf(S.mode) >= 0;
 const isSort = () => SORT_MODES.indexOf(S.mode) >= 0;
 
@@ -1474,6 +1515,7 @@ function hasDefect(){
   if(S.mode === 'corr') return S.corr.some(d=>d.on);
   if(S.mode === 'tube') return tdefs().some(b => b.on);
   if(S.mode === 'weld') return S.weldSeam || S.weldPores || S.crackOn;
+  if(S.mode === 'burn') return S.burnOn;
   return S.crackOn;
 }
 function focus(){
@@ -1481,6 +1523,7 @@ function focus(){
   if(S.mode === 'corr'){ const d = S.corr[S.corrSel]; return {x:d.x, y:d.y, nx:1, ny:0, span:Math.max(4*S.coilDia/2, Math.max(d.ra,d.rb)*3)}; }
   if(S.mode === 'tube'){ const b = tdefs().find(q => q.on) || {x:45}; return {x:b.x, y:S.plateWidth/2, nx:1, ny:0, span:12}; }
   if(S.mode === 'weld') return {x:S.weldX, y:S.plateWidth*0.5, nx:1, ny:0, span:S.weldW*1.4+8};
+  if(S.mode === 'burn') return S.burnForm === 'ring' ? {x:S.plateLen*0.5, y:S.burnY, nx:0, ny:1, span:S.burnW*1.6+8} : {x:S.burnX, y:S.burnY, nx:1, ny:0, span:S.burnW*1.6+8};
   const rad = S.crackOrient*Math.PI/180;
   return {x:S.crackX, y:S.crackY, nx:Math.sin(rad), ny:-Math.cos(rad), span:Math.max(4*S.coilDia/2, 3*S.crackLen)};
 }
@@ -1503,6 +1546,13 @@ function drawScnOverlay(c2, sx, sy, dpr){
       corrParts(d).forEach(p => { c2.beginPath(); c2.ellipse(p.cx*sx, p.cy*sy, p.ra*sx, p.rb*sy, p.rot*Math.PI/180, 0, Math.PI*2); c2.stroke(); });
       c2.fillStyle = 'rgba(255,255,255,.9)'; c2.fillText(d.id, (d.x-1.5)*sx, (d.y-Math.max(d.ra,d.rb)-1.2)*sy);
     });
+  } else if(S.mode === 'burn'){
+    if(S.burnOn){
+      c2.font = (13*dpr)+'px JetBrains Mono, monospace';
+      if(S.burnForm === 'ring'){ [-1,1].forEach(sg => { c2.beginPath(); c2.moveTo(0, (S.burnY+sg*S.burnW/2)*sy); c2.lineTo(S.plateLen*sx, (S.burnY+sg*S.burnW/2)*sy); c2.stroke(); }); c2.fillText('Schleifbrand (umlaufend)', 8*dpr, Math.max((S.burnY-S.burnW/2)*sy-6*dpr, 14*dpr)); }
+      else { c2.beginPath(); c2.ellipse(S.burnX*sx, S.burnY*sy, Math.max(S.burnW/2,0.5)*sx, Math.max(S.burnW/2,0.5)*sx, 0, 0, Math.PI*2); c2.stroke(); c2.fillText('Schleifbrand', (S.burnX+S.burnW/2+1)*sx, S.burnY*sy); }
+    }
+  } else if(S.mode === 'weld'){
   } else if(S.mode === 'weld'){
     if(S.weldSeam){
       [-1,1].forEach(sg => { c2.beginPath(); c2.moveTo((S.weldX+sg*S.weldW/2)*sx, 0); c2.lineTo((S.weldX+sg*S.weldW/2)*sx, S.plateWidth*sy); c2.stroke(); });
@@ -1550,6 +1600,17 @@ function drawSection(C){
     s += txt(x0+4, yB+14, 'Rückseite der 2. Platte', {size:9.5, fill:'var(--text-dim)'});
     s += coil(gx(S.probeX), y0, S.coilDia);
     s += txt(W/2, H-6, 'Fügeflächen-Korrosion liegt flach, Rückseitenkorrosion tief: je tiefer, desto schwächer und später in der Phase', {anchor:'middle', size:9.5, fill:'var(--text-faint)'});
+  } else if(S.mode === 'burn'){
+    const ringF = S.burnForm === 'ring', pxm = ringF ? (x1-x0)/S.plateWidth : pxmm, gq = mm => x0 + mm*pxm;   // umlaufend: Schnitt quer zur Scanrichtung (über die Plattenbreite y)
+    const k = 24, y0 = 100, th = 3*k, hw = Math.max(S.burnW/2,0.4)*pxm, dep = (0.06+0.26*S.burnSev)*k*2.2, col = S.burnType === 'temper' ? 'var(--amber)' : 'var(--red)';
+    s += `<rect x="${x0}" y="${y0}" width="${x1-x0}" height="${th}" fill="var(--panel-2)" stroke="var(--border)" stroke-width="1.4"/>`;
+    if(S.burnOn){
+      const cx = ringF ? gq(S.burnY) : gx(S.burnX);
+      s += `<path d="M${(cx-hw).toFixed(1)},${y0} L${(cx+hw).toFixed(1)},${y0} L${(cx+hw*0.7).toFixed(1)},${(y0+dep).toFixed(1)} L${(cx-hw*0.7).toFixed(1)},${(y0+dep).toFixed(1)} Z" fill="${col}" fill-opacity=".55" stroke="${col}" stroke-width="1.6"/>`;
+      s += txt(cx, y0+th+16, (S.burnType === 'temper' ? 'Anlasszone' : 'Neuhärtung')+' · Tiefe ≈ '+deC(0.06+0.26*S.burnSev,2)+' mm · '+(ringF ? 'umlaufend (Querschnitt)' : 'örtlich'), {anchor:'middle', size:10, fill:col});
+    }
+    s += coil(ringF ? gq(S.probeY) : gx(S.probeX), y0, S.coilDia);
+    s += txt(W/2, H-8, 'Dünne Schicht: höhere Frequenz → kleinere Eindringtiefe → größere Anzeige', {anchor:'middle', size:9.5, fill:'var(--text-faint)'});
   } else if(S.mode === 'weld'){
     const k = 24, y0 = 100, th = 3*k, hw = S.weldW/2*pxmm, cap = S.weldCap*k*0.6;
     s += `<rect x="${x0}" y="${y0}" width="${x1-x0}" height="${th}" fill="var(--panel-2)" stroke="var(--border)" stroke-width="1.4"/>`;
@@ -1612,6 +1673,10 @@ function scnCards(C, dir){
             ['Feld richtig', st.filter(x => x.cl && x.cl.ok).length+' <small>von '+n+'</small>', n && st.filter(x => x.cl && x.cl.ok).length === n ? 'ok' : 'bad'],
             ['Kritisch nicht erkannt', String(critMiss), critMiss?'bad':'ok']];
   }
+  if(S.mode === 'burn'){
+    const bp = burnPeak(C, dir), dd = 0.06+0.26*S.burnSev;
+    return [['Zone', S.burnType === 'temper' ? 'Anlasszone' : 'Neuhärtung', 'hl'], ['Brandtiefe', deC(dd,2)+' <small>mm</small>', 'hl'], ['δ / Tiefe', deC(C.delta/dd,1), C.delta/dd > 8 ? 'bad' : 'ok'], ['Anzeige', Math.round(bp*100/1.6)+' <small>%</small>', S.burnOn && bp < S.threshR ? 'bad' : 'ok']];
+  }
   if(S.mode === 'weld'){
     const balOn = S.bal.re !== 0 || S.bal.im !== 0;
     return [['Scanrichtung', S.scanAlong ? 'entlang' : 'quer', 'hl'], ['Nullabgleich', balOn ? 'gesetzt' : 'fehlt', balOn ? 'ok' : 'bad'], ['Nahtuntergrund', Math.round(clamp(weldBg(C,dir),0,1.6)*100/1.6)+' <small>%</small>', 'hl']];
@@ -1653,6 +1718,17 @@ function scnVerdict(C, dir, live){
     if(riskN) h += `<b>Achtung: ${riskN} Fehler oberhalb der zulässigen Stufe sind fälschlich als zulässig eingeordnet.</b> `;
     h += `<table class="res" style="margin-top:8px"><thead><tr><th>Nr</th><th>Form</th><th>Wahre Lage · Stufe · Abtrag</th><th>Spitze</th><th>Phase</th><th>Toleranzfeld</th><th>Einordnung</th><th>Zulässigkeit</th></tr></thead><tbody>${rows}</tbody></table>`;
     return {cls: n===on.length ? 'verdict ok' : (n===0 ? 'verdict bad' : 'verdict'), html:h};
+  }
+  if(S.mode === 'burn'){
+    const bp = burnPeak(C, dir), dd = 0.06+0.26*S.burnSev, pc = Math.round(bp*100/1.6), th = Math.round(S.threshR*100/1.6), det = S.burnOn && bp >= S.threshR;
+    let h = S.burnOn ? `<b>${S.burnForm === 'ring' ? 'Umlaufender' : 'Örtlicher'} Schleifbrand (${S.burnType === 'temper' ? 'Anlasszone' : 'Neuhärtung'}), ${deC(S.burnW,1)} mm breit, ca. ${deC(dd,2)} mm tief:</b> Anzeige ${pc} % bei einer Schwelle von ${th} %. ` : 'Im Prüfstück ist kein Schleifbrand eingestellt – die Sonde darf nicht anzeigen. ';
+    if(S.burnOn){
+      h += det ? '<b>Der Schleifbrand wird erkannt.</b> ' : '<b>Nicht erkannt.</b> ';
+      if(!det) h += C.delta/dd > 8 ? `Die Eindringtiefe (δ = ${deC(C.delta,2)} mm) ist viel größer als die Brandschicht – <b>Frequenz erhöhen</b>, Verstärkung erhöhen oder Schwelle senken. ` : 'Verstärkung erhöhen oder die Schwelle unter die Anzeige legen. ';
+      h += S.probe === 'diff' ? (S.burnForm === 'ring' ? 'Die Differenzsonde (Spulenpaar quer zur Scanrichtung) zeigt nur die beiden Streifenkanten (8-förmige Anzeige) – für die Brandbreite und -tiefe die Absolutsonde nutzen. ' : 'Die Differenzsonde zeigt bei einem breiten Streifen nur dessen Kanten – für umlaufenden Brand die Absolutsonde nutzen. ') : '';
+      h += 'Phasenlage: Anlasszone und Neuhärtung drehen das Signal in entgegengesetzte Richtung, die Abhebung wirkt in einer dritten Richtung – so lassen sich Brand und Abhebung trennen.';
+    }
+    return {cls: S.burnOn ? (det ? 'verdict ok' : 'verdict bad') : 'verdict', html:h};
   }
   if(S.mode === 'weld'){
     const bg = weldBg(C, dir), wr = S.probe === 'diff', balOn = S.bal.re !== 0 || S.bal.im !== 0;
@@ -3040,6 +3116,7 @@ function crackProfile(sx, sy, w){
 function coilSignal(sx, sy, C, dir){
   if(S.mode === 'corr') return corrSignal(sx, sy, C, dir);
   if(S.mode === 'weld') return weldSignal(sx, sy, C, dir);
+  if(S.mode === 'burn') return burnSignal(sx, sy, C, dir);
   if(S.mode === 'tube') return tubeSignal(sx, sy, C, dir);
   if(S.mode === 'hole') return holeCrackSignal(sx, sy, C, dir);
   return crackSignal(sx, sy, C, dir);
@@ -3059,11 +3136,38 @@ function crackSignal(sx, sy, C, dir){
           im:A*(g1*Math.sin(p1) + c2*g2*Math.sin(p2))};
 }
 /* Rohsignal der Sonde, noch ohne Verstärkung und Phasendrehung */
+/* ══════════ Schleifbrand (Anlasszone / Neuhärtung) ══════════ */
+function burnProfile(sx, sy){
+  const hw = Math.max(S.burnW/2, 0.4);
+  if(S.burnForm === 'ring') return 1/(1+Math.pow(Math.abs(sy-S.burnY)/hw, 4));    // umlaufend: Streifen in Scanrichtung (die Sonde läuft wie am Ring um), Lage quer dazu (y)
+  const px = 1/(1+Math.pow(Math.abs(sx-S.burnX)/hw, 4)), dy = sy-S.burnY; return px*Math.exp(-(dy*dy)/(2*hw*hw*1.0));   // Fleck
+}
+function burnAmp(C){
+  const t = 0.06+0.26*S.burnSev, zr = t/Math.max(C.delta, 0.01);                   // dünne Schicht (Tiefe in mm) gegen Eindringtiefe
+  const kmu = 1 + 0.25*Math.log10(Math.max(C.m.mu,1));
+  return 0.62*sensTube(C)*kmu*(1-Math.exp(-2.2*zr))*(0.35+S.burnSev)*Math.exp(-0.8*S.liftOff/C.a);
+}
+function burnSignal(sx, sy, C, dir){
+  if(!S.burnOn) return {re:0, im:0};
+  const A0 = burnAmp(C)*(S.burnType === 'temper' ? 1 : -0.85), ang = dir.angCrack-0.55;   // Anlasszone und Neuhärtung drehen entgegengesetzt
+  if(S.burnForm === 'ring'){   // Streifen in Scanrichtung: beim Überfahren quer dazu (y) laufen Betrag und Phase durch – Absolutsonde: geschlossene Schleife, Differenzsonde: saubere 8
+    const hw = Math.max(S.burnW/2, 0.4), h = hw*0.25, g = burnProfile(sx, sy), dg = (burnProfile(sx, sy+h)-burnProfile(sx, sy-h))/(2*h)*hw;
+    return {re:A0*(g*Math.cos(ang)+0.8*dg*Math.cos(ang+Math.PI/2)), im:A0*(g*Math.sin(ang)+0.8*dg*Math.sin(ang+Math.PI/2))};
+  }
+  const A = A0*burnProfile(sx, sy);
+  return {re:A*Math.cos(ang), im:A*Math.sin(ang)};
+}
+function burnPeak(C, dir){
+  if(!S.burnOn) return 0;
+  if(S.burnForm === 'ring'){ const xm = S.plateLen/2, yr = S.burnY-6*S.burnW-6 >= 0 ? S.burnY-6*S.burnW-6 : Math.min(S.burnY+6*S.burnW+6, S.plateWidth); const z = gr(probeRaw(xm, S.burnY, C, dir)), z0 = gr(probeRaw(xm, yr, C, dir)); return Math.hypot(z.re-z0.re, z.im-z0.im); }
+  const z = gr(probeRaw(S.burnX, S.burnY, C, dir)), z0 = gr(probeRaw(Math.max(S.burnX-6*S.burnW-6,0), S.burnY, C, dir)); return Math.hypot(z.re-z0.re, z.im-z0.im);
+}
+
 function probeRaw(sx, sy, C, dir){
   let z;
   if(S.probe === 'diff'){
-    const s = C.a*1.8;
-    const p = coilSignal(sx-s/2, sy, C, dir), q = coilSignal(sx+s/2, sy, C, dir);
+    const s = C.a*1.8, quer = S.mode === 'burn' && S.burnForm === 'ring';   // Schleifbrand-Streifen läuft in Scanrichtung: die Spulenpaarung liegt quer dazu (sonst sähe die Differenzsonde ihn nicht)
+    const p = quer ? coilSignal(sx, sy-s/2, C, dir) : coilSignal(sx-s/2, sy, C, dir), q = quer ? coilSignal(sx, sy+s/2, C, dir) : coilSignal(sx+s/2, sy, C, dir);
     z = {re:(p.re-q.re)*1.35, im:(p.im-q.im)*1.35};
   } else {
     z = coilSignal(sx, sy, C, dir);
@@ -3611,6 +3715,7 @@ function resetScan(){
   S.probeX = clamp(S.probeX, 0, S.plateLen);
   S.probeY = clamp(S.probeY, 0, S.plateWidth);
   S.weldX = clamp(S.weldX, 10, S.plateLen-10); S.alIx = alongBand()[0];
+  S.burnX = clamp(S.burnX, 8, S.plateLen-8); S.burnY = clamp(S.burnY, 0, S.plateWidth); $('burnX').max = S.plateLen-8; $('burnY').max = S.plateWidth;
   $('crackX').max = S.plateLen-5; $('crackY').max = S.plateWidth; $('weldX').max = S.plateLen-10;
   $('probeX').max = S.plateLen;   $('probeY').max = S.plateWidth;
 }
@@ -3672,7 +3777,8 @@ function advanceScan(C, dir){
     S.scanIx += 1;                                   // immer von links nach rechts, dann Rücklauf zur nächsten Zeile (ohne Signal)
     if(S.scanIx >= NX){ S.scanIx = 0; S.scanIy++; S.trX = null; S._flt = null; }
     if(S.scanIy >= NY){ S.scanning = false; S.scanIy = NY-1; updateScanBtn(); stopLoop(); break; }
-    const px = (S.scanIx+0.5)*S.plateLen/NX, py = (S.scanIy+0.5)*S.plateWidth/NY;
+    const spirale = S.mode === 'burn' && S.burnForm === 'ring';   // umlaufender Brand: Sonde läuft wie am rotierenden Ring (Schraubenbahn) – y rückt stetig vor, das Signal läuft glatt durch den Streifen statt in Zeilenstufen zu springen
+    const px = (S.scanIx+0.5)*S.plateLen/NX, py = (S.scanIy+(spirale ? (S.scanIx+0.5)/NX : 0.5))*S.plateWidth/NY;
     S.probeX = px; S.probeY = py;
     const z = sample(px, py, C, dir);
     grid[S.scanIy][S.scanIx] = Math.max(grid[S.scanIy][S.scanIx], balMag(z));
@@ -3868,6 +3974,7 @@ function syncLabels(){
   for(let k=0;k<4;k++) $('vFw'+(k+1)).textContent = fmtFreq(sliderHz(S.fS[k]));
   $('vNoise').textContent = deC(S.noise,1)+' %';
   $('vT1').textContent = deC(S.t1,1)+' mm'; $('vT2').textContent = deC(S.t2,1)+' mm';
+  $('vBurnX').textContent = S.burnX+' mm'; $('vBurnW').textContent = deC(S.burnW,1)+' mm'; $('vBurnSev').textContent = Math.round(S.burnSev*100)+' %'; $('vBurnY').textContent = S.burnY+' mm'; $('burnXField').style.display = S.burnForm === 'spot' ? '' : 'none';
   $('vWeldX').textContent = S.weldX+' mm'; $('vWeldW').textContent = S.weldW+' mm'; $('vWeldCap').textContent = deC(S.weldCap,1)+' mm'; $('vTubeD').textContent = S.tubeD+' mm'; $('vSat').textContent = S.sat+' %';
   $('vMatDev').textContent = (S.matDev>0?'+':'')+S.matDev+' %';
   $('vSerieN').textContent = S.serieN;
@@ -3883,7 +3990,7 @@ MATERIALS.forEach(m => {
   $('segMat').appendChild(b);
 });
 
-const RESET_KEYS = new Set(['coilDia','liftOff','plateLen','plateWidth','crackDepth','crackOrient','crackX','crackY','freqS','t1','t2','weldX','weldW','weldCap','tubeD','sat','tubeSec','hpf','lpf','vProbe']);
+const RESET_KEYS = new Set(['coilDia','liftOff','plateLen','plateWidth','crackDepth','crackOrient','crackX','crackY','freqS','t1','t2','weldX','weldW','weldCap','burnX','burnY','burnW','burnSev','tubeD','sat','tubeSec','hpf','lpf','vProbe']);
 function bindRange(id, key, parse){
   $(id).addEventListener('input', () => {
     S[key] = parse ? parse(parseFloat($(id).value)) : parseFloat($(id).value);
@@ -3923,6 +4030,11 @@ $('btnFotoSatz').addEventListener('click', () => {
 });
 bindRange('t1','t1'); bindRange('t2','t2');
 bindRange('weldX','weldX'); bindRange('weldW','weldW'); bindRange('weldCap','weldCap');
+bindRange('burnX','burnX'); bindRange('burnY','burnY'); bindRange('burnW','burnW');
+$('burnSev').addEventListener('input', () => { S.burnSev = parseFloat($('burnSev').value)/100; resetScan(); syncLabels(); render(); });
+bindToggle('tglBurn', null, on => { S.burnOn = on; });
+segPick('segBurnForm','bform', v => { S.burnForm = v; resetScan(); syncLabels(); render(); });
+segPick('segBurnType','btype', v => { S.burnType = v; resetScan(); syncLabels(); render(); });
 $('tubeD').addEventListener('input', () => { S.tubeD = parseFloat($('tubeD').value); S.plateWidth = Math.round(Math.PI*S.tubeD); $('plateWidth').value = S.plateWidth; resetScan(); syncLabels(); render(); });
 bindRange('sat','sat'); bindRange('tubeSec','tubeSec');
 bindRange('threshR','threshR');
@@ -4008,6 +4120,9 @@ const MODEDEF = {
   corr: {eyebrow:'Wirbelstrom-Korrosionsprüfung', sub:'Korrosion an der Fügefläche zweier Platten · Eindringtiefe und Phasenbewertung',
          hint:'Passungsrost und Korrosion zwischen zwei Lagerstahlplatten (z. B. Ring und Hülse) finden: Die Frequenz so wählen, dass die Wirbelströme die Fügefläche erreichen, und die Phase zur Tiefenbewertung nutzen.',
          mat:'100cr6', freqS:30, probe:'abs', gain:30, thresh:0.05},
+  burn: {eyebrow:'Wirbelstrom-Schleifbrandprüfung', sub:'Anlasszone und Neuhärtung an geschliffenen Lagerringen · kleiner umlaufender Schleifbrand',
+         hint:'Schleifbrand an einer geschliffenen Laufbahn (100Cr6) finden: ein schmaler umlaufender Brandstreifen ändert Gefüge, Leitfähigkeit und Permeabilität nur in einer dünnen Oberflächenschicht – hohe Frequenz wählen, Absolutsonde nutzen, Verstärkung und Schwelle so einstellen, dass der Streifen anzeigt.',
+         mat:'100cr6', freqS:75, probe:'abs', gain:30, thresh:0.08},
   weld: {eyebrow:'Wirbelstrom-Schweißnahtprüfung', sub:'Schweißnaht mit Poren und Riss · Differenzsonde gegen Nahtuntergrund',
          hint:'Fehler in der Schweißnaht an einem Großlagerring (42CrMo4) finden: Die Naht selbst erzeugt ein starkes Signal – Nullabgleich entlang der Naht, Phasendrehung und Schwelle so einstellen, dass Poren und Riss sichtbar bleiben.',
          mat:'q42', freqS:43, probe:'abs', gain:24, thresh:0.12, along:true},
@@ -4038,7 +4153,7 @@ function applyScnPanels(){
     const list = el.dataset.scn.split(' ');
     el.style.display = list.indexOf(S.mode) >= 0 ? '' : 'none';
   });
-  $('secTitle').textContent = ({corr:'Schnittbild · Deckblech, Fügefläche und Korrosion', weld:'Schnittbild · Schweißnaht', tube:'Querschnitt · Prüfrohr mit Referenzbohrungen', hole:'Draufsicht · Bolzenloch mit rotierender Sonde'})[S.mode] || 'Schnittbild';
+  $('secTitle').textContent = ({corr:'Schnittbild · Deckblech, Fügefläche und Korrosion', weld:'Schnittbild · Schweißnaht', burn:'Schnittbild · Schleifbrandzone', tube:'Querschnitt · Prüfrohr mit Referenzbohrungen', hole:'Draufsicht · Bolzenloch mit rotierender Sonde'})[S.mode] || 'Schnittbild';
   if(S.mode === 'mix') $('gefHead').textContent = 'Verwechslungsprüfung · Prüfteil';
 }
 function initSelectors(){
@@ -4072,7 +4187,7 @@ segPick('segMode','mode', v => {
     if(d.gain !== undefined){ S.gain = d.gain; setRange('gain', d.gain); }
     if(d.thresh !== undefined){ S.threshR = d.thresh; setRange('threshR', d.thresh); }
     if(d.coilDia !== undefined){ S.coilDia = d.coilDia; setRange('coilDia', d.coilDia); }
-    if(v === 'riss' || v === 'corr' || v === 'weld'){ S.plateLen = 90; S.plateWidth = 40; setRange('plateLen', 90); setRange('plateWidth', 40); }
+    if(v === 'riss' || v === 'corr' || v === 'weld' || v === 'burn'){ S.plateLen = 90; S.plateWidth = 40; setRange('plateLen', 90); setRange('plateWidth', 40); }
     if(v === 'hole'){ S.plateLen = Math.max(20, Math.round(Math.PI*S.holeD)); S.plateWidth = 20; setRange('plateLen', S.plateLen); setRange('plateWidth', S.plateWidth); }
     if(v === 'tube'){ S.plateWidth = Math.round(Math.PI*S.tubeD); setRange('plateWidth', S.plateWidth); S.plateLen = 150; setRange('plateLen', S.plateLen); }
     if(d.coil){ S.tubeCoil = d.coil; document.querySelectorAll('#segTubeCoil button').forEach(b => b.classList.toggle('on', b.dataset.coil === d.coil)); }
@@ -4208,6 +4323,11 @@ window.FIT_CFG={sideW:280,maxCols:3,minCol:440,
       corr:{ tpl:'330px 330px minmax(0,1.15fr) minmax(0,1fr)', cols:[
         [/^Prüfaufgabe/,/^Werkstück/,/^Sonde und Frequenz/],
         [/^Korrosion zwischen/,/^Prüfgerät und Scan/,/^Alarmschwelle/],
+        [/^Impedanzebene/],
+        [/^Schnittbild/,/^C-Bild/,/^Streifenschreiber/]]},
+      burn:{ tpl:'330px 340px minmax(0,1.15fr) minmax(0,1fr)', cols:[
+        [/^Prüfaufgabe/,/^Sonde und Frequenz/,/^Werkstück/,/^Alarmschwelle/],
+        [/^Schleifbrand/,/^Prüfgerät und Scan/],
         [/^Impedanzebene/],
         [/^Schnittbild/,/^C-Bild/,/^Streifenschreiber/]]},
       hole:{ tpl:'320px 380px minmax(0,1fr) minmax(0,0.8fr)', cols:[

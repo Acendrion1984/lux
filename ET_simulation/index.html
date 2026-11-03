@@ -4400,5 +4400,16 @@ window.FIT_CFG={sideW:280,maxCols:3,minCol:440,
 })();
 
 </script>
+<script>
+/* Direktstart einer Prüfaufgabe: #mode=riss … oder postMessage({zfpMode:'riss'}) (ET2 E-Learning / Simulator-Labor) */
+(function(){
+  var ALIAS={burn:'chd'};
+  function pick(m){ if(!m) return; var b=document.querySelector('#segMode button[data-mode="'+m+'"]')||document.querySelector('#segMode button[data-mode="'+(ALIAS[m]||'')+'"]'); if(b&&!b.classList.contains('on')) b.click(); }
+  function fromHash(){ var m=/(?:^#|&)mode=([a-z]+)/.exec(location.hash||''); if(m) pick(m[1]); }
+  window.addEventListener('message',function(e){ var m=e.data&&e.data.zfpMode; if(m) pick(m); });
+  window.addEventListener('hashchange',fromHash);
+  if(document.readyState==='complete') setTimeout(fromHash,0); else window.addEventListener('load',function(){ setTimeout(fromHash,0); });
+})();
+</script>
 </body>
 </html>

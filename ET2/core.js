@@ -76,8 +76,8 @@ function mountVid(el){const id=el.dataset.vid,V=VIDS[id];if(!V)return;el.classNa
  tb.onclick=()=>{tts=!tts;tb.textContent=tts?'🔊':'🔇';tb.classList.toggle('on',tts);if(!tts)stopS();else{spoken='';caption()}};
  bar.append(fill,knob);scenes.forEach(s=>{if(s.t>0)bar.append(h('u',{style:'left:'+(100*s.t/V.dur)+'%'}))});
  const chips=h('div',{cls:'chap'});scenes.forEach((s,i)=>{if(s.n)chips.append(h('button',{type:'button',onclick:()=>{t=s.t+.01;upd();if(!playing)toggle()}},(i+1)+' · '+s.n))});
- el.append(h('div',{cls:'vc'},pb,bar,tm,...(SS?[tb]:[]),ccb,sp,fs));if(chips.children.length)el.append(chips);
- const caption=()=>{let c='';for(const[t0,tx]of caps)if(t>=t0)c=tx;if(cc.dataset.t!==c){cc.dataset.t=c;cc.innerHTML=c?'<span>'+c+'</span>':'';cc.classList.remove('in');void cc.offsetWidth;cc.classList.add('in')}cc.style.display=ccOn?'':'none';cc.style.visibility=c?'':'hidden';say(c)};
+ el.append(h('div',{cls:'vc'},pb,bar,tm,ccb,sp,fs));if(chips.children.length)el.append(chips);
+ const caption=()=>{let c='';for(const[t0,tx]of caps)if(t>=t0)c=tx;if(cc.dataset.t!==c){cc.dataset.t=c;cc.innerHTML=c?'<span>'+c+'</span>':'';cc.classList.remove('in');void cc.offsetWidth;cc.classList.add('in')}cc.style.display=ccOn?'':'none';cc.style.visibility=c?'':'hidden'};
  const upd=()=>{const p=100*t/V.dur;fill.style.width=p+'%';knob.style.left=p+'%';const s=Math.floor(t);tm.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0')+' / '+Math.floor(V.dur/60)+':'+String(Math.round(V.dur%60)).padStart(2,'0');caption();
   $$('button',chips).forEach((b,i)=>{const sc=scenes.filter(s=>s.n);const a=sc[i].t,e=sc[i+1]?sc[i+1].t:V.dur;b.classList.toggle('on',t>=a&&t<e)});O.redraw()};
  const toggle=()=>{if(t>=V.dur-.05)t=0;playing=!playing;if(!playing)stopS();else{spoken='';setTimeout(caption,0)}pb.textContent=playing?'❚❚':'▶';big.style.display=playing?'none':'';el.classList.toggle('playing',playing)};
@@ -136,7 +136,7 @@ function route(){const id=(location.hash.replace('#/','')||'home');const root=$(
  if(ch){document.title=ch.num+' '+ch.title+' – ET2';$('.top .t').textContent=ch.num+' · '+ch.title;wrap.style.setProperty('--ac',chColor(ch.id));wrap.append(h('div',{cls:'hero'},h('div',{cls:'big'},ch.num),h('span',{cls:'chip'},'Vortrag '+ch.num),h('span',{cls:'chip'},'≈ '+ch.min+' Min.'),h('h2',{},ch.title),h('p',{},ch.sub)));
   const body=h('div',{html:ch.html});const toc=h('div',{cls:'toc'});wrap.append(toc,body);$$('h2',body).forEach((x,i)=>{x.id='s'+i;toc.append(h('a',{href:'javascript:void 0',onclick:()=>x.scrollIntoView({behavior:'smooth'})},x.textContent.replace(/^Vertiefung: /,'')))});if(!toc.children.length)toc.remove();
   $$('table',body).forEach(t=>{if(!t.closest('.tw')){const w=h('div',{cls:'tw'});t.replaceWith(w);w.append(t)}});
-  if(typeof mountFig==='function')$$('[data-fig]',body).forEach(mountFig);$$('[data-sim]',body).forEach(mountSim);$$('[data-vid]',body).forEach(mountVid);$$('[data-fc]',body).forEach(mountFC);$$('[data-lab]',body).forEach(mountLab);
+  if(typeof mountFig==='function')$$('[data-fig]',body).forEach(mountFig);$$('[data-sim]',body).forEach(mountSim);if(typeof mountMp4==='function')$$('[data-mp4]',body).forEach(mountMp4);$$('[data-vid]',body).forEach(mountVid);$$('[data-fc]',body).forEach(mountFC);$$('[data-lab]',body).forEach(mountLab);
   if(ch.quiz){const q=h('div');wrap.append(q);mountQuiz(q,ch.quiz,ch.id,'Wissens-Check · '+ch.num+' '+ch.title)}
   const i=CHAPTERS.indexOf(ch),pv=CHAPTERS[i-1],nx=CHAPTERS[i+1];wrap.append(h('div',{cls:'pn'},pv?h('a',{href:'#/'+pv.id},h('small',{},'← zurück'),pv.num+' '+pv.title):h('a',{href:'#/home'},h('small',{},'← zurück'),'Startseite'),nx?h('a',{href:'#/'+nx.id},h('small',{},'weiter →'),nx.num+' '+nx.title):h('a',{href:'#/tools'},h('small',{},'weiter →'),'Rechner & Glossar')))}
  else if(PAGES[id]){document.title='ET2 E-Learning · Wirbelstromprüfung';$('.top .t').textContent='Wirbelstromprüfung ET 2';PAGES[id](wrap)}

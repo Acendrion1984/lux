@@ -70,22 +70,25 @@ function mountVid(el){const id=el.dataset.vid,V=VIDS[id];if(!V)return;el.classNa
  const O=cvs(stage,{ar:.5625,draw:(ctx,w,hh)=>{V.draw(ctx,t,w,hh);vignette(ctx,w,hh)}});O.c.style.background='#0b1724';CANVASES.delete(O);CANVASES.add(O);
  const vignette=(c,w,hh)=>{const g=c.createRadialGradient(w/2,hh/2,Math.min(w,hh)*.4,w/2,hh/2,Math.max(w,hh)*.75);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.35)');c.fillStyle=g;c.fillRect(0,0,w,hh)};
  const cc=h('div',{cls:'cc'}),big=h('button',{type:'button',cls:'bigplay','aria-label':'Abspielen'},h('span',{},'▶'));stage.append(cc,big);
- const pb=h('button',{type:'button',cls:'pp','aria-label':'Abspielen'},'▶'),bar=h('div',{cls:'tl'}),fill=h('i',{}),knob=h('b',{}),tm=h('span',{cls:'tm'},'0:00'),sp=h('button',{type:'button'},'1×'),ccb=h('button',{type:'button',cls:'on',title:'Untertitel'},'CC'),fs=h('button',{type:'button',title:'Vollbild','aria-label':'Vollbild'},'⛶');
+ const pb=h('button',{type:'button',cls:'pp','aria-label':'Abspielen'},'▶'),bar=h('div',{cls:'tl'}),fill=h('i',{}),knob=h('b',{}),tm=h('span',{cls:'tm'},'0:00'),sp=h('button',{type:'button'},'1×'),ccb=h('button',{type:'button',cls:'on',title:'Untertitel'},'CC'),fs=h('button',{type:'button',title:'Vollbild','aria-label':'Vollbild'},'⛶');const SS=window.speechSynthesis;let tts=false,spoken='';const tb=h('button',{type:'button',title:'Sprechtext vorlesen','aria-label':'Ton'},'🔇');
+ const vo=()=>{const v=SS?SS.getVoices():[];return v.find(x=>/^de/i.test(x.lang)&&/natural|online|google|premium|enhanced/i.test(x.name))||v.find(x=>/^de/i.test(x.lang))};
+ const stopS=()=>{if(SS)SS.cancel();spoken=''};const say=txt=>{if(!tts||!SS||!playing||!txt||txt===spoken)return;spoken=txt;SS.cancel();const u=new SpeechSynthesisUtterance(txt.replace(/_\{?([^}\s]+)\}?/g,'$1'));const x=vo();if(x)u.voice=x;u.lang='de-DE';u.rate=Math.min(1.25,Math.max(.9,speed));SS.speak(u)};
+ tb.onclick=()=>{tts=!tts;tb.textContent=tts?'🔊':'🔇';tb.classList.toggle('on',tts);if(!tts)stopS();else{spoken='';caption()}};
  bar.append(fill,knob);scenes.forEach(s=>{if(s.t>0)bar.append(h('u',{style:'left:'+(100*s.t/V.dur)+'%'}))});
  const chips=h('div',{cls:'chap'});scenes.forEach((s,i)=>{if(s.n)chips.append(h('button',{type:'button',onclick:()=>{t=s.t+.01;upd();if(!playing)toggle()}},(i+1)+' · '+s.n))});
- el.append(h('div',{cls:'vc'},pb,bar,tm,ccb,sp,fs));if(chips.children.length)el.append(chips);
- const caption=()=>{let c='';for(const[t0,tx]of caps)if(t>=t0)c=tx;if(cc.dataset.t!==c){cc.dataset.t=c;cc.innerHTML=c?'<span>'+c+'</span>':'';cc.classList.remove('in');void cc.offsetWidth;cc.classList.add('in')}cc.style.display=ccOn?'':'none';cc.style.visibility=c?'':'hidden'};
+ el.append(h('div',{cls:'vc'},pb,bar,tm,...(SS?[tb]:[]),ccb,sp,fs));if(chips.children.length)el.append(chips);
+ const caption=()=>{let c='';for(const[t0,tx]of caps)if(t>=t0)c=tx;if(cc.dataset.t!==c){cc.dataset.t=c;cc.innerHTML=c?'<span>'+c+'</span>':'';cc.classList.remove('in');void cc.offsetWidth;cc.classList.add('in')}cc.style.display=ccOn?'':'none';cc.style.visibility=c?'':'hidden';say(c)};
  const upd=()=>{const p=100*t/V.dur;fill.style.width=p+'%';knob.style.left=p+'%';const s=Math.floor(t);tm.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0')+' / '+Math.floor(V.dur/60)+':'+String(Math.round(V.dur%60)).padStart(2,'0');caption();
   $$('button',chips).forEach((b,i)=>{const sc=scenes.filter(s=>s.n);const a=sc[i].t,e=sc[i+1]?sc[i+1].t:V.dur;b.classList.toggle('on',t>=a&&t<e)});O.redraw()};
- const toggle=()=>{if(t>=V.dur-.05)t=0;playing=!playing;pb.textContent=playing?'❚❚':'▶';big.style.display=playing?'none':'';el.classList.toggle('playing',playing)};
+ const toggle=()=>{if(t>=V.dur-.05)t=0;playing=!playing;if(!playing)stopS();else{spoken='';setTimeout(caption,0)}pb.textContent=playing?'❚❚':'▶';big.style.display=playing?'none':'';el.classList.toggle('playing',playing)};
  pb.onclick=toggle;big.onclick=toggle;O.c.addEventListener('click',toggle);
- const seek=e=>{const r=bar.getBoundingClientRect();t=clamp((e.clientX-r.left)/r.width,0,1)*V.dur;upd()};let sk=false;
+ const seek=e=>{const r=bar.getBoundingClientRect();t=clamp((e.clientX-r.left)/r.width,0,1)*V.dur;stopS();upd()};let sk=false;
  bar.addEventListener('pointerdown',e=>{sk=true;try{bar.setPointerCapture(e.pointerId)}catch(_){}seek(e)});bar.addEventListener('pointermove',e=>{if(sk)seek(e)});bar.addEventListener('pointerup',()=>sk=false);bar.addEventListener('pointercancel',()=>sk=false);
  sp.onclick=()=>{speed=speed===1?1.5:speed===1.5?.5:1;sp.textContent=String(speed).replace('.',',')+'×'};ccb.onclick=()=>{ccOn=!ccOn;ccb.classList.toggle('on',ccOn);caption()};
  fs.onclick=()=>{const f=el.requestFullscreen||el.webkitRequestFullscreen;if(document.fullscreenElement||document.webkitFullscreenElement){(document.exitFullscreen||document.webkitExitFullscreen).call(document)}else if(f){f.call(el)}else el.classList.toggle('pseudo-fs')};
  el.tabIndex=0;el.addEventListener('keydown',e=>{if(e.key===' '||e.key==='k'){e.preventDefault();toggle()}else if(e.key==='ArrowRight'){t=Math.min(V.dur,t+5);upd()}else if(e.key==='ArrowLeft'){t=Math.max(0,t-5);upd()}});
- let vis=true;new IntersectionObserver(e=>{vis=e[0].isIntersecting;if(!vis&&playing)toggle()}).observe(el);
- (function f(ts){if(!el.isConnected)return;if(playing&&vis){t+=Math.min(.05,(ts-last)/1000||0)*speed;if(t>=V.dur){t=V.dur;playing=false;pb.textContent='↻';big.style.display='';el.classList.remove('playing')}upd()}last=ts;requestAnimationFrame(f)})(0);
+ let vis=true;new IntersectionObserver(e=>{vis=e[0].isIntersecting;if(!vis&&playing)toggle();if(!vis)stopS()}).observe(el);
+ (function f(ts){if(!el.isConnected){stopS();return}if(playing&&vis){t+=Math.min(.05,(ts-last)/1000||0)*speed;if(t>=V.dur){t=V.dur;playing=false;setTimeout(()=>{if(!playing&&SS&&!SS.speaking)spoken=''},0);pb.textContent='↻';big.style.display='';el.classList.remove('playing')}upd()}last=ts;requestAnimationFrame(f)})(0);
  setTimeout(upd,50);}
 /* ===== Quiz ===== */
 function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}

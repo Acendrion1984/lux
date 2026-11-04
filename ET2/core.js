@@ -124,7 +124,7 @@ const CHC=['#0d9488','#1769a6','#6d44e0','#e8590c','#b5651d','#d6336c','#2b8a3e'
 function updNav(){const n=CHAPTERS.length;let done=0;$$('nav.side a[data-id]').forEach(a=>{const s=Store.d.quiz[a.dataset.id];const st=$('.st',a);if(st)st.textContent=s!=null?(s>=60?'✔ ':'')+s+'%':'';if(s>=60&&CHAPTERS.find(c=>c.id===a.dataset.id))done++});
  const pr=$('#pbar');if(pr){pr.style.width=(100*done/n)+'%';$('#ptxt').textContent=done+' von '+n+' Kapiteln bestanden'}}
 function buildNav(){const nv=$('nav.side');nv.innerHTML='';
- nv.append(h('a',{cls:'portal',href:'../index.html'},h('span',{},'←'),h('span',{},'ZfP Simulator')));
+ nv.append(h('a',{cls:'portal',href:'../ET_simulation/index.html'},h('span',{},'🔬'),h('span',{},'ET-Simulator')));
  nv.append(h('div',{cls:'brand'},h('div',{cls:'logo'},'ET2'),h('div',{},h('h1',{},'Wirbelstromprüfung'),h('small',{},'E-Learning · Stufe 2 · nach DGZfP ET 2'))));
  nv.append(h('div',{cls:'ring'},h('div',{cls:'bar'},h('i',{id:'pbar'})),h('span',{id:'ptxt'})));
  const A=(id,num,t,href)=>{const a=h('a',{href:href||'#/'+id,'data-id':id},h('b',{},num),h('span',{},t),h('span',{cls:'st'}));return a};

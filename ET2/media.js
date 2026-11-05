@@ -21,5 +21,5 @@ TONVIDS.forEach(m=>{const ch=CHAPTERS.find(c=>c.id===m.ch);if(!ch||!VIDS[m.id])r
  else if(m.before&&ch.html.includes(m.before))ch.html=ch.html.replace(m.before,tag+'\n'+m.before);
  else ch.html+='\n'+tag});
 /* Vertonte Originale ersetzen die gleichnamigen (vorgelesenen) Animationsvideos */
-const TONREPLACE={lift:'ton_abheb',hyst:'ton_hyst',tiefe:'ton_tiefe'};
+const TONREPLACE={lift:'ton_abheb',hyst:'ton_hyst',tiefe:'ton_tiefe',induktion:'ton_ind',skin:'ton_skin',pruefkette:'ton_norm',strecke:'ton_strecke',rotier:'ton_rotier'};
 CHAPTERS.forEach(ch=>{Object.entries(TONREPLACE).forEach(([o,n])=>{if(!VIDS[n])return;const old='<div data-vid="'+o+'"></div>',neu='<div data-vid="'+n+'"></div>';if(!ch.html.includes(old))return;ch.html=ch.html.includes(neu)?ch.html.replace(old,''):ch.html.replace(old,neu)})});

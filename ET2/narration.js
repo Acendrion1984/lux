@@ -10,7 +10,7 @@ const NARR={"induktion":{"dur":104.76,"map":[[0,0],[5,5],[14.567,9],[23.036,12.5
 Object.entries(NARR).forEach(([id,N])=>{const V=VIDS[id];if(!V||V._narr)return;const M=N.map;
  const warp=t=>{for(let i=1;i<M.length;i++)if(t<=M[i][0]||i===M.length-1){const[a,oa]=M[i-1],[b,ob]=M[i];return b>a?oa+(ob-oa)*Math.min(1,Math.max(0,(t-a)/(b-a))):ob}return t};
  const fwd=o=>{for(let i=1;i<M.length;i++)if(o<=M[i][1]||i===M.length-1){const[a,oa]=M[i-1],[b,ob]=M[i];return ob>oa?a+(b-a)*Math.min(1,Math.max(0,(o-oa)/(ob-oa))):a}return o};
- const d0=V.draw;V.draw=(c,t,w,hh)=>d0(c,warp(t),w,hh);
+ const d0=V.draw;V._raw=d0;V.draw=(c,t,w,hh)=>d0(c,warp(t),w,hh);
  if(V.scenes)V.scenes=V.scenes.map(s=>Object.assign({},s,{t:Math.round(fwd(s.t)*100)/100}));
  V.caps=V.caps.map((c,i)=>[N.caps[i]!=null?N.caps[i]:fwd(c[0])].concat(c.slice(1)));
  V.dur=N.dur;V.audio='media/narr/'+id+'.m4a';V._narr=true});

@@ -6,6 +6,7 @@
    ===================================================================== */
 const TONVIDS=[
  {id:'ton_riss',ch:'v1',after:'<div data-vid="wirbel"></div>'},
+ {id:'ton_weg',ch:'v1',after:'<div data-vid="ton_riss"></div>'},
  {id:'ton_phase',ch:'v2',before:'<div data-sim="phase"></div>'},
  {id:'ton_sonde',ch:'v2',after:'<div data-sim="spulen"></div>'},
  {id:'ton_lift',ch:'v6',before:'<div data-sim="scan"></div>'},

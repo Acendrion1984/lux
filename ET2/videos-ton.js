@@ -417,3 +417,57 @@ vid('ton_mehrf',{title:'Mehrfrequenz – Gefüge und Verwechslung',dur:49.05,aud
     tvCard(cc,100,180,360,180,'Werkstoffverwechslung',['falsche Legierung im Los','wird aussortiert'],'#59b6ff',sstep(44.6,45.3,t),{ts:18});tvCheck(cc,420,320,true,sstep(45,45.6,t),34);
     tvCard(cc,500,180,360,180,'Unzureichende Wärmebehandlung',['zu weich, Härte fehlt','wird aussortiert'],'#ff8d50',sstep(46.4,47.1,t),{ts:18});tvCheck(cc,820,320,true,sstep(46.8,47.4,t),34)}]
   ])})});
+/* ------------------------------------------------------------------ */
+/* Parallele Stromlinien (Strombelag) mit Riss: quer → Umweg um die Spitzen, längs → kaum Störung */
+function tvSheet(c,R,o){c.save();G.metal(c,R.x,R.y,R.w,R.h,'alu',{r:12});G.rr(c,R.x,R.y,R.w,R.h,12);c.clip();const n=9,xc=R.x+R.w/2,yc=R.y+R.h/2,L=o.len||R.h*.5;
+ if(o.cr==='quer'){c.strokeStyle='#05080b';c.lineWidth=4;c.beginPath();c.moveTo(xc,yc-L/2);c.lineTo(xc,yc+L/2);c.stroke()}
+ if(o.cr==='laengs'){c.strokeStyle='#05080b';c.lineWidth=4;c.beginPath();c.moveTo(xc-L/2,yc+3);c.lineTo(xc+L/2,yc+3);c.stroke()}
+ for(let i=0;i<n;i++){const y0=R.y+R.h*(i+.5)/n;const pts=[];for(let k=0;k<=120;k++){const x=R.x+R.w*k/120;let y=y0;
+   if(o.cr==='quer'&&Math.abs(y0-yc)<L/2+6){const up=y0<yc;const tgt=up?yc-L/2-6-(yc-L/2-y0>0?0:(yc-y0)*.25):yc+L/2+6+(y0-yc)*.25;const w=R.w*.16;y=y0+(tgt-y0)*Math.exp(-Math.pow((x-xc)/w,2))}
+   if(o.cr==='laengs'&&Math.abs(y0-yc)<8){const w=R.w*.2;y=y0+(y0<yc+3?-6:6)*Math.exp(-Math.pow((x-xc)/w,2))}pts.push([x,y])}
+  c.strokeStyle='rgba(255,141,80,.55)';c.lineWidth=2.4;c.shadowColor='#ff7a2a';c.shadowBlur=6;G.path(c,pts);c.stroke();c.setLineDash([6,14]);c.lineDashOffset=-o.t*50;c.strokeStyle='rgba(255,226,184,.85)';c.lineWidth=2;G.path(c,pts);c.stroke();c.setLineDash([]);c.shadowBlur=0}
+ if(o.cr==='quer'&&o.hot)[yc-L/2,yc+L/2].forEach(yy=>{const g=c.createRadialGradient(xc,yy,1,xc,yy,30);g.addColorStop(0,'rgba(255,210,122,.8)');g.addColorStop(1,'rgba(255,200,120,0)');c.fillStyle=g;c.fillRect(xc-34,yy-34,68,68)});
+ c.restore();if(!o.nolbl){G.arrow(c,R.x+12,R.y+R.h+18,R.x+80,R.y+R.h+18,'#ff9d5c',{lw:2.4,head:8});G.text(c,'Stromrichtung',R.x+90,R.y+R.h+23,{size:12,col:'#ffcf8a'})}}
+vid('ton_weg',{title:'Der Weg der Wirbelströme am Riss',dur:59.9,audio:'media/ton/ton_weg.m4a',
+ scenes:[{t:0,n:'Einstieg'},{t:2.9,n:'Ohne Fehler'},{t:15.3,n:'Mit Riss'},{t:30.4,n:'Gegenfeld & Messpunkt'},{t:39,n:'Orientierung'},{t:48,n:'Zusammenfassung'}],
+ caps:[[0,'Schauen wir uns den Weg der Wirbelströme genau an.'],[3,'Ohne Fehler fließen die Wirbelströme im Werkstoff in geschlossenen, nahezu kreisförmigen Bahnen unter der Spule.'],[9.85,'Sie erzeugen ein Gegenfeld, das der Spule entgegenwirkt und ihre Impedanz beeinflusst.'],[15.35,'Liegt ein Riss im Stromweg, können die Wirbelströme den Riss nicht ohne Weiteres durchqueren.'],[20.8,'Sie müssen ausweichen.'],[22.3,'Sie fließen um die Rissspitzen herum – oder tiefer in das Material.'],[25.8,'Dadurch wird der Strompfad länger und der wirksame Querschnitt kleiner.'],[30.5,'Das Gegenfeld wird schwächer oder ändert seine Phasenlage.'],[33.9,'Genau diese Änderung spürt die Spule als Verschiebung des Messpunkts in der Impedanzebene.'],[39.05,'Je nach Rissorientierung, Tiefe und Frequenz ist die Störung unterschiedlich stark.'],[44.15,'Quer zur Hauptstromrichtung liegende Risse stören besonders wirksam.'],[48.1,'Zusammengefasst: Der Riss zwingt die Wirbelströme auf einen Umweg.'],[51.7,'Der Umweg ändert das Gegenfeld.'],[54.2,'Das geänderte Gegenfeld ändert die Spulenimpedanz – und genau das wird als Fehlersignal angezeigt.']],
+ draw:vstage((c,t)=>{studio(c,t,'#11283f');const thC=78*D2R;
+  /* Querschnitt: Stromlinien tauchen unter dem Riss hindurch */
+  const section=(cc,R,dep,tt)=>{vcard(cc,R.x-14,R.y-40,R.w+28,R.h+54,{bg:'rgba(6,16,26,.92)'});G.text(cc,'Schnitt durch den Riss',R.x,R.y-16,{size:13,weight:700,col:'#9fb3c8'});cc.save();G.metal(cc,R.x,R.y,R.w,R.h,'alu',{r:6});G.rr(cc,R.x,R.y,R.w,R.h,6);cc.clip();const xc=R.x+R.w/2,cd=R.h*.45*dep;
+   cc.fillStyle='#05080b';cc.beginPath();cc.moveTo(xc-4,R.y);cc.lineTo(xc+4,R.y);cc.lineTo(xc+1,R.y+cd);cc.lineTo(xc-1,R.y+cd);cc.closePath();cc.fill();
+   for(let i=0;i<5;i++){const y0=R.y+10+i*14;const pts=[];for(let k=0;k<=100;k++){const x=R.x+R.w*k/100;const push=Math.max(0,cd+8+i*5-(y0-R.y));pts.push([x,y0+push*Math.exp(-Math.pow((x-xc)/(R.w*.14),2))])}
+    const a=1-i*.17;cc.strokeStyle=G.rgba('#ff8d50',.25+.5*a);cc.lineWidth=1.4+2*a;G.path(cc,pts);cc.stroke();cc.setLineDash([5,12]);cc.lineDashOffset=-tt*40;cc.strokeStyle=G.rgba('#ffe2b8',.75*a);cc.lineWidth=1.8;G.path(cc,pts);cc.stroke();cc.setLineDash([])}cc.restore()};
+  vscenes(c,t,[
+   [0,3.1,(lt,p,cc=c)=>vtitle(cc,lt,{kicker:'Erklärvideo · Wirbelstromweg',title:'Der Weg der Wirbelströme am Riss',sub:'Umweg, Gegenfeld, Impedanz',hue:'#11283f'})],
+   [2.9,15.5,(lt,p,cc=c)=>{studio(cc,t,'#11283f');vchip(cc,t<9.85?'Ohne Fehler: geschlossene Bahnen':'Das Gegenfeld','#ff8d50');tvTop(cc,t,{x:40,y:80,w:500,h:420,px:290,py:290,cr:null,I:1});G.label(cc,'Draufsicht',52,102,{size:12,col:'#c8d6e2',bg:'rgba(8,20,32,.75)'});
+    if(t>3.6){cc.save();cc.globalAlpha*=sstep(3.6,4.3,t);G.label(cc,'geschlossene, fast kreisförmige Bahnen',290,470,{align:'center',size:14,col:'#ffcf8a',bg:'rgba(8,20,32,.9)'});cc.restore()}
+    const a=sstep(9.9,10.7,t);if(a>0){cc.save();cc.globalAlpha*=a;vcard(cc,570,80,360,190,{bg:'rgba(10,24,38,.94)',accent:'#ff8d50'});G.coil(cc,680,160,90,24,8,{I:Math.sin(t*3)*.8,phase:t,leads:false});const s=.6+.4*Math.abs(Math.sin(t*3));
+     G.arrow(cc,800,120,800,120+70*s,'#59b6ff',{lw:4,glow:8});G.text(cc,'Primärfeld',820,140,{size:13,weight:700,col:'#9fd2ff'});cc.setLineDash([6,4]);G.arrow(cc,860,200,860,200-60*s,'#ff8d50',{lw:4,glow:8});cc.setLineDash([]);G.text(cc,'Gegenfeld',800,230,{size:13,weight:700,col:'#ffb07a'});cc.restore();
+     const k=easeIO((t-11.2)/2.4);const tr=[];for(let s2=0;s2<=k;s2+=.02){const n=normImp(12,.62*s2);tr.push([n.R,n.X])}const n=normImp(12,.62*k);cc.save();cc.globalAlpha*=a;vScreen(cc,630,290,230,tr,[n.R,n.X],{label:'Impedanz der Spule'});cc.restore()}}],
+   [15.3,30.6,(lt,p,cc=c)=>{studio(cc,t,'#132a40');vchip(cc,t<20.8?'Ein Riss im Stromweg':t<25.8?'Ausweichen':'Längerer Weg, kleinerer Querschnitt','#ff5d6c');const cr={x:300,y0:215,y1:365};const px=lerp(150,262,easeIO((t-15.6)/2.6));
+    tvTop(cc,t,{x:40,y:80,w:500,h:420,px,py:290,cr,hot:sstep(20.8,22,t),I:1});G.label(cc,'Riss',cr.x+14,cr.y1+22,{size:13,col:'#ff8a96',bg:'rgba(8,20,32,.85)'});
+    if(t>22.3){cc.save();cc.globalAlpha*=sstep(22.3,23,t);G.label(cc,'um die Rissspitzen',cr.x+70,cr.y0-26,{align:'center',size:13,col:'#ffcf8a',bg:'rgba(8,20,32,.9)'});cc.restore()}
+    const a=sstep(23.4,24.2,t);if(a>0){cc.save();cc.globalAlpha*=a;section(cc,{x:580,y:120,w:350,h:150},.9,t);G.label(cc,'… oder darunter hindurch',755,300,{align:'center',size:13,col:'#ffcf8a',bg:'rgba(8,20,32,.9)'});cc.restore()}
+    tvCard(cc,570,330,360,70,'Strompfad länger',[],'#ffc04a',sstep(26,26.7,t),{ts:16});tvCard(cc,570,412,360,70,'wirksamer Querschnitt kleiner',[],'#ffc04a',sstep(27.6,28.3,t),{ts:16})}],
+   [30.4,39.2,(lt,p,cc=c)=>{studio(cc,t,'#10283f');vchip(cc,'Gegenfeld ändert sich → Messpunkt wandert','#3dff95');
+    vcard(cc,40,90,400,400,{bg:'rgba(10,24,38,.94)',accent:'#ff8d50'});G.text(cc,'Gegenfeld als Zeiger',64,124,{size:16,weight:800,col:'#ffb07a'});const ox=200,oy=330,k=easeIO((t-30.8)/2.2);
+    cc.save();cc.globalAlpha*=.45;G.arrow(cc,ox,oy,ox+Math.cos(60*D2R)*170,oy-Math.sin(60*D2R)*170,'#ff8d50',{lw:3});cc.restore();G.text(cc,'ohne Riss',ox+Math.cos(60*D2R)*170+8,oy-Math.sin(60*D2R)*170,{size:12,col:'#ffb07a'});
+    const a2=lerp(60,42,k)*D2R,r2=lerp(170,118,k);G.arrow(cc,ox,oy,ox+Math.cos(a2)*r2,oy-Math.sin(a2)*r2,'#ff5d6c',{lw:4,glow:10});if(k>.5)G.text(cc,'mit Riss: schwächer, gedreht',ox+Math.cos(a2)*r2+10,oy-Math.sin(a2)*r2+18,{size:12,col:'#ff8a96'});
+    const pl=tvPlane(cc,480,90,450,400,{ox:.3,oy:.76,sc:.62});const u=clamp((t-34)/2.4,0,1);const tr=[];for(let s=0;s<=u;s+=.01)tr.push(crackV(s*.5,thC,1));G.persist(cc,tr.map(pl.P),PH.r,2.6);G.spot(cc,...pl.P(crackV(u*.5,thC)),PH.r,6);G.stext(cc,'Arbeitspunkt',pl.ox+8,pl.oy+16,{size:11});
+    if(u>.8)G.stext(cc,'Verschiebung = Fehlersignal',pl.P(pol(thC,1))[0]+12,pl.P(pol(thC,1))[1]+20,{col:PH.r,size:12});pl.end()}],
+   [39,48.3,(lt,p,cc=c)=>{studio(cc,t,'#13243f');vchip(cc,'Wovon die Störung abhängt','#c39bff');
+    const A={x:60,y:100,w:380,h:220},B={x:520,y:100,w:380,h:220};tvSheet(cc,A,{cr:'laengs',t});tvSheet(cc,B,{cr:'quer',t,hot:t>44.2});
+    G.label(cc,'Riss längs zum Strom',A.x+A.w/2,A.y-14,{align:'center',size:14,col:'#9fb3c8',bg:'rgba(8,20,32,.9)'});G.label(cc,'Riss quer zum Strom',B.x+B.w/2,B.y-14,{align:'center',size:14,col:t>44.2?'#ff8a96':'#9fb3c8',bg:'rgba(8,20,32,.9)'});
+    const m1=.15,m2=t>44.2?.9:.6;G.meterBar(cc,A.x,A.y+A.h+46,A.w,16,m1,'#9fb3c8');G.text(cc,'kaum Störung',A.x,A.y+A.h+82,{size:14,weight:700,col:'#9fb3c8'});G.meterBar(cc,B.x,B.y+B.h+46,B.w,16,m2,'#ff5d6c');G.text(cc,t>44.2?'besonders starke Störung':'Störung',B.x,B.y+B.h+82,{size:14,weight:700,col:'#ff8a96'});
+    [['Orientierung',39.6],['Tiefe',40.5],['Frequenz',41.4]].forEach(([l,t0],i)=>{const a=sstep(t0,t0+.5,t);if(a<=0)return;cc.save();cc.globalAlpha*=a;G.label(cc,l,VW/2-150+i*150,470,{align:'center',size:15,col:'#c39bff',bg:'rgba(12,28,44,.95)'});cc.restore()})}],
+   [48,60,(lt,p,cc=c)=>{studio(cc,t,'#0f2a40');vchip(cc,'Zusammenfassung');G.text(cc,'Vom Riss zum Fehlersignal',VW/2,96,{align:'center',size:28,weight:800,col:'#fff'});
+    const T0=[48.2,51.7,54.25,56.9],cols=['#ff5d6c','#ff8d50','#3dff95','#5eead4'],ttl=['Umweg','Gegenfeld','Impedanz','Fehlersignal'],sub=[['Riss zwingt die','Ströme herum'],['wird schwächer','oder gedreht'],['Spulenimpedanz','ändert sich'],['wird','angezeigt']];
+    T0.forEach((t0,i)=>{const a=easeOut((t-t0)/.7);if(a<=0)return;const x=40+i*228,y=140,w=200,h=300;cc.save();cc.globalAlpha*=a;cc.translate(0,(1-a)*20);const act=t>=t0&&(i===3||t<T0[i+1]);
+     vcard(cc,x,y,w,h,{bg:act?'rgba(16,36,56,.96)':'rgba(10,24,38,.9)',line:act?G.rgba(cols[i],.8):'rgba(255,255,255,.1)'});G.badge(cc,'0'+(i+1),x+16,y+22,cols[i],{size:12});const ix=x+w/2,iy=y+110;
+     if(i===0)tvSheet(cc,{x:ix-80,y:iy-60,w:160,h:110},{cr:'quer',t,len:60,hot:true,nolbl:true});
+     if(i===1){cc.save();cc.globalAlpha*=.4;G.arrow(cc,ix-40,iy+40,ix-40+Math.cos(1.05)*90,iy+40-Math.sin(1.05)*90,'#ff8d50',{lw:3});cc.restore();G.arrow(cc,ix-40,iy+40,ix-40+Math.cos(.73)*64,iy+40-Math.sin(.73)*64,'#ff5d6c',{lw:4,glow:8})}
+     if(i===2){const S=G.screen(cc,ix-62,iy-58,124,116,{bezel:4});const o=[S.x+30,S.y+S.h-26];const u=(t*.4)%1;const tr=[];for(let s=0;s<=u;s+=.02){const v=crackV(s,thC,1);tr.push([o[0]+v[0]*70,o[1]-v[1]*70])}G.persist(cc,tr,PH.r,2);if(tr.length)G.spot(cc,...tr[tr.length-1],PH.r,3);G.glass(cc,S)}
+     if(i===3){G.led(cc,ix,iy-10,Math.sin(t*6)>0,'#ff3b4a',18);G.label(cc,'Anzeige!',ix,iy+40,{align:'center',size:14,col:'#ff8a96',bg:'rgba(8,20,32,.85)'})}
+     G.text(cc,ttl[i],x+w/2,y+212,{align:'center',size:18,weight:800,col:cols[i]});sub[i].forEach((s,k)=>G.text(cc,s,x+w/2,y+240+k*21,{align:'center',size:14,weight:600,col:'#dbe7f3'}));cc.restore();
+     if(i<3&&t>T0[i+1]-.2)G.arrow(cc,x+w+4,y+h/2,x+w+24,y+h/2,'#5eead4',{lw:2.5,head:9})})}]
+  ])})});

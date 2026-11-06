@@ -129,7 +129,7 @@ Theme.apply();matchMedia('(prefers-color-scheme: dark)').addEventListener('chang
 addEventListener('storage',e=>{if(e.key==='zfp-theme')Theme.apply()});
 /* ===== Navigation / Router ===== */
 const CHC=['#0d9488','#2563eb','#7c3aed','#ea580c','#b45309','#db2777','#16a34a','#0891b2','#6d28d9','#e11d48','#ca8a04','#0284c7','#9333ea','#4f46e5'];function chColor(id){const i=CHAPTERS.findIndex(c=>c.id===id);return CHC[(i<0?0:i)%CHC.length]}
-const LOGO='<span class="lg">ET<sup>2</sup></span>';
+const LOGO='<span class="lg">ET</span>';
 const RING=(r,sw)=>{const C=2*Math.PI*r;return '<svg viewBox="0 0 '+(2*r+sw)+' '+(2*r+sw)+'" aria-hidden="true"><circle cx="'+(r+sw/2)+'" cy="'+(r+sw/2)+'" r="'+r+'" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="'+sw+'"/><circle class="rv" cx="'+(r+sw/2)+'" cy="'+(r+sw/2)+'" r="'+r+'" fill="none" stroke="url(#rg)" stroke-width="'+sw+'" stroke-linecap="round" stroke-dasharray="'+C.toFixed(1)+'" stroke-dashoffset="'+C.toFixed(1)+'" transform="rotate(-90 '+(r+sw/2)+' '+(r+sw/2)+')"/><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#60a5fa"/></linearGradient></defs></svg>'};
 function updNav(){const n=CHAPTERS.length;let done=0,sum=0;$$('nav.side a[data-id]').forEach(a=>{const s=Store.d.quiz[a.dataset.id];const st=$('.st',a);const isCh=CHAPTERS.find(c=>c.id===a.dataset.id);if(st){st.className='st'+(s>=60?' ok':s!=null?' part':'');st.textContent=s>=60?'✓':s!=null?s+'%':''}if(isCh){if(s>=60)done++;sum+=Math.min(100,s||0)}});
  const pct=Math.round(sum/n),rv=$('nav.side .ring .rv');if(rv){const C=+rv.getAttribute('stroke-dasharray');rv.style.strokeDashoffset=C*(1-pct/100)}const pp=$('#ppct');if(pp)pp.textContent=pct+' %';const pt=$('#ptxt');if(pt)pt.textContent=done+' von '+n+' Kapiteln bestanden'}
@@ -149,7 +149,7 @@ const SCROLL_OBS=[];
 function route(){const id=(location.hash.replace('#/','')||'home');const root=$('#view');root.innerHTML='';window.scrollTo(0,0);$$('nav.side a').forEach(a=>a.classList.toggle('on',a.dataset.id===id));
  SCROLL_OBS.splice(0).forEach(o=>o.disconnect());
  $('nav.side').classList.remove('open');$('.scrim').classList.remove('on');const ch=CHAPTERS.find(c=>c.id===id);const wrap=h('div',{cls:'wrap'});root.append(wrap);
- if(ch){document.title=ch.num+' '+ch.title+' – ET2';$('.top .t').textContent=ch.num+' · '+ch.title;const col=chColor(ch.id);wrap.style.setProperty('--ac',col);document.documentElement.style.setProperty('--chc',col);
+ if(ch){document.title=ch.num+' '+ch.title+' – Wirbelstromprüfung';$('.top .t').textContent=ch.num+' · '+ch.title;const col=chColor(ch.id);wrap.style.setProperty('--ac',col);document.documentElement.style.setProperty('--chc',col);
   const cnt=re=>(ch.html.match(re)||[]).length,ns=cnt(/data-sim=/g)+cnt(/data-lab=/g),nv=cnt(/data-vid=/g),nf=cnt(/data-fig=/g),qs=Store.d.quiz[ch.id];
   const chip=(ic,t,cls)=>h('span',{cls:'mchip'+(cls?' '+cls:'')},h('i',{},ic),t);
   wrap.append(h('div',{cls:'hero ch'},h('div',{cls:'hdeco',html:HDECO}),h('div',{cls:'crumb'},h('a',{href:'#/home'},'Start'),h('span',{},'›'),'Vortrag '+ch.num,h('span',{},'›'),'≈ '+ch.min+' Min.'),
@@ -164,7 +164,7 @@ function route(){const id=(location.hash.replace('#/','')||'home');const root=$(
   if(ch.quiz){const q=h('div');wrap.append(q);mountQuiz(q,ch.quiz,ch.id,'Wissens-Check · '+ch.num+' '+ch.title)}
   const i=CHAPTERS.indexOf(ch),pv=CHAPTERS[i-1],nx=CHAPTERS[i+1];const pn=(href,dir,num,t,c)=>h('a',{href,style:'--c:'+c},h('small',{},dir),h('span',{cls:'pnr'},num?h('b',{},num):null,h('span',{},t)));
   wrap.append(h('div',{cls:'pn'},pv?pn('#/'+pv.id,'← zurück',pv.num,pv.title,chColor(pv.id)):pn('#/home','← zurück','⌂','Startseite','#2dd4bf'),nx?pn('#/'+nx.id,'weiter →',nx.num,nx.title,chColor(nx.id)):pn('#/tools','weiter →','🧮','Rechner & Glossar','#a78bfa')))}
- else if(PAGES[id]){document.title='ET2 E-Learning · Wirbelstromprüfung';$('.top .t').textContent='Wirbelstromprüfung ET 2';document.documentElement.style.setProperty('--chc','#0d9488');PAGES[id](wrap)}
+ else if(PAGES[id]){document.title='Wirbelstromprüfung · E-Learning';$('.top .t').textContent='Wirbelstromprüfung';document.documentElement.style.setProperty('--chc','#0d9488');PAGES[id](wrap)}
  else location.hash='#/home'}
 window.addEventListener('DOMContentLoaded',()=>{buildNav();route();window.addEventListener('hashchange',route);
  $('.top .menu').onclick=()=>{$('nav.side').classList.add('open');$('.scrim').classList.add('on')};$('.top .theme').onclick=()=>Theme.toggle();$('.scrim').onclick=()=>{$('nav.side').classList.remove('open');$('.scrim').classList.remove('on')};

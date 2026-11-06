@@ -2,19 +2,225 @@
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<title>ET 2 · Wirbelstromprüfung</title>
+<title>ZfP Simulator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Wirbelstromprüfung Stufe 2: E-Learning mit Simulationen, Erklärvideos und ET-Simulator">
-<meta name="theme-color" content="#0a1628">
-<meta http-equiv="refresh" content="0; url=ET2/index.html">
+<meta name="description" content="ZfP Simulator – Prüfverfahren, Simulatoren, Qualifikation">
+<meta name="theme-color" content="#f4f5f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#12151b" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-html,body{margin:0;height:100%;background:#0a1628;color:#cbd5e1;font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-body{display:grid;place-items:center;text-align:center}
-a{color:#5eead4}
+:root{
+  --bg:#f3f4f8; --bar:rgba(255,255,255,.88); --line:#e3e5ec; --ink:#14161c; --mute:#6b7080;
+  --chip:#ffffff; --chip-line:#d9dce5; --shadow:0 10px 24px -10px rgba(20,24,40,.35);
+  --font:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1217; --bar:rgba(22,26,33,.88); --line:#262b35; --ink:#f1f3f8; --mute:#9aa1b2;
+    --chip:#1d222b; --chip-line:#313846; --shadow:0 12px 26px -10px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1217; --bar:rgba(22,26,33,.88); --line:#262b35; --ink:#f1f3f8; --mute:#9aa1b2;
+  --chip:#1d222b; --chip-line:#313846; --shadow:0 12px 26px -10px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);min-height:100vh;
+  padding-bottom:env(safe-area-inset-bottom,0px)}
+header{position:sticky;top:0;z-index:10;background:var(--bar);
+  -webkit-backdrop-filter:saturate(1.4) blur(14px);backdrop-filter:saturate(1.4) blur(14px);
+  border-bottom:1px solid var(--line);padding:calc(18px + env(safe-area-inset-top,0px)) 0 18px}
+.wrap{max-width:1180px;margin:0 auto}
+header .wrap{width:calc(100% - 40px)}
+h1{margin:0;font-size:clamp(28px,6vw,40px);font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.tag{margin:10px 0 18px;color:var(--mute);font-size:clamp(14px,3.6vw,17px)}
+.tools{display:flex;align-items:center;gap:12px}
+.chip{display:inline-flex;align-items:center;justify-content:center;position:relative;
+  width:56px;height:56px;border-radius:50%;background:var(--chip);border:1px solid var(--chip-line);
+  color:var(--ink);font:inherit;cursor:pointer;padding:0;box-shadow:0 1px 2px rgba(0,0,0,.06);font-size:26px}
+.chip small{position:absolute;bottom:7px;font-size:10px;font-weight:700;letter-spacing:.04em}
+.chip.lang{flex-direction:column;font-size:24px;padding-bottom:10px}
+.chip:focus-visible,.card:focus-visible{outline:3px solid #3f7fcf;outline-offset:3px}
+.brand{margin-left:auto;font-family:Georgia,"Times New Roman",serif;font-weight:700;color:#1f8a43;
+  font-size:clamp(24px,6.2vw,40px);letter-spacing:.01em;line-height:1;white-space:nowrap}
+main.wrap{width:calc(100% - 40px);padding:28px 0 56px}
+.sec{display:flex;align-items:center;gap:18px;margin:34px 0 18px;font:500 14px/1 var(--mono);
+  letter-spacing:.3em;text-transform:uppercase;color:var(--mute)}
+.sec:first-child{margin-top:0}
+.sec::after{content:"";flex:1;height:1px;background:var(--line)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (min-width:760px){.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}}
+@media (min-width:1080px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+.card{position:relative;display:flex;flex-direction:column;justify-content:flex-end;min-height:150px;
+  padding:18px 18px 16px;border-radius:22px;color:#fff;text-decoration:none;overflow:hidden;isolation:isolate;
+  background:linear-gradient(135deg,var(--c1),var(--c2));box-shadow:var(--shadow);
+  border:1px solid rgba(255,255,255,.12);transition:transform .18s ease, box-shadow .18s ease}
+.card::before{content:"";position:absolute;right:-18%;bottom:-38%;width:78%;aspect-ratio:1;border-radius:50%;
+  background:rgba(255,255,255,.09);z-index:-1}
+.card:hover{transform:translateY(-3px)}
+.card:active{transform:scale(.985)}
+.ico{font-size:34px;line-height:1;margin-bottom:auto;padding-bottom:16px;
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+.lbl{font:400 11.5px/1.35 var(--mono);letter-spacing:.14em;text-transform:uppercase;opacity:.62;margin-bottom:6px}
+.ttl{font-size:clamp(17px,4.6vw,21px);font-weight:700;letter-spacing:-.01em;line-height:1.2}
+.dsc{margin-top:5px;padding-right:40px;font-size:clamp(12.5px,3.4vw,14px);line-height:1.4;opacity:.8}
+.go{position:absolute;right:14px;bottom:14px;width:34px;height:34px;border-radius:50%;
+  display:grid;place-items:center;background:rgba(255,255,255,.2);transition:background .18s,transform .18s}
+.card:hover .go{background:rgba(255,255,255,.34);transform:translateX(2px)}
+footer{max-width:1180px;width:calc(100% - 40px);margin:0 auto;padding:0 0 36px;color:var(--mute);font-size:13px}
+@media (prefers-reduced-motion:reduce){.card,.go{transition:none}.card:hover{transform:none}}
 </style>
-<script>location.replace('ET2/index.html'+location.hash);</script>
 </head>
 <body>
-<p>Wirbelstromprüfung ET 2 wird geöffnet …<br><a href="ET2/index.html">Weiter zur Schulung</a></p>
+<header>
+  <div class="wrap">
+    <h1>ZfP Simulator</h1>
+    <p class="tag" id="tag" data-de="Prüfverfahren · Simulation · Qualifikation" data-en="Test methods · Simulation · Qualification">Prüfverfahren · Simulation · Qualifikation</p>
+    <div class="tools">
+      <button class="chip" id="theme" type="button" aria-label="Darstellung umschalten" title="Hell / Dunkel">🌓</button>
+      <button class="chip lang" id="lang" type="button" aria-label="Sprache wechseln" title="Deutsch / English">🌐<small id="langCode">EN</small></button>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+    <h2 class="sec"><span data-de="Oberflächenverfahren" data-en="Surface methods">Oberflächenverfahren</span></h2>
+    <div class="grid">
+      <a class="card" href="VT/index.html" style="--c1:#c0564a;--c2:#8c2a20" data-k="VT">
+        <span class="ico" aria-hidden="true">👁️</span>
+        <span class="lbl" data-de="VT · Visual Testing" data-en="VT · Visual Testing">VT · Visual Testing</span>
+        <span class="ttl" data-de="Sichtprüfung" data-en="Visual Testing">Sichtprüfung</span>
+        <span class="dsc" data-de="Sichtprüf-Simulator" data-en="Visual inspection simulator">Sichtprüf-Simulator</span>
+        <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+      <a class="card" href="ein/index.html" style="--c1:#8fb454;--c2:#5e8a2c" data-k="PT">
+        <span class="ico" aria-hidden="true">🔍</span>
+        <span class="lbl" data-de="PT · Penetrant Testing" data-en="PT · Penetrant Testing">PT · Penetrant Testing</span>
+        <span class="ttl" data-de="Eindringprüfung" data-en="Penetrant Testing">Eindringprüfung</span>
+        <span class="dsc" data-de="Ablaufsimulation · Anzeigenbildung" data-en="Process simulation · indication formation">Ablaufsimulation · Anzeigenbildung</span>
+        <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+      <a class="card" href="dreh/index.html" style="--c1:#d0702f;--c2:#a04a14" data-k="MT">
+        <span class="ico" aria-hidden="true">🧲</span>
+        <span class="lbl" data-de="MT · Magnetpulver" data-en="MT · Magnetic Particle">MT · Magnetpulver</span>
+        <span class="ttl" data-de="Magnetpulverprüfung" data-en="Magnetic Particle Testing">Magnetpulverprüfung</span>
+        <span class="dsc" data-de="Magnetisierung · Prüfmittel · Entmagnetisierung" data-en="Magnetisation · media · demagnetisation">Magnetisierung · Prüfmittel · Entmagnetisierung</span>
+        <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+      <a class="card" href="ET_simulation/index.html" style="--c1:#7a5cd0;--c2:#47339a" data-k="ET">
+        <span class="ico" aria-hidden="true">🌀</span>
+        <span class="lbl" data-de="ET · Eddy Current" data-en="ET · Eddy Current">ET · Eddy Current</span>
+        <span class="ttl" data-de="Wirbelstromprüfung" data-en="Eddy Current Testing">Wirbelstromprüfung</span>
+        <span class="dsc" data-de="Impedanzebene · C-Bild · Differenzsonde" data-en="Impedance plane · C-scan · differential probe">Impedanzebene · C-Bild · Differenzsonde</span>
+        <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+    </div>
+    <h2 class="sec"><span data-de="Volumenverfahren" data-en="Volumetric methods">Volumenverfahren</span></h2>
+    <div class="grid">
+      <a class="card" href="ut-simulation/index.html" style="--c1:#3f7fcf;--c2:#23509a" data-k="UT">
+        <span class="ico" aria-hidden="true">🔊</span>
+        <span class="lbl" data-de="UT · Ultraschall" data-en="UT · Ultrasonic">UT · Ultraschall</span>
+        <span class="ttl" data-de="Ultraschallprüfung" data-en="Ultrasonic Testing">Ultraschallprüfung</span>
+        <span class="dsc" data-de="Schallfeld · L- &amp; T-Welle · Snellius" data-en="Sound field · L &amp; T waves · Snell&#x27;s law">Schallfeld · L- &amp; T-Welle · Snellius</span>
+        <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+      <a class="card" href="durch/index.html" style="--c1:#c9a23a;--c2:#8f6c1c" data-k="RT">
+        <span class="ico" aria-hidden="true">☢️</span>
+        <span class="lbl" data-de="RT · Radiografie" data-en="RT · Radiography">RT · Radiografie</span>
+        <span class="ttl" data-de="Durchstrahlprüfung" data-en="Radiographic Testing">Durchstrahlprüfung</span>
+        <span class="dsc" data-de="Belichtung · Bildgüte (IQI)" data-en="Exposure · image quality (IQI)">Belichtung · Bildgüte (IQI)</span>
+        <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+      <a class="card" href="AE/index.html" style="--c1:#3a8aa0;--c2:#1f5a70" data-k="AE">
+        <span class="ico" aria-hidden="true">📡</span>
+        <span class="lbl" data-de="AE · Acoustic Emission" data-en="AE · Acoustic Emission">AE · Acoustic Emission</span>
+        <span class="ttl" data-de="Schallemissionsprüfung" data-en="Acoustic Emission Testing">Schallemissionsprüfung</span>
+        <span class="dsc" data-de="Hit-Kenngrößen · Ortung · Kaiser-Effekt" data-en="Hit parameters · location · Kaiser effect">Hit-Kenngrößen · Ortung · Kaiser-Effekt</span>
+        <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+      <a class="card" href="TT/index.html" style="--c1:#d2528c;--c2:#9c2a62" data-k="TT">
+        <span class="ico" aria-hidden="true">🌡️</span>
+        <span class="lbl" data-de="TT · Thermografie" data-en="TT · Thermography">TT · Thermografie</span>
+        <span class="ttl" data-de="Thermografie" data-en="Thermography">Thermografie</span>
+        <span class="dsc" data-de="Impuls-Thermografie · Tiefenabschätzung" data-en="Pulsed thermography · depth estimation">Impuls-Thermografie · Tiefenabschätzung</span>
+        <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+    </div>
+    <h2 class="sec"><span data-de="Werkstoff &amp; Dichtheit" data-en="Material &amp; leak testing">Werkstoff &amp; Dichtheit</span></h2>
+    <div class="grid">
+      <a class="card" href="Aetzen/index.html" style="--c1:#3f6fc0;--c2:#26469a" data-k="NE">
+        <span class="ico" aria-hidden="true">⚗️</span>
+        <span class="lbl" data-de="NE · Nital-Ätzung" data-en="NE · Nital etching">NE · Nital-Ätzung</span>
+        <span class="ttl" data-de="Nital-Ätzung" data-en="Nital Etching">Nital-Ätzung</span>
+        <span class="dsc" data-de="Makro- &amp; Gefügeätzung" data-en="Macro &amp; microstructure etching">Makro- &amp; Gefügeätzung</span>
+        <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+      <a class="card" href="HT/index.html" style="--c1:#5a9a62;--c2:#2f6a3c" data-k="HT">
+        <span class="ico" aria-hidden="true">🔨</span>
+        <span class="lbl" data-de="HT · Leeb · UCI" data-en="HT · Leeb · UCI">HT · Leeb · UCI</span>
+        <span class="ttl" data-de="Härteprüfung" data-en="Hardness Testing">Härteprüfung</span>
+        <span class="dsc" data-de="Rückprall (HLD) · UCI · Umwertung" data-en="Rebound (HLD) · UCI · conversion">Rückprall (HLD) · UCI · Umwertung</span>
+        <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+      <a class="card" href="bark/index.html" style="--c1:#8a58a8;--c2:#5a2f78" data-k="BN">
+        <span class="ico" aria-hidden="true">📈</span>
+        <span class="lbl" data-de="BN · Barkhausen" data-en="BN · Barkhausen">BN · Barkhausen</span>
+        <span class="ttl" data-de="Barkhausenrauschen" data-en="Barkhausen Noise">Barkhausenrauschen</span>
+        <span class="dsc" data-de="Eigenspannung · Härte lokal erfassen" data-en="Residual stress · local hardness">Eigenspannung · Härte lokal erfassen</span>
+        <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+      <a class="card" href="LT/index.html" style="--c1:#a8704c;--c2:#6f3f24" data-k="LT">
+        <span class="ico" aria-hidden="true">💧</span>
+        <span class="lbl" data-de="LT · Leak Testing" data-en="LT · Leak Testing">LT · Leak Testing</span>
+        <span class="ttl" data-de="Dichtheitsprüfung" data-en="Leak Testing">Dichtheitsprüfung</span>
+        <span class="dsc" data-de="Blasentest · Druckabfall · Helium" data-en="Bubble test · pressure decay · helium">Blasentest · Druckabfall · Helium</span>
+        <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+    </div>
+    <h2 class="sec"><span data-de="Lernmodule" data-en="Learning modules">Lernmodule</span></h2>
+    <div class="grid">
+      <a class="card" href="ET2/index.html" style="--c1:#0d9488;--c2:#0f3d63" data-k="ET2">
+        <span class="ico" aria-hidden="true">🎓</span>
+        <span class="lbl" data-de="ET 2 · E-Learning" data-en="ET 2 · e-learning">ET 2 · E-Learning</span>
+        <span class="ttl" data-de="Wirbelstromprüfung Stufe 2" data-en="Eddy Current Level 2">Wirbelstromprüfung Stufe 2</span>
+        <span class="dsc" data-de="14 Kapitel · Simulationen · Erklärvideos · Quiz" data-en="14 chapters · simulations · videos · quizzes">14 Kapitel · Simulationen · Erklärvideos · Quiz</span>
+        <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+    </div>
+</main>
+<footer id="foot" data-de="12 Verfahren · Simulatoren laufen vollständig im Browser" data-en="12 methods · simulators run entirely in the browser">12 Verfahren · Simulatoren laufen vollständig im Browser</footer>
+<script>
+(function(){
+  var root=document.documentElement, store={};
+  function get(k){try{return localStorage.getItem(k)}catch(e){return store[k]||null}}
+  function set(k,v){try{localStorage.setItem(k,v)}catch(e){store[k]=v}}
+
+  /* Theme */
+  var mq=window.matchMedia('(prefers-color-scheme: dark)');
+  function applyTheme(t){ if(t) root.setAttribute('data-theme',t); else root.removeAttribute('data-theme'); }
+  applyTheme(get('zfp-theme'));
+  document.getElementById('theme').addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme')||(mq.matches?'dark':'light');
+    var next=cur==='dark'?'light':'dark'; applyTheme(next); set('zfp-theme',next);
+  });
+
+  /* Sprache */
+  var lang=get('zfp-lang')||'de';
+  function applyLang(l){
+    lang=l; root.lang=l;
+    document.querySelectorAll('[data-de]').forEach(function(el){ el.textContent=el.getAttribute('data-'+l); });
+    document.getElementById('langCode').textContent=l==='de'?'EN':'DE';
+    document.title='ZfP Simulator';
+  }
+  applyLang(lang);
+  document.getElementById('lang').addEventListener('click',function(){
+    var n=lang==='de'?'en':'de'; applyLang(n); set('zfp-lang',n);
+  });
+})();
+</script>
 </body>
 </html>

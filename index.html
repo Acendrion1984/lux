@@ -55,24 +55,9 @@ main.wrap{width:calc(100% - 40px);padding:28px 0 56px}
 .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 @media (min-width:760px){.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}}
 @media (min-width:1080px){.grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:16px}}
-.card.wide{grid-column:1/-1}
-@media (min-width:1080px){.card.wide{grid-column:span 3}}
 .ttl{hyphens:manual;-webkit-hyphens:manual;overflow-wrap:break-word}
-@media (min-width:1080px){.ttl{font-size:clamp(15.5px,1.4vw,19px)}.lbl{font-size:10.5px;letter-spacing:.1em}.dsc{font-size:12.5px}.card{padding:16px 16px 14px}.card.wide .ttl{font-size:22px}}
-button.card{font:inherit;text-align:left;cursor:pointer;width:100%}
-.card.wide .ico{font-size:40px}
-dialog#learnDlg{border:0;padding:0;border-radius:24px;width:min(560px,calc(100% - 32px));background:var(--bg,#fff);color:var(--ink);box-shadow:0 30px 80px rgba(0,0,0,.35)}
-dialog#learnDlg::backdrop{background:rgba(10,16,24,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
-.dlg-h{display:flex;align-items:center;justify-content:space-between;padding:20px 22px 6px}
-.dlg-h h2{margin:0;font-size:20px;font-weight:800}
-.dlg-x{width:38px;height:38px;border-radius:50%;border:1px solid var(--chip-line);background:var(--chip);color:var(--ink);font-size:16px;cursor:pointer}
-.dlg-list{list-style:none;margin:0;padding:12px 18px}
-.mod{display:flex;align-items:center;gap:14px;padding:16px;border-radius:18px;color:#fff;text-decoration:none;background:linear-gradient(135deg,var(--c1),var(--c2));box-shadow:var(--shadow);transition:transform .15s}
-.mod:hover{transform:translateY(-2px)}.mod:focus-visible{outline:3px solid #3f7fcf;outline-offset:3px}
-.mi{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:rgba(255,255,255,.18);font-size:26px}
-.mt{display:flex;flex-direction:column;gap:3px}.mt b{font-size:18px}.mt small{font-size:13px;opacity:.85}
-.mg{margin-left:auto;font-size:20px;font-weight:800}
-.dlg-note{margin:0;padding:2px 24px 20px;color:var(--mute);font-size:13px}
+@media (min-width:1080px){.ttl{font-size:clamp(15.5px,1.4vw,19px)}.lbl{font-size:10.5px;letter-spacing:.1em}.dsc{font-size:12.5px}.card{padding:16px 16px 14px}}
+
 
 .card{position:relative;display:flex;flex-direction:column;justify-content:flex-end;min-height:150px;
   padding:18px 18px 16px;border-radius:22px;color:#fff;text-decoration:none;overflow:hidden;isolation:isolate;
@@ -106,7 +91,7 @@ footer{max-width:1180px;width:calc(100% - 40px);margin:0 auto;padding:0 0 36px;c
   </div>
 </header>
 <main class="wrap">
-    <h2 class="sec"><span data-de="Prüfverfahren &amp; Lernmodule" data-en="Test methods &amp; learning modules">Prüfverfahren &amp; Lernmodule</span></h2>
+    <h2 class="sec"><span data-de="Prüfverfahren" data-en="Test methods">Prüfverfahren</span></h2>
     <div class="grid">
       <a class="card" href="VT/index.html" style="--c1:#c0564a;--c2:#8c2a20" data-k="VT">
         <span class="ico" aria-hidden="true">👁️</span>
@@ -192,24 +177,10 @@ footer{max-width:1180px;width:calc(100% - 40px);margin:0 auto;padding:0 0 36px;c
         <span class="dsc" data-de="Blasentest · Druckabfall · Helium" data-en="Bubble test · pressure decay · helium">Blasentest · Druckabfall · Helium</span>
         <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
       </a>
-      <button class="card wide" type="button" id="learnBtn" aria-haspopup="dialog" style="--c1:#0d9488;--c2:#0f3d63" data-k="LM">
-        <span class="ico" aria-hidden="true">🎓</span>
-        <span class="lbl" data-de="E-Learning" data-en="E-learning">E-Learning</span>
-        <span class="ttl" data-de="Lernmodule" data-en="Learning modules">Lernmodule</span>
-        <span class="dsc" data-de="Kurse mit Simulationen, Erklärvideos und Quiz · Modul auswählen" data-en="Courses with simulations, explainer videos and quizzes · choose a module">Kurse mit Simulationen, Erklärvideos und Quiz · Modul auswählen</span>
-        <span class="go" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
-      </button>
     </div>
 </main>
-<dialog id="learnDlg" aria-labelledby="learnTtl">
-  <div class="dlg-h"><h2 id="learnTtl" data-de="Lernmodul auswählen" data-en="Choose a learning module">Lernmodul auswählen</h2><button type="button" class="dlg-x" id="learnX" aria-label="Schließen">✕</button></div>
-  <ul class="dlg-list">
-    <li><a class="mod" href="ET2/index.html" style="--c1:#0d9488;--c2:#0f3d63"><span class="mi" aria-hidden="true">🌀</span><span class="mt"><b data-de="Wirbelstromprüfung" data-en="Eddy current testing">Wirbelstromprüfung</b><small data-de="Stufe 2 · 14 Kapitel · Simulationen · Erklärvideos · Quiz" data-en="Level 2 · 14 chapters · simulations · videos · quizzes">Stufe 2 · 14 Kapitel · Simulationen · Erklärvideos · Quiz</small></span><span class="mg" aria-hidden="true">→</span></a></li>
-  </ul>
-  <p class="dlg-note" data-de="Weitere Lernmodule folgen." data-en="More modules coming soon.">Weitere Lernmodule folgen.</p>
-</dialog>
 
-<footer id="foot" data-de="12 Verfahren · Lernmodule · alles läuft vollständig im Browser" data-en="12 methods · learning modules · everything runs in the browser">12 Verfahren · Lernmodule · alles läuft vollständig im Browser</footer>
+<footer id="foot" data-de="12 Verfahren · Simulatoren laufen vollständig im Browser" data-en="12 methods · simulators run entirely in the browser">12 Verfahren · Simulatoren laufen vollständig im Browser</footer>
 <script>
 (function(){
   var root=document.documentElement, store={};
@@ -237,13 +208,6 @@ footer{max-width:1180px;width:calc(100% - 40px);margin:0 auto;padding:0 0 36px;c
   document.getElementById('lang').addEventListener('click',function(){
     var n=lang==='de'?'en':'de'; applyLang(n); set('zfp-lang',n);
   });
-  /* Lernmodule: Auswahlliste */
-  var dlg=document.getElementById('learnDlg'),btn=document.getElementById('learnBtn');
-  function openDlg(){ if(dlg.showModal) dlg.showModal(); else dlg.setAttribute('open',''); var f=dlg.querySelector('.mod'); if(f) f.focus(); }
-  function closeDlg(){ if(dlg.close) dlg.close(); else dlg.removeAttribute('open'); btn.focus(); }
-  btn.addEventListener('click',openDlg);
-  document.getElementById('learnX').addEventListener('click',closeDlg);
-  dlg.addEventListener('click',function(e){ if(e.target===dlg) closeDlg(); });
 })();
 </script>
 </body>

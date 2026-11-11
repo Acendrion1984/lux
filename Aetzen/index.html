@@ -64,6 +64,14 @@
   .ctl-row label b{color:var(--amber);font-weight:700;}
   input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:4px;background:var(--panel-2);outline:none;border:1px solid var(--border-soft);}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--amber);border:2px solid #1a1200;box-shadow:0 0 8px var(--amber-glow);cursor:pointer;}
+  /* Mobil/Touch: größere Regler-Griffe und Tasten, damit sich Zeit/Konzentration mit dem Finger sicher einstellen lassen */
+  button,input[type=range]{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
+  @media (pointer:coarse){
+    input[type=range]{height:12px;margin:10px 0;}
+    input[type=range]::-webkit-slider-thumb{width:30px;height:30px;}
+    input[type=range]::-moz-range-thumb{width:28px;height:28px;border-radius:50%;background:var(--amber);border:2px solid #1a1200;}
+    button{min-height:44px;font-size:12px;}
+  }
   select{width:100%;background:var(--panel-2);color:var(--text);border:1px solid var(--border-soft);border-radius:8px;padding:8px 10px;font-family:var(--body);font-size:13px;}
 
   .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;}
@@ -97,20 +105,250 @@
   .tab.active{background:var(--cyan-glow);border-color:var(--cyan);color:var(--cyan);}
   .info{font-size:12px;line-height:1.55;color:var(--text-dim);margin-top:12px;}
   .info b{color:var(--text);}
+
+  /* Lesbarkeit wie im Wirbelstrom-Simulator */
+  .ctl-row label{font-family:var(--body)!important;font-size:13px!important;letter-spacing:0!important;color:var(--text)!important;font-weight:500;}
+  .ctl-row label b,.ctl-row label span{font-family:var(--mono);font-weight:700;}
+  button{font-family:var(--body)!important;font-size:12.5px!important;font-weight:600;letter-spacing:.01em!important;text-transform:none!important;line-height:1.2;overflow-wrap:anywhere;min-width:0;}
+  .stage-title,.sub-h{font-family:var(--disp)!important;font-size:12px!important;font-weight:700;letter-spacing:.08em!important;}
+  .legend,.step{font-family:var(--body)!important;font-size:12px!important;letter-spacing:0!important;color:var(--text-dim)!important;font-weight:500;}
+  .stat .k{font-family:var(--body)!important;font-size:10.5px!important;letter-spacing:.05em!important;font-weight:600;color:var(--text-dim)!important;}
 </style>
-<script>
-/* Lokaler Theme-Zustand (Hell/Dunkel), gespeichert in localStorage. */
-var themeCtl=(function(){
-  var cbs=[], mode=null, KEY='zfp-theme';
-  function store(v){ try{ if(v===undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY,v); }catch(e){} return null; }
-  function init(){ if(mode) return; var s=store(); mode=(s==='light'||s==='dark')?s:((document.body&&(document.body.classList.contains('light-mode')||document.body.classList.contains('light')))?'light':'dark'); }
-  return {
-    onTheme:function(f){ if(typeof f!=='function') return; cbs.push(f); init(); f(mode); },
-    toggleTheme:function(){ init(); mode=mode==='light'?'dark':'light'; store(mode); cbs.forEach(function(f){ try{ f(mode); }catch(e){} }); }
-  };
+<script id="perf-guard">
+/* Entlastung: Bildschleifen passen sich der Rechenzeit an (kein Dauer-Vollgas auf schwachen/mobilen Geräten) */
+(function(){var raf=window.requestAnimationFrame.bind(window),st=new WeakMap();
+window.requestAnimationFrame=function(cb){return raf(function w(t){
+  var o=st.get(cb)||{last:0,ema:0}; st.set(cb,o);
+  var gap=Math.min(100,o.ema*1.2);
+  if(o.last&&t-o.last<gap){return raf(w);}
+  var s=performance.now(); o.last=t; try{cb(t);}finally{o.ema=o.ema*0.8+(performance.now()-s)*0.2; if(o.ema<10) o.ema=0;}
+});};
 })();
 </script>
+<script>
+/* ============================================================================
+ * ZfP Shared Context – Werk / Sprache / Theme (seitenübergreifend)
+ * ----------------------------------------------------------------------------
+ * Eine EINZIGE Quelle der Wahrheit für die drei globalen Einstellungen, die
+ * über ALLE Apps hinweg synchron sein sollen:
+ *
+ *   • Werk    -> localStorage['zfp-aktives-werk']    (ID aus werke.json)
+ *   • Sprache -> localStorage['zfp-lang']            ('de' | 'en')
+ *   • Theme   -> localStorage['zfp-theme-preference']('dark' | 'light')
+ *
+ * GLOBALE THEME-REGELN (verbindlich für ALLE Seiten, auch Unter-Apps):
+ *   1. Es gibt genau EINEN Speicherschlüssel und genau EINEN Standardwert
+ *      (DEFAULT_THEME unten). Keine Seite darf eigene Schlüssel, eigene
+ *      Standardwerte, System-Einstellung (prefers-color-scheme) oder eigene
+ *      Fallback-Controller verwenden.
+ *   2. Das Skript steht im <head> jeder Seite MIT Dark Mode und setzt
+ *      <html data-theme="dark|light"> samt color-scheme bereits vor dem ersten
+ *      Zeichnen und bei jeder Änderung. Seiten OHNE Dark Mode (Admin, Login,
+ *      Handbuch) binden es nicht ein; die PMÜ-Protokollformulare ohne Dark Mode
+ *      binden es nur für Sprache/Werk ein (Attribut data-theme-off) und bleiben hell.
+ *   3. Seiten reagieren nur noch über ZfPContext.onTheme(fn) und schalten nur
+ *      noch über ZfPContext.toggleTheme() / setTheme() um.
+ *   4. Startwert = HELL. Nach „Dunkel“ bleibt es gespeichert, bis wieder
+ *      „Hell“ gewählt wird (gilt für alle Seiten gemeinsam).
+ *
+ * Frühere Versionen der einzelnen Seiten benutzten UNTERSCHIEDLICHE
+ * Schlüssel (z. B. 'zfp-lang-preference', 'MT_LANG_KEY', 'mpi-dark'). Deshalb
+ * blieben Sprache/Theme beim Seitenwechsel nicht erhalten. Dieses Modul
+ * migriert alte Schlüssel EINMALIG auf die kanonischen und hält danach alle
+ * offenen Tabs über das native 'storage'-Event synchron.
+ *
+ * Das Modul ändert von sich aus NICHTS am DOM. Jede Seite registriert per
+ * ZfPContext.onWerk / onLang / onTheme ihre eigene Anwendungsfunktion und
+ * bekommt den aktuellen Wert sofort + bei jeder späteren Änderung gemeldet.
+ * ========================================================================== */
+(function (global) {
+  'use strict';
 
+  var KEY_WERK  = 'zfp-aktives-werk';
+  var KEY_LANG  = 'zfp-lang';
+  var KEY_THEME = 'zfp-theme-preference';
+
+  var SCHWEINFURT_ID = 'schweinfurt';
+
+  // Einziger Standardwert: Das Portal startet IMMER hell. Wird auf Dunkel gestellt,
+  // merkt sich der Browser das (localStorage) – bis wieder auf Hell gestellt wird.
+  var DEFAULT_THEME = 'light';
+
+  // Alte Schlüssel, deren Wert (falls vorhanden und der neue noch leer ist)
+  // einmalig übernommen wird.
+  var LEGACY_LANG_KEYS  = ['zfp-lang-preference', 'MT_LANG_KEY', 'mt_lang'];
+  var LEGACY_THEME_KEYS = ['THEME_KEY', 'mt-theme', 'zfp-theme', 'zfp_theme', 'gefuege_theme'];
+
+  function safeGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function safeSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  // ─── Einmalige Migration alter Schlüssel ────────────────────────────────
+  (function migrate() {
+    if (!safeGet(KEY_LANG)) {
+      for (var i = 0; i < LEGACY_LANG_KEYS.length; i++) {
+        var v = safeGet(LEGACY_LANG_KEYS[i]);
+        if (v === 'de' || v === 'en') { safeSet(KEY_LANG, v); break; }
+      }
+    }
+    if (!safeGet(KEY_THEME)) {
+      for (var j = 0; j < LEGACY_THEME_KEYS.length; j++) {
+        var t = safeGet(LEGACY_THEME_KEYS[j]);
+        if (t === 'dark' || t === 'light') { safeSet(KEY_THEME, t); break; }
+      }
+    }
+    if (!safeGet(KEY_THEME)) {
+      var mpi = safeGet('mpi-dark');
+      if (mpi === '1' || mpi === 'true') safeSet(KEY_THEME, 'dark');
+      else if (mpi === '0' || mpi === 'false') safeSet(KEY_THEME, 'light');
+    }
+    // Veraltete Einzelschlüssel entfernen, damit sie nie wieder als zweite
+    // „Wahrheit“ herangezogen werden können.
+    ['zfp-theme', 'zfp_theme', 'gefuege_theme', 'THEME_KEY', 'mt-theme', 'mpi-dark'].forEach(function (k) {
+      try { localStorage.removeItem(k); } catch (e) {}
+    });
+  })();
+
+  function getWerk()  { return safeGet(KEY_WERK)  || SCHWEINFURT_ID; }
+  function getLang()  { var v = safeGet(KEY_LANG);  return (v === 'en') ? 'en' : 'de'; }
+  function normTheme(v) { return (v === 'light' || v === 'dark') ? v : DEFAULT_THEME; }
+  function getTheme() { return normTheme(safeGet(KEY_THEME)); }
+
+  // Setzt das Theme sofort am <html>-Element (vor dem ersten Zeichnen, weil das
+  // Skript im <head> steht) – unabhängig davon, ob die Seite selbst reagiert.
+  // Seiten OHNE Dark Mode (PMÜ-Formulare) laden das Skript nur für Sprache/Werk und setzen
+  // <script ... data-theme-off>: dann werden weder data-theme noch color-scheme angefasst.
+  var THEME_OFF = false;
+  try { THEME_OFF = !!(document.currentScript && document.currentScript.hasAttribute('data-theme-off')); } catch (e) {}
+  function applyDom(theme) {
+    if (THEME_OFF) return;
+    try {
+      var root = document.documentElement;
+      root.setAttribute('data-theme', theme);
+      root.style.colorScheme = theme;
+    } catch (e) {}
+  }
+  applyDom(getTheme());
+
+  var listeners = { werk: [], lang: [], theme: [] };
+
+  function fire(kind, value) {
+    if (kind === 'theme') {
+      applyDom(value);
+      try { document.dispatchEvent(new CustomEvent('zfp:theme', { detail: value })); } catch (e) {}
+    }
+    var arr = listeners[kind];
+    for (var i = 0; i < arr.length; i++) {
+      try { arr[i](value); } catch (e) { /* eine kaputte Callback darf den Rest nicht stoppen */ }
+    }
+  }
+
+  function register(kind, cb, getter) {
+    if (typeof cb !== 'function') return;
+    listeners[kind].push(cb);
+    // Aktuellen Wert sofort liefern, damit die Seite initial korrekt rendert.
+    try { cb(getter()); } catch (e) {}
+  }
+
+  // ─── Setter: schreiben + lokale Callbacks feuern + andere Tabs bekommen
+  //     automatisch das native 'storage'-Event ────────────────────────────
+  function setWerk(id) {
+    if (!id || id === getWerk()) { fire('werk', getWerk()); return; }
+    safeSet(KEY_WERK, id);
+    fire('werk', id);
+  }
+  function setLang(lang) {
+    lang = (lang === 'en') ? 'en' : 'de';
+    safeSet(KEY_LANG, lang);
+    fire('lang', lang);
+  }
+  function toggleLang() { setLang(getLang() === 'de' ? 'en' : 'de'); }
+
+  function setTheme(theme) {
+    theme = normTheme(theme);
+    safeSet(KEY_THEME, theme);
+    fire('theme', theme);
+  }
+  function toggleTheme() { setTheme(getTheme() === 'dark' ? 'light' : 'dark'); }
+
+  // ─── Cross-Tab-Sync: Änderungen aus einem anderen Tab/Fenster ───────────
+  global.addEventListener('storage', function (e) {
+    if (!e) return;
+    if (e.key === KEY_WERK)  fire('werk',  e.newValue || SCHWEINFURT_ID);
+    else if (e.key === KEY_LANG)  fire('lang',  (e.newValue === 'en') ? 'en' : 'de');
+    else if (e.key === KEY_THEME) fire('theme', normTheme(e.newValue));
+  });
+
+  // Zurück/Vorwärts-Navigation (bfcache): Seite zeigt sonst evtl. ein veraltetes Theme.
+  var _lastThemeShown = getTheme();
+  global.addEventListener('pageshow', function (e) {
+    var t = getTheme();
+    if (e && e.persisted && t !== _lastThemeShown) fire('theme', t);
+    _lastThemeShown = t;
+  });
+
+  global.ZfPContext = {
+    KEY_WERK: KEY_WERK, KEY_LANG: KEY_LANG, KEY_THEME: KEY_THEME,
+    SCHWEINFURT_ID: SCHWEINFURT_ID,
+    getWerk: getWerk, setWerk: setWerk,
+    getLang: getLang, setLang: setLang, toggleLang: toggleLang,
+    DEFAULT_THEME: DEFAULT_THEME,
+    getTheme: getTheme, setTheme: setTheme, toggleTheme: toggleTheme,
+    get theme() { return getTheme(); },   // Lesezugriff wie früher in den lokalen Fallbacks
+    onWerk:  function (cb) { register('werk',  cb, getWerk); },
+    onLang:  function (cb) { register('lang',  cb, getLang); },
+    onTheme: function (cb) { register('theme', cb, getTheme); }
+  };
+
+  // ─── WERK-REGISTER + WERK-ABHÄNGIGE PFADE ───────────────────────────────
+  // Damit einfache Seiten (v. a. die PMÜ-Unterseiten) das aktive Werk erben
+  // können, ohne selbst ein Dropdown oder eigene Register-Logik zu enthalten,
+  // stellt das Modul hier eine kleine Hilfe bereit:
+  //   • ladeWerkRegister()  – lädt werke.json einmalig (mit Fallback)
+  //   • werkSuffix()        – Suffix des aktiven Werks ('' = Schweinfurt)
+  //   • protokolleBase()    – '/api/protokolle' bzw. '/api/protokolle__<suffix>'
+  var _werkeRegister = [{ id: SCHWEINFURT_ID, name: 'Schweinfurt', suffix: '' }];
+  var _registerGeladen = false;
+  var _registerPromise = null; // laufendes Laden zwischenspeichern, damit parallele
+                                // Aufrufe (z. B. mehrere Seiten-Skripte) NICHT jeweils
+                                // eine eigene Anfrage starten und alle auf dasselbe
+                                // Ergebnis warten können (siehe protokolleBase()-Fix).
+
+  function ladeWerkRegister() {
+    if (_registerGeladen) return Promise.resolve(_werkeRegister);
+    if (_registerPromise) return _registerPromise; // bereits im Gange – dieselbe Zusage zurückgeben
+    _registerPromise = fetch('/api/data/werke.json?t=' + Date.now())
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (arr) {
+        if (Array.isArray(arr) && arr.length) {
+          if (!arr.find(function (w) { return w.id === SCHWEINFURT_ID; }))
+            arr.unshift({ id: SCHWEINFURT_ID, name: 'Schweinfurt', suffix: '' });
+          _werkeRegister = arr;
+        }
+        _registerGeladen = true;
+        _registerPromise = null;
+        return _werkeRegister;
+      })
+      .catch(function () { _registerGeladen = true; _registerPromise = null; return _werkeRegister; });
+    return _registerPromise;
+  }
+
+  function werkSuffix() {
+    var id = getWerk();
+    var w = _werkeRegister.find(function (x) { return x.id === id; });
+    return (w && w.suffix) ? w.suffix : '';
+  }
+
+  function protokolleBase() {
+    var suf = werkSuffix();
+    return suf ? ('/api/protokolle__' + suf) : '/api/protokolle';
+  }
+
+  global.ZfPContext.ladeWerkRegister = ladeWerkRegister;
+  global.ZfPContext.werkSuffix = werkSuffix;
+  global.ZfPContext.protokolleBase = protokolleBase;
+})(window);
+
+</script>
 <style id="fit-css">
 /* ═══ Kompakt-Dashboard (wie UT): kleine Schrift, dichte Panels, alles auf einem Bildschirm ═══ */
 html.fit, html.fit body{height:100%; overflow:hidden;}
@@ -206,11 +444,77 @@ html.fit svg, html.fit .stage svg, html.fit #setup, html.fit #wave, html.fit #ch
 html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{min-width:0; overflow:hidden;}
 html.fit .panel.fit2 select, html.fit .panel.fit2 input[type=range]{width:100%; max-width:100%; min-width:0;}
 </style>
+<style>
+/* ZfP-Portal · Simulationen im Portal-Design (Vorbild: Ätzdatenbank)
+ * Betrifft NUR Kopfbereich, Schriften, Knöpfe, Reiter, Schalter und Karten-Rahmen.
+ * Farben und Kontraste der Darstellungen (Canvas, Diagramme, Skalen, Messwerte, Status) bleiben unverändert;
+ * die Seiten-Variablen (--bg, --border, --text …) werden bewusst nicht angefasst. */
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800&display=swap');
+body{
+  --sd-green:#00893d;--sd-green-d:#006b30;--sd-green-t:#2fc16b;--sd-green-x:rgba(0,137,61,.14);
+  --sd-hdr:#1e1e1e;--sd-bdr:#444;--sd-txt:#ececec;--sd-mut:#b0b0b0;--sd-btn:#1e1e1e;--sd-page:#121212;--sd-card:#1e1e1e;
+}
+body.light,body.light-mode{
+  --sd-green-t:#00893d;--sd-green-x:rgba(0,137,61,.1);
+  --sd-hdr:#fff;--sd-bdr:#d0d0d0;--sd-txt:#1a1a1a;--sd-mut:#555;--sd-btn:#fff;--sd-page:#e0e0e0;--sd-card:#fff;
+}
+html,body{background:var(--sd-page)!important}
+body{background-image:none!important}
+
+/* Schriften */
+body,body *:not(#_):not(svg):not(svg *):not(canvas){font-family:'Barlow',Arial,sans-serif!important}
+body :is(h1,h2,h3,h4,button,summary,label,.stage-title,.sub-h,.badge,.tabs,.legend,.k,.stat .k,.foot):not(#_){font-family:'Barlow Condensed',Arial,sans-serif!important}
+body label{gap:8px}
+body .stat .v,body .stat .k,body table.res,body .foot,body .legend span{font-variant-numeric:tabular-nums}
+
+/* Kopfbereich wie Ätzdatenbank: weiße Karte, grüner Balken links, grüne Linie unten, Logo rechts */
+body header.top{background:var(--sd-hdr)!important;border:1.5px solid var(--sd-bdr)!important;border-left:6px solid var(--sd-green)!important;border-bottom:3px solid var(--sd-green)!important;border-radius:0!important;padding:8px 14px 8px 16px!important;margin-bottom:14px!important;box-shadow:none!important;align-items:center}
+body header.top .brand-eyebrow{display:none!important}
+body header.top h1{font-family:'Barlow Condensed',Arial,sans-serif!important;font-weight:700!important;font-size:clamp(17px,2.4vw,24px)!important;text-transform:uppercase;letter-spacing:.5px;line-height:1.15;color:var(--sd-txt)!important;background:none!important;-webkit-text-fill-color:var(--sd-txt)!important}
+body header.top h1 small{font-family:'Barlow',Arial,sans-serif!important;font-size:12.5px!important;font-weight:400!important;font-style:italic;text-transform:none;letter-spacing:0;color:var(--sd-mut)!important;-webkit-text-fill-color:var(--sd-mut)!important;margin-top:2px}
+body header.top .hdr-right,body header.top .badge-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+body header.top .hdr-right::after,body header.top .badge-row::after{display:none}
+body header.top .badge{border-radius:4px!important;font-family:'Barlow Condensed',Arial,sans-serif!important;font-size:13px!important;font-weight:600;letter-spacing:.3px;text-transform:none;padding:4px 10px!important}
+body .theme-btn,body .icon-btn,body .theme-toggle{width:38px!important;height:38px!important;border-radius:50%!important;background:var(--sd-btn)!important;border:2px solid var(--sd-bdr)!important;color:var(--sd-txt)!important;font-size:17px;display:inline-flex;align-items:center;justify-content:center;padding:0!important;transition:all .2s}
+body .theme-toggle{width:auto!important;min-width:38px;border-radius:19px!important;padding:0 10px!important;gap:5px}
+body .theme-btn:hover,body .icon-btn:hover,body .theme-toggle:hover{border-color:var(--sd-green)!important;transform:translateY(-2px);color:var(--sd-txt)!important}
+@media(max-width:600px){body header.top .hdr-right::after,body header.top .badge-row::after{display:none}}
+
+/* Knöpfe: eckig (4 px), Barlow Condensed, grüne Umrandung; gewählt/aktiv = grün gefüllt */
+body button:where(:not(.theme-btn,.icon-btn,.theme-toggle,.zfp-hilfe-btn,.lang-toggle,#langToggleBtn)){
+  font-size:14px;font-weight:700;letter-spacing:.3px;text-transform:none;
+  border:2px solid var(--sd-green)!important;border-radius:4px!important;background:var(--sd-btn);color:var(--sd-green-t);box-shadow:none}
+body button:where(:not(.theme-btn,.icon-btn,.theme-toggle,.zfp-hilfe-btn)):not(:disabled):hover{background:var(--sd-green-x);color:var(--sd-green-t);border-color:var(--sd-green)!important}
+body button.sel,body button.on,body button.active,body button.primary,body button[aria-pressed="true"],body button[aria-selected="true"]{background:var(--sd-green)!important;border-color:var(--sd-green)!important;color:#fff!important;box-shadow:none!important}
+body button.sel:hover,body button.on:hover,body button.active:hover,body button.primary:hover:not(:disabled){background:var(--sd-green-d)!important;color:#fff!important}
+body button.primary.stop,body .btn.stop,body button.danger{background:#c0392b!important;border-color:#c0392b!important;color:#fff!important}
+body button:disabled{opacity:.4}
+body button:focus-visible,body select:focus-visible,body input:focus-visible{outline:2px solid var(--sd-green)!important;outline-offset:2px}
+body .seg button,body .tabs button,body .dcac button,body .btnrow button{font-size:14px;line-height:1.2}
+body .seg.mini button{font-size:12.5px}
+
+/* Karten, Felder, Schalter */
+body .panel{background:var(--sd-card)!important;border:1.5px solid var(--sd-bdr)!important;border-top:3px solid var(--sd-green)!important;border-radius:4px!important;box-shadow:none!important}
+body .stat,body .callout,body .verdict,body .toggle,body select,body .readout,body .stage{border-radius:4px!important}
+body select{font-family:'Barlow',Arial,sans-serif!important;font-size:14px}
+body .stage-title,body .sub-h,body .panel>h2,body .panel>h3,body .panel>.hd{font-family:'Barlow Condensed',Arial,sans-serif!important;font-size:12.5px!important;font-weight:700;letter-spacing:.8px;color:var(--sd-green-t)!important}
+body input[type=range]{accent-color:var(--sd-green)}
+body input[type=range]::-webkit-slider-thumb{background:var(--sd-green)!important;border:2px solid #fff!important;box-shadow:0 1px 4px rgba(0,0,0,.4)!important}
+body input[type=range]::-moz-range-thumb{background:var(--sd-green);border:2px solid #fff}
+body .toggle.on .switch{background:var(--sd-green)!important}
+body .toggle.on .switch::after{background:#fff!important}
+body .toggle:hover{border-color:var(--sd-green)}
+body details.adv summary::before{color:var(--sd-green-t)!important}
+
+@media print{body header.top .hdr-right::after,body header.top .badge-row::after{display:none}}
+
+</style>
 </head>
 <body>
 <div class="app">
   <header class="top">
     <div class="title-group">
+      <p class="brand-eyebrow">ZFP SIMULATOR</p>
       <h1>Nital-Ätz-Simulator<small>NE · Chemisches Ätzen – Makro- &amp; Gefügeprüfung</small></h1>
     </div>
     <div class="hdr-right">
@@ -233,9 +537,13 @@ html.fit .panel.fit2 select, html.fit .panel.fit2 input[type=range]{width:100%; 
         <label>Probentyp</label>
         <select id="spec">
           <option value="burn">Schleifteil – Fehler: Schleifbrand</option>
+          <option value="burncrack">Schleifteil – Fehler: Schleifbrand mit Schleifrissen</option>
           <option value="clean">Schleifteil – fehlerfrei (Referenz)</option>
           <option value="fold">Schmiedeteil – Fehler: Schmiedefalte</option>
-          <option value="decarb">Einsatzgehärtetes Bauteil – Randentkohlung</option>
+          <option value="grindcrack">Schleifteil – Fehler: Schleifrisse (fein, verästelt)</option>
+          <option value="crackR">Bauteil – Fehler: Materialriss (radial, von der Kante)</option>
+          <option value="crackU">Bauteil – Fehler: Materialriss (umlaufend, quer zur Faser)</option>
+        <option value="decarb">Einsatzgehärtetes Bauteil – Randentkohlung</option>
         </select>
       </div>
 
@@ -258,6 +566,7 @@ html.fit .panel.fit2 select, html.fit .panel.fit2 input[type=range]{width:100%; 
         <button class="primary" id="btnRun">▶ Ätzvorgang starten</button>
         <button id="btnStop">Anhalten</button>
         <button id="btnReset">Zurücksetzen</button>
+        <button id="btnSpeed" title="Ablauf doppelt so schnell anzeigen (die simulierte Ätzzeit bleibt gleich)">⏩ 2× Geschwindigkeit</button>
       </div>
 
       <div class="stats">
@@ -283,10 +592,72 @@ html.fit .panel.fit2 select, html.fit .panel.fit2 input[type=range]{width:100%; 
 </div>
 
 <script>
+/* ZfP-Portal · Realistische Stahloberfläche für die Simulatoren (Ätzen, Eindringprüfung)
+ * Erzeugt pixelgenau eine geschliffene Stahloberfläche (feines Korn, Schleifriefen, leichte Wolkigkeit)
+ * und – optional – den geätzten Zustand (Faserverlauf als ungleichmäßige, unscharfe Streifung, Ätzgrübchen).
+ * Ergebnis sind zwei Canvas, die übereinander mit wachsender Deckkraft gezeichnet werden.
+ * ZfPOberflaeche.erzeugen(w, h, { seed, hell, biegung(x,y)→dy, schleifWinkel, faser:true|false }) */
+(function () {
+  'use strict';
+  function hash(ix, iy, s) { let h = (ix * 374761393 + iy * 668265263 + s * 1442695041) | 0; h = (h ^ (h >>> 13)) * 1274126177 | 0; h = h ^ (h >>> 16); return (h >>> 0) / 4294967296; }
+  function noise(x, y, s) {
+    const ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy;
+    const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+    const a = hash(ix, iy, s), b = hash(ix + 1, iy, s), c = hash(ix, iy + 1, s), d = hash(ix + 1, iy + 1, s);
+    return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+  }
+  function fbm(x, y, s, okt) { let v = 0, amp = 0.5, f = 1, sum = 0; for (let o = 0; o < okt; o++) { v += amp * noise(x * f, y * f, s + o * 17); sum += amp; amp *= 0.5; f *= 2.03; } return v / sum; }
+  function rng(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return (s >>> 0) / 4294967296; }; }
+
+  function erzeugen(w, h, o) {
+    o = o || {};
+    const seed = o.seed || 7, hell = o.hell !== false, bieg = o.biegung || null, k = o.massstab || 1;
+    const W = Math.round(w), H = Math.round(h);
+    const mk = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; };
+    const cb = mk(), ce = mk(), ib = cb.getContext('2d').createImageData(W, H), ie = ce.getContext('2d').createImageData(W, H);
+    const R = rng(seed), grain = new Float32Array(W * H); for (let i = 0; i < grain.length; i++) grain[i] = R() - 0.5;
+    // einzelne tiefere Schleifkratzer (leicht schräg, unterschiedlich lang)
+    const kratz = new Float32Array(W * H), wink = (o.schleifWinkel || 0.012);
+    for (let n = 0; n < Math.round(W * H / 9000); n++) {
+      const y0 = R() * H, x0 = R() * W, len = (0.15 + R() * 0.6) * W, tief = 0.03 + R() * 0.07, sl = wink * (R() - 0.3);
+      for (let t = 0; t < len; t++) { const x = Math.round(x0 + t), y = Math.round(y0 + t * sl); if (x < 0 || x >= W || y < 0 || y >= H) continue; const f = Math.sin(Math.PI * t / len); kratz[y * W + x] -= tief * f; if (y + 1 < H) kratz[(y + 1) * W + x] += tief * f * 0.35; }
+    }
+    const basis = hell ? 0.70 : 0.58;
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x, X = x / k, Y = y / k;
+      // geschliffene Oberfläche: Wolkigkeit + feine Schleifriefen (stark anisotrop) + Korn + Kratzer
+      const wolke = (fbm(X / 220, Y / 220, seed, 4) - 0.5) * 0.07;
+      const riefen = (fbm(X / 160, Y / 1.1, seed + 101, 3) - 0.5) * 0.085;
+      let L = basis + wolke + riefen + grain[i] * 0.045 + kratz[i];
+      const sh = 0.06 * (1 - Math.abs(2 * y / H - 1)) * (hell ? 1 : 0.7);   // leichter Glanz in der Bildmitte
+      L += sh;
+      let p = i * 4, v = Math.max(0, Math.min(1, L));
+      ib.data[p] = v * 255 * 0.985; ib.data[p + 1] = v * 255; ib.data[p + 2] = v * 255 * 1.025; ib.data[p + 3] = 255;
+      if (o.nurBasis) continue;
+      // geätzt: dunkler, matt; Faserverlauf als unscharfe, ungleichmäßige Streifung entlang der Umformrichtung
+      const dy = bieg ? bieg(x, y) : 0, Yf = (y + dy) / k;
+      const faser = o.faser === false ? 0 : (fbm(X / 260, Yf / 5.5, seed + 211, 4) - 0.5) * 0.30 + (fbm(X / 90, Yf / 2.2, seed + 307, 3) - 0.5) * 0.12;
+      const flecken = (fbm(X / 70, Y / 70, seed + 401, 4) - 0.5) * 0.10;
+      const gr = grain[(i * 7 + 13) % grain.length];
+      const pore = gr > 0.497 ? -0.18 : 0;   // vereinzelte Ätzgrübchen
+      let E = (hell ? 0.47 : 0.36) + faser + flecken + wolke * 0.6 + gr * 0.06 + pore + riefen * 0.25;
+      v = Math.max(0, Math.min(1, E));
+      ie.data[p] = v * 255 * 1.03; ie.data[p + 1] = v * 255 * 1.0; ie.data[p + 2] = v * 255 * 0.95; ie.data[p + 3] = 255;
+    }
+    cb.getContext('2d').putImageData(ib, 0, 0); if (!o.nurBasis) ce.getContext('2d').putImageData(ie, 0, 0);
+    return { basis: cb, geaetzt: ce };
+  }
+  window.ZfPOberflaeche = { erzeugen, noise, fbm };
+})();
+
+</script>
+<script>
 const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 const CW=900, CH=620;
+/* Mobil: Auflösung begrenzen (sonst 2700×1860 px Canvas + pixelweise Textur → Seite friert ein / stürzt ab) */
+function dprCap(){ const d=Math.max(1, window.devicePixelRatio||1); return (window.matchMedia&&matchMedia('(pointer:coarse)').matches)? 1 : Math.min(2,d); }
 function hiDPI(){
-  const dpr = Math.max(1, window.devicePixelRatio||1);
+  const dpr = dprCap();
   cv.width = CW*dpr; cv.height = CH*dpr;
   cv.style.aspectRatio = (CW/CH);
   ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -408,9 +779,9 @@ function applyTheme(theme){
   document.body.classList.toggle('light-mode',light);
   themeBtn.textContent = light ? '☾' : '☀';
 }
-themeCtl.onTheme(applyTheme);
+ZfPContext.onTheme(applyTheme);
 themeBtn.addEventListener('click',()=>{
-  themeCtl.toggleTheme();
+  ZfPContext.toggleTheme();
   draw();
 });
 
@@ -432,49 +803,48 @@ function computeState(){
   // FIX: Zeitskala war völlig unrealistisch (Überätzung erst nach ~87s bei
   // Standardkonzentration, Regler ging bis 90s). Praxisgerecht neu kalibriert:
   // gute Auswertbarkeit nach ca. 10–20s, Überätzung ab ca. 30s (bei 3% Nital, mittlerer Bewegung).
-  let progress = 1 - Math.exp(-(conc*t*rate)/105);
+  // V5.5: schwache Nital-Lösungen (1–2 %) zeigen nach ~15 s bereits ein auswertbares Ergebnis (Wirkung ~ √Konzentration)
+  let progress = 1 - Math.exp(-(Math.sqrt(conc)*t*rate)/30);
   progress = Math.max(0, Math.min(1, progress));
   const depth = (conc*t*0.045*(1+ag*0.25));
-  const overetch = Math.max(0, (conc*t - 60)/60);
+  // Rissprüfung (Materialrisse): nur ca. 8–10 s ätzen (bei 3 % Nital) – länger = überätzt, der Riss geht im Gefüge unter.
+  // Schleifbrand/Schleifrisse: normale (längere) Ätzzeit.
+  const sp = (typeof specSel!=='undefined' && specSel) ? specSel.value : '';
+  const lim = (sp==='crackR'||sp==='crackU') ? 30 : 60;
+  const overetch = Math.max(0, (conc*t - lim)/lim);
   return {conc,t,ag,progress,depth,overetch};
 }
 
+// Realistische, pixelgenau erzeugte Stahloberfläche (geschliffen → geätzt), je Prüfobjekt/Darstellung zwischengespeichert
+const TEX = {};
+function faserBiegung(spec){
+  if(spec!=='fold') return null;
+  return (x,y)=> -Math.sin((x-430)/70)*Math.exp(-Math.pow((x-430)/260,2))*36*(y/CH)*1.2;
+}
+function textur(spec){
+  const coarse = !!(window.matchMedia && matchMedia('(pointer:coarse)').matches);
+  const dpr = coarse ? 0.5 : dprCap();   // Mobil: Textur in halber Auflösung (schnell, wenig Speicher), wird hochskaliert
+  const key = (spec==='fold'?'fold':'plain')+'|'+light+'|'+dpr;   // nur Faserverlauf unterscheidet die Textur
+  if(TEX[key]) return TEX[key];
+  if(window.ZfPOberflaeche && !texBusy){
+    // Erzeugung asynchron: Seite erscheint sofort (einfarbige Fläche), Textur folgt und löst ein Neuzeichnen aus
+    texBusy = true;
+    setTimeout(()=>{
+      try{
+        Object.keys(TEX).forEach(k=>{ delete TEX[k]; });
+        const b = faserBiegung(spec);
+        TEX[key] = ZfPOberflaeche.erzeugen(CW*dpr, CH*dpr, { seed: 11, hell: light, massstab: dpr, biegung: b ? (x,y)=>b(x/dpr,y/dpr)*dpr : null });
+      }catch(e){ console.error(e); }
+      texBusy = false; draw();
+    }, 30);
+  }
+  return null;
+}
+let texBusy = false;
 function brushedMetal(w,h){
-  // base ground-steel sheen (satin gray, as on a real ground/etched coupon)
-  const grad = ctx.createLinearGradient(0,0,w,h);
-  if(light){
-    grad.addColorStop(0,'#cfd5da'); grad.addColorStop(0.5,'#c1c8ce'); grad.addColorStop(1,'#b3bbc2');
-  } else {
-    grad.addColorStop(0,'#a8b0b8'); grad.addColorStop(0.5,'#9aa3ab'); grad.addColorStop(1,'#8c959d');
-  }
-  ctx.fillStyle=grad; ctx.fillRect(0,0,w,h);
-
-  // FIX: realistischere Oberfläche — organisches Wolken-/Mottling-Muster (Polierungs-
-  // und Ätzansprache variiert nie perfekt gleichmäßig) statt reinem Flächenverlauf.
-  const CELL=5;
-  for(let y=0;y<h;y+=CELL){
-    for(let x=0;x<w;x+=CELL){
-      const n = fbm(x/w, y/h);
-      const shade = (n-0.5)*(light?10:16);
-      ctx.fillStyle = shade>=0 ? `rgba(255,255,255,${Math.min(0.16,shade/60)})` : `rgba(0,0,0,${Math.min(0.16,-shade/60)})`;
-      ctx.fillRect(x,y,CELL,CELL);
-    }
-  }
-
-  // Feinere, dichtere Schleifriefen mit variabler Deckkraft/Länge statt 40 identischer Linien
-  ctx.save();
-  ctx.strokeStyle = light ? '#fff' : '#fff';
-  for(let i=0;i<130;i++){
-    const y = Math.random()*h;
-    const len = w*(0.4+Math.random()*0.6);
-    const x0 = Math.random()*(w-len);
-    ctx.globalAlpha = 0.03+Math.random()*0.09;
-    ctx.beginPath();
-    ctx.moveTo(x0,y); ctx.lineTo(x0+len,y+(Math.random()*5-2.5));
-    ctx.lineWidth=0.4+Math.random()*0.7;
-    ctx.stroke();
-  }
-  ctx.restore();
+  const T = textur(specSel.value);
+  if(T){ ctx.drawImage(T.basis,0,0,w,h); return; }
+  ctx.fillStyle = light ? '#c4cbd1' : '#9aa3ab'; ctx.fillRect(0,0,w,h);
 }
 
 function draw(){
@@ -505,8 +875,12 @@ function draw(){
 
   let defectVisible = false, defectLabel = 'kein Befund';
   if(spec==='fold'){ defectVisible = p>0.35; defectLabel = defectVisible? 'Schmiedefalte sichtbar':'noch nicht erkennbar'; }
+  if(spec==='crackR'){ defectVisible = p>0.3; defectLabel = defectVisible? 'Materialriss (radial) sichtbar':'noch nicht erkennbar'; }
+  if(spec==='crackU'){ defectVisible = p>0.3; defectLabel = defectVisible? 'Materialriss (umlaufend) sichtbar':'noch nicht erkennbar'; }
+  if(spec==='grindcrack'){ defectVisible = true; defectLabel = 'Schleifrisse schon ungeätzt schwach sichtbar'; }
   if(spec==='burn'){ defectVisible = p>0.28; defectLabel = defectVisible? 'Schleifbrand sichtbar':'noch nicht erkennbar'; }
-  if(spec==='decarb'){ defectVisible = p>0.4; defectLabel = defectVisible? 'Entkohlungssaum sichtbar':'noch nicht erkennbar'; }
+  if(spec==='burncrack'){ defectVisible = true; defectLabel = p>0.28 ? 'Schleifbrand (Anlass-/Neuhärtezone) + Schleifrisse sichtbar' : 'Schleifrisse schwach sichtbar – Brandzone noch nicht erkennbar'; }
+  if(spec==='decarb'){ defectVisible = p>0.4; defectLabel = defectVisible? 'Randentkohlung (heller Streifen) sichtbar':'noch nicht erkennbar'; }
   if(spec==='clean'){ defectVisible = false; defectLabel = 'fehlerfrei'; }
 
   stDefect.textContent = defectLabel;
@@ -525,11 +899,18 @@ function draw(){
     callout.className='callout bad';
     callout.innerHTML = '<b>Überätzung!</b> Bei zu hoher Konzentration/Zeit werden Körner ausgewaschen, ' +
       'die Oberfläche wird rau und künstliche Strukturen können mit echten Fehlern verwechselt werden. Ätzzeit reduzieren.';
-  } else if(spec==='burn' && p>=0.28){
+  } else if(spec==='grindcrack'){
+    callout.className='callout bad';
+    callout.innerHTML = '<b>Schleifrisse erkannt.</b> Feine, kurze, verästelte (netz- bzw. spinnenartige) Risse in der Schleifzone, meist quer zur Schleifrichtung – entstanden durch Überhitzung und Eigenspannung beim Schleifen (häufig zusammen mit Schleifbrand). ' +
+      'Kein heller Saum. Sie sind schon ungeätzt schwach erkennbar – Ätzen macht sie nicht deutlicher, eher etwas schlechter. Ätzen ist nur nötig, um zusätzlich Anlass- und Neuhärtezone (Schleifbrand) zu beurteilen. Bauteil nicht i.O.';
+  } else if((spec==='crackR'||spec==='crackU') && p>=0.3){
+    callout.className='callout bad';
+    callout.innerHTML = '<b>Materialriss erkannt.</b> Durchgehende, scharf begrenzte Risslinie mit <b>hellem Saum</b> (Randentkohlung entlang des Risses – der Riss war schon vor dem Härten bzw. Anlassen vorhanden). Kein Schleifriss: nicht verästelt und nicht auf die Schleifzone begrenzt. Rissprüfung: nur ca. 8–10 s ätzen – länger ätzen verschlechtert die Erkennbarkeit. Bauteil nicht i.O.';
+  } else if((spec==='burn'||spec==='burncrack') && p>=0.28){
     callout.className='callout bad';
     callout.innerHTML = '<b>Schleifbrand erkannt.</b> Lokale Überhitzung beim Schleifen hat die Randzone erneut über Austenitisierungstemperatur ' +
       'erwärmt: ein heller, ungeätzter Neuhärtungskern (unangelassener Martensit) ist von einer dunkler geätzten Anlasszone umgeben. ' +
-      'Bauteil i.d.R. nicht i.O. — Randhärte und Eigenspannung sind beeinträchtigt.';
+      'Bauteil i.d.R. nicht i.O. — Randhärte und Eigenspannung sind beeinträchtigt.' + (spec==='burncrack' ? ' Zusätzlich sind feine, verästelte Schleifrisse sichtbar (schon ungeätzt erkennbar, durch Ätzen eher schlechter).' : '');
   } else if(p>=0.35){
     callout.className='callout good';
     callout.innerHTML = '<b>Gut auswertbar.</b> Gefüge/Faserverlauf ist ausreichend kontrastiert und kann fachgerecht beurteilt werden.';
@@ -540,66 +921,102 @@ function draw(){
   }
 }
 
+// Schleifrisse: schon UNGEÄTZT schwach sichtbar (nicht zu dunkel); Ätzen macht sie nicht deutlicher, eher etwas schlechter
+function drawGrindCracks(spec,p,st){
+  if(spec!=='grindcrack' && spec!=='burncrack') return;
+  const a = Math.max(0.12, 0.42*(1-0.5*p)*(1-0.6*Math.min(1,st.overetch)));
+  let sd=77; const rn=()=>{ sd=(sd*9301+49297)%233280; return sd/233280; };
+  ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+  const col = light ? '#3b4048' : '#1b1f25';
+  const branch=(x,y,ang,len,wid,depth)=>{
+    const n=Math.max(3,Math.round(len/5)); let cx=x, cy=y, an=ang;
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    const pts=[[cx,cy]];
+    for(let i=0;i<n;i++){ an+=(rn()-0.5)*0.9; cx+=Math.cos(an)*len/n; cy+=Math.sin(an)*len/n; ctx.lineTo(cx,cy); pts.push([cx,cy]); }
+    ctx.globalAlpha=a*(0.6+0.4*(wid/1.0)); ctx.lineWidth=wid; ctx.strokeStyle=col; ctx.stroke();
+    if(depth>0){
+      const k=2+Math.floor(rn()*2);
+      for(let j=0;j<k;j++){ const q=pts[1+Math.floor(rn()*(pts.length-2))]; const side=rn()<0.5?-1:1;
+        branch(q[0],q[1],an+side*(0.5+rn()*0.9),len*(0.35+rn()*0.3),Math.max(0.45,wid*0.7),depth-1); }
+    }
+  };
+  // mehrere dichte Gruppen quer zur (waagrechten) Schleifrichtung – kleine, feine Netzrisse
+  const G = spec==='burncrack'
+    ? [[520,282],[565,300],[610,285],[540,330],[590,330],[500,310],[635,310],[470,290]]
+    : [[360,255],[430,285],[500,262],[565,295],[395,340],[470,330],[540,350],[610,260]];
+  G.forEach((c,gi)=>{
+    const m=4+(gi%2);
+    for(let i=0;i<m;i++){ const x=c[0]+(rn()-0.5)*44, y=c[1]+(rn()-0.5)*34; branch(x,y,Math.PI/2+(rn()-0.5)*1.0,13+rn()*20,0.9,3); }
+  });
+  ctx.restore();
+}
+
 function drawMacro(spec, p, st){
   const w=CW, h=CH;
-  const vis = Math.min(1, p*1.6);
+  const vis = Math.min(1, p*1.5);
 
-  // FIX: realistischere Grundfläche — wolkige Schwärzungs-Mottling (echte Makroätzungen
-  // sind nie gleichmäßig grau, sondern zeigen unruhige Helligkeitswolken)
-  ctx.save();
-  ctx.globalAlpha = vis*0.55;
-  const CELL=6;
-  for(let y=0;y<h;y+=CELL){
-    for(let x=0;x<w;x+=CELL){
-      const n = fbm(x/w, y/h);
-      const shade=(n-0.5)*26;
-      ctx.fillStyle = shade>=0? `rgba(60,64,70,${Math.min(0.2,shade/70)})` : `rgba(255,255,255,${Math.min(0.16,-shade/70)})`;
-      ctx.fillRect(x,y,CELL,CELL);
-    }
-  }
-  ctx.restore();
-
-  // Faserverlauf: organisch verlaufende Linien statt exakter Sinuskurven — Position,
-  // Dicke und Deckkraft jeder Linie werden per Noise leicht gestört (wie echter Walz-/
-  // Schmiedefaserverlauf, der nie perfekt parallel/regelmäßig ist).
-  ctx.save();
-  ctx.strokeStyle = light ? '#5c646c' : '#454d55';
-  const rowsN = 30;
-  for(let i=0;i<rowsN;i++){
-    const y0 = 18 + i*(h-36)/rowsN;
-    const rowSeed = i*13.7;
-    ctx.globalAlpha = vis*(0.45+0.4*noiseMid(0.1, i/rowsN));
-    ctx.lineWidth = 1.1+noiseMid(0.8,i/rowsN)*1.8;
-    ctx.beginPath();
-    for(let x=0;x<=w;x+=10){
-      const bend = spec==='fold' ? Math.sin((x-430)/70)*Math.exp(-Math.pow((x-430)/260,2))*36*(i%3===0?1.4:1) : 0;
-      const wob = Math.sin(x/140 + i)*6 + (fbm((x+rowSeed*40)/w, (y0)/h)-0.5)*22;
-      const y = y0 + wob + (spec==='fold'? bend*(i/rowsN) : 0);
-      if(x===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    }
-    ctx.stroke();
-  }
-  ctx.restore();
+  // geätzter Zustand: dunkler, matter, Faserverlauf als ungleichmäßige Streifung – mit dem Ätzfortschritt überblendet
+  const T = textur(spec);
+  if(T){ ctx.save(); ctx.globalAlpha = vis; ctx.drawImage(T.geaetzt,0,0,w,h); ctx.restore(); }
 
   if(spec==='fold' && p>0.3){
-    const a = Math.min(1,(p-0.3)/0.5);
+    // Schmiedefalte: länglicher, unregelmäßiger, teils unterbrochener Fehler in Faserrichtung (schräg, nicht an der Kante),
+    // mit feinen Seitenästen – dunkle, scharf gezeichnete Linie mit schwachem Saum
+    const a = Math.min(1,(p-0.3)/0.4);
     ctx.save();
-    // dünner dunkler Riss, wie im Referenzbild — kein dicker roter Glow, das sah künstlich aus
-    ctx.globalAlpha = a*0.9;
-    ctx.strokeStyle = light ? '#332720' : '#171010';
-    ctx.lineWidth = 1.4;
-    ctx.lineCap = 'round';
-    strokePts(foldMainPts);
-    ctx.globalAlpha = a*0.55;
-    ctx.lineWidth = 3;
-    strokePts(foldMainPts);
-    ctx.globalAlpha = a*0.55;
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = light ? '#4a3a30' : '#241a16';
-    strokePts(foldSecPts);
+    ctx.translate(430,318); ctx.rotate(-0.09);
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    const col = light ? '#2e2c2c' : '#0e0e0e';
+    const seg = (pts,wid,al)=>{ ctx.globalAlpha=a*al; ctx.lineWidth=wid; ctx.strokeStyle=col; ctx.beginPath(); pts.forEach((q,k)=>{ if(k===0) ctx.moveTo(q[0],q[1]); else ctx.lineTo(q[0],q[1]); }); ctx.stroke(); };
+    const A=[[-150,6],[-138,3],[-124,5],[-110,1.5],[-96,3.5],[-80,0],[-66,2.5],[-50,-1],[-36,1.5],[-22,-2.5],[-8,0]];
+    const B=[[6,-1],[20,-4],[34,-1.5],[50,-3.5],[64,-0.5],[80,-2],[96,1],[112,-1.5],[128,2],[146,0.5]];
+    [A,B].forEach(P=>{ seg(P,4.2,0.28); seg(P,1.7,0.95); });
+    seg([[-96,3.5],[-90,9],[-82,13]],1.1,0.8);      // Seitenäste
+    seg([[-36,1.5],[-30,-6],[-22,-11]],1.1,0.8);
+    seg([[64,-0.5],[70,5],[78,9]],1.1,0.8);
+    seg([[-8,0],[-3,-0.5],[6,-1]],0.8,0.45);         // feine Verbindung zwischen den Teilstücken
     ctx.restore();
   }
-  if(spec==='burn' && p>0.28){
+  if((spec==='crackR'||spec==='crackU') && p>0.25){
+    // Risse (keine Schleifrisse): dünne, scharfe, unregelmäßige Linie mit dunkel angeätztem Saum;
+    // radial: beginnt rechtwinklig an der Bauteilkante und läuft spitz aus; umlaufend: feiner, leicht welliger Bogen quer zur Faser
+    const a = Math.min(1,(p-0.25)/0.4)*(1-0.65*Math.min(1,st.overetch));   // überätzt: Riss verschwimmt
+    let sd = spec==='crackR'?31:57; const rn=()=>{ sd=(sd*9301+49297)%233280; return sd/233280; };
+    let pts=[];
+    if(spec==='crackR'){
+      const x0=330, n=34, L=200;
+      for(let i=0;i<=n;i++){ const t=i/n; pts.push({x:x0+Math.sin(t*3.1)*5+(rn()-0.5)*3.2*(0.4+t), y:2+t*L}); }
+    } else {
+      const n=90;
+      for(let i=0;i<=n;i++){ const t=i/n; const x=60+t*780; const y=430-Math.sin(t*Math.PI*0.9+0.15)*70+Math.sin(t*23)*1.6+(rn()-0.5)*2.2; pts.push({x,y}); }
+    }
+    ctx.save(); ctx.lineCap='round'; ctx.lineJoin='round';
+    const stroke=(wid,al,col)=>{ ctx.globalAlpha=a*al; ctx.lineWidth=wid; ctx.strokeStyle=col; ctx.beginPath(); pts.forEach((q,k)=>{ if(k===0) ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y); }); ctx.stroke(); };
+    // Materialriss: scharfe dunkle Risslinie, beidseitig nur MINIMAL hellerer Rand (entkohlter Saum)
+    const rim = '#ffffff';
+    if(spec==='crackR'){
+      stroke(15,0.03,rim);
+      stroke(10,0.05,rim);
+      stroke(6,0.07,rim);
+      stroke(2.6,0.85,light?'#1c2028':'#0b0d11');
+      stroke(1.1,1,'#000');
+    } else {
+      stroke(13,0.03,rim);
+      stroke(9,0.05,rim);
+      stroke(5,0.07,rim);
+      stroke(2.1,0.85,light?'#232932':'#10141b');
+      stroke(0.9,1,'#000');
+    }
+    if(spec==='crackR'){           // kurzer Nebenast
+      const k=Math.floor(pts.length*0.45); ctx.globalAlpha=a*0.85; ctx.lineWidth=0.9; ctx.strokeStyle='#000';
+      ctx.beginPath(); ctx.moveTo(pts[k].x,pts[k].y); ctx.lineTo(pts[k].x+9,pts[k].y+12); ctx.lineTo(pts[k].x+13,pts[k].y+26); ctx.stroke();
+    } else {
+      const k=Math.floor(pts.length*0.62); ctx.globalAlpha=a*0.8; ctx.lineWidth=0.8; ctx.strokeStyle='#000';
+      ctx.beginPath(); ctx.moveTo(pts[k].x,pts[k].y); ctx.lineTo(pts[k].x+10,pts[k].y-9); ctx.lineTo(pts[k].x+22,pts[k].y-11); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  if((spec==='burn'||spec==='burncrack') && p>0.28){
     const a = Math.min(1,(p-0.28)/0.45);
     const bx=560, by=300;
     ctx.save();
@@ -665,18 +1082,42 @@ function drawMacro(spec, p, st){
     ctx.restore();
   }
   if(spec==='decarb' && p>0.35){
+    // Randentkohlung: mittiger Streifen – kohlenstoffarme (ferritische) Randzone ätzt hellgrau, KEIN Weiß;
+    // allmählicher Übergang (Teilentkohlung) zum dunkel geätzten, kohlenstoffreichen Gefüge, Ferritkorngrenzen sichtbar
     const a = Math.min(1,(p-0.35)/0.4);
+    const cy = h/2, half = 38;
     ctx.save();
-    ctx.globalAlpha=a*0.7;
-    ctx.fillStyle = '#e9ecec';
-    ctx.fillRect(0,0,w,26);
-    ctx.fillRect(0,h-26,w,26);
-    ctx.fillRect(0,0,26,h);
-    ctx.fillRect(w-26,0,26,h);
+    ctx.globalAlpha = a;
+    // Streifen mit unruhigem Rand: zeilenweise Breite aus Rauschen
+    const top=[], bot=[];
+    for(let x=0;x<=w;x+=6){
+      top.push({x, y: cy-half + (fbm(x/w*1.2+0.11,0.21)-0.5)*14});
+      bot.push({x, y: cy+half + (fbm(x/w*1.2+0.57,0.63)-0.5)*14});
+    }
+    const path=()=>{ ctx.beginPath(); top.forEach((q,k)=>{ if(k===0) ctx.moveTo(q.x,q.y); else ctx.lineTo(q.x,q.y); }); for(let k=bot.length-1;k>=0;k--) ctx.lineTo(bot[k].x,bot[k].y); ctx.closePath(); };
+    // 1) breiter, weicher Übergangssaum (Teilentkohlung)
+    const g = ctx.createLinearGradient(0,cy-half-34,0,cy+half+34);
+    g.addColorStop(0,'rgba(170,176,178,0)');
+    g.addColorStop(0.28,light?'rgba(166,172,175,0.5)':'rgba(150,156,160,0.5)');
+    g.addColorStop(0.5,light?'rgba(186,192,194,0.72)':'rgba(170,176,179,0.7)');
+    g.addColorStop(0.72,light?'rgba(166,172,175,0.5)':'rgba(150,156,160,0.5)');
+    g.addColorStop(1,'rgba(170,176,178,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,cy-half-34,w,2*half+68);
+    // 2) Ferritkörner (polygonale Körner mit dunklen Korngrenzen) im Streifen
+    ctx.save(); path(); ctx.clip();
+    ctx.globalAlpha = a*0.38; ctx.strokeStyle = light?'rgba(70,76,80,0.55)':'rgba(30,34,38,0.6)'; ctx.lineWidth = 0.8;
+    let sd=7; const rn=()=>{ sd=(sd*9301+49297)%233280; return sd/233280; };
+    for(let gx=-10; gx<w+10; gx+=17) for(let gy=cy-half-14; gy<cy+half+14; gy+=15){
+      const x=gx+(rn()-0.5)*9, y=gy+(rn()-0.5)*9, r=6+rn()*3;
+      ctx.beginPath(); for(let k=0;k<6;k++){ const an=k*Math.PI/3+rn()*0.7, rr=r*(0.7+rn()*0.6); const px=x+Math.cos(an)*rr, py=y+Math.sin(an)*rr; if(k===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); } ctx.closePath(); ctx.stroke();
+    }
+    ctx.restore();
     ctx.restore();
   }
+  drawGrindCracks(spec,p,st);
 }
 
+let SPEED = 1;
 let targetTime = 0; // beim Klick auf "Start" erfasster Zielwert des Reglers
 let lastTs = null;   // Zeitstempel des letzten Frames für Echtzeit-Fortschritt
 
@@ -686,7 +1127,7 @@ function tick(ts){
   // Echtzeit: Fortschritt basiert auf der tatsächlich vergangenen Wanduhrzeit
   // zwischen zwei Frames, nicht auf einem festen Inkrement pro Frame.
   // Cap gegen Ausreißer (z.B. Tab im Hintergrund gedrosselt).
-  const dt = Math.min(0.5, Math.max(0, (ts-lastTs)/1000));
+  const dt = Math.min(0.5, Math.max(0, (ts-lastTs)/1000)) * SPEED;
   lastTs = ts;
   elapsed = Math.min(targetTime, elapsed+dt);
   timeV.textContent = fmt(elapsed,0)+' / '+fmt(targetTime,0)+' s';
@@ -696,6 +1137,7 @@ function tick(ts){
 }
 
 document.getElementById('btnRun').addEventListener('click',()=>{
+  if(!(parseFloat(timeEl.value)>0)){ timeEl.value = 30; }   // Regler auf 0 (z. B. am Handy nicht verstellt): sinnvolle Standard-Ätzzeit nehmen statt „nichts passiert“
   targetTime = parseFloat(timeEl.value);
   elapsed = 0;
   running=true;
@@ -703,6 +1145,7 @@ document.getElementById('btnRun').addEventListener('click',()=>{
   if(rafId) cancelAnimationFrame(rafId);
   rafId = requestAnimationFrame(tick);
 });
+document.getElementById('btnSpeed').addEventListener('click',e=>{ SPEED = SPEED===1?2:1; e.currentTarget.classList.toggle('primary', SPEED===2); e.currentTarget.textContent = SPEED===2 ? '⏩ 2× aktiv' : '⏩ 2× Geschwindigkeit'; });
 document.getElementById('btnStop').addEventListener('click',()=>{ running=false; if(rafId) cancelAnimationFrame(rafId); });
 document.getElementById('btnReset').addEventListener('click',()=>{
   running=false; if(rafId) cancelAnimationFrame(rafId);

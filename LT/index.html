@@ -59,6 +59,8 @@
   .icon-btn:hover{border-color:var(--cyan); color:var(--cyan);}
   .icon-btn:focus-visible{outline:2px solid var(--cyan); outline-offset:2px;}
 
+  .layout>*{min-width:0;}
+  .seg button{white-space:normal; overflow-wrap:anywhere;}
   .layout{display:grid; grid-template-columns:1fr; gap:15px; align-items:start;}
   @media(min-width:1000px){ .layout{grid-template-columns:300px 1fr; gap:17px;} }
   @media(min-width:1440px){ .layout{grid-template-columns:322px 1fr;} }
@@ -193,19 +195,241 @@
   body.m-schnueffel .field.only-schnueffel,body.m-vakuum .field.only-vakuum{display:block;}
   @media(prefers-reduced-motion:reduce){ *{transition:none!important; animation:none!important;} }
 </style>
-<script>
-/* Lokaler Theme-Zustand (Hell/Dunkel), gespeichert in localStorage. */
-var themeCtl=(function(){
-  var cbs=[], mode=null, KEY='zfp-theme';
-  function store(v){ try{ if(v===undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY,v); }catch(e){} return null; }
-  function init(){ if(mode) return; var s=store(); mode=(s==='light'||s==='dark')?s:((document.body&&(document.body.classList.contains('light-mode')||document.body.classList.contains('light')))?'light':'dark'); }
-  return {
-    onTheme:function(f){ if(typeof f!=='function') return; cbs.push(f); init(); f(mode); },
-    toggleTheme:function(){ init(); mode=mode==='light'?'dark':'light'; store(mode); cbs.forEach(function(f){ try{ f(mode); }catch(e){} }); }
-  };
+<script id="perf-guard">
+/* Entlastung: Bildschleifen passen sich der Rechenzeit an (kein Dauer-Vollgas auf schwachen/mobilen Geräten) */
+(function(){var raf=window.requestAnimationFrame.bind(window),st=new WeakMap();
+window.requestAnimationFrame=function(cb){return raf(function w(t){
+  var o=st.get(cb)||{last:0,ema:0}; st.set(cb,o);
+  var gap=Math.min(100,o.ema*1.2);
+  if(o.last&&t-o.last<gap){return raf(w);}
+  var s=performance.now(); o.last=t; try{cb(t);}finally{o.ema=o.ema*0.8+(performance.now()-s)*0.2; if(o.ema<10) o.ema=0;}
+});};
 })();
 </script>
+<script>
+/* ============================================================================
+ * ZfP Shared Context – Werk / Sprache / Theme (seitenübergreifend)
+ * ----------------------------------------------------------------------------
+ * Eine EINZIGE Quelle der Wahrheit für die drei globalen Einstellungen, die
+ * über ALLE Apps hinweg synchron sein sollen:
+ *
+ *   • Werk    -> localStorage['zfp-aktives-werk']    (ID aus werke.json)
+ *   • Sprache -> localStorage['zfp-lang']            ('de' | 'en')
+ *   • Theme   -> localStorage['zfp-theme-preference']('dark' | 'light')
+ *
+ * GLOBALE THEME-REGELN (verbindlich für ALLE Seiten, auch Unter-Apps):
+ *   1. Es gibt genau EINEN Speicherschlüssel und genau EINEN Standardwert
+ *      (DEFAULT_THEME unten). Keine Seite darf eigene Schlüssel, eigene
+ *      Standardwerte, System-Einstellung (prefers-color-scheme) oder eigene
+ *      Fallback-Controller verwenden.
+ *   2. Das Skript steht im <head> jeder Seite MIT Dark Mode und setzt
+ *      <html data-theme="dark|light"> samt color-scheme bereits vor dem ersten
+ *      Zeichnen und bei jeder Änderung. Seiten OHNE Dark Mode (Admin, Login,
+ *      Handbuch) binden es nicht ein; die PMÜ-Protokollformulare ohne Dark Mode
+ *      binden es nur für Sprache/Werk ein (Attribut data-theme-off) und bleiben hell.
+ *   3. Seiten reagieren nur noch über ZfPContext.onTheme(fn) und schalten nur
+ *      noch über ZfPContext.toggleTheme() / setTheme() um.
+ *   4. Startwert = HELL. Nach „Dunkel“ bleibt es gespeichert, bis wieder
+ *      „Hell“ gewählt wird (gilt für alle Seiten gemeinsam).
+ *
+ * Frühere Versionen der einzelnen Seiten benutzten UNTERSCHIEDLICHE
+ * Schlüssel (z. B. 'zfp-lang-preference', 'MT_LANG_KEY', 'mpi-dark'). Deshalb
+ * blieben Sprache/Theme beim Seitenwechsel nicht erhalten. Dieses Modul
+ * migriert alte Schlüssel EINMALIG auf die kanonischen und hält danach alle
+ * offenen Tabs über das native 'storage'-Event synchron.
+ *
+ * Das Modul ändert von sich aus NICHTS am DOM. Jede Seite registriert per
+ * ZfPContext.onWerk / onLang / onTheme ihre eigene Anwendungsfunktion und
+ * bekommt den aktuellen Wert sofort + bei jeder späteren Änderung gemeldet.
+ * ========================================================================== */
+(function (global) {
+  'use strict';
 
+  var KEY_WERK  = 'zfp-aktives-werk';
+  var KEY_LANG  = 'zfp-lang';
+  var KEY_THEME = 'zfp-theme-preference';
+
+  var SCHWEINFURT_ID = 'schweinfurt';
+
+  // Einziger Standardwert: Das Portal startet IMMER hell. Wird auf Dunkel gestellt,
+  // merkt sich der Browser das (localStorage) – bis wieder auf Hell gestellt wird.
+  var DEFAULT_THEME = 'light';
+
+  // Alte Schlüssel, deren Wert (falls vorhanden und der neue noch leer ist)
+  // einmalig übernommen wird.
+  var LEGACY_LANG_KEYS  = ['zfp-lang-preference', 'MT_LANG_KEY', 'mt_lang'];
+  var LEGACY_THEME_KEYS = ['THEME_KEY', 'mt-theme', 'zfp-theme', 'zfp_theme', 'gefuege_theme'];
+
+  function safeGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function safeSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  // ─── Einmalige Migration alter Schlüssel ────────────────────────────────
+  (function migrate() {
+    if (!safeGet(KEY_LANG)) {
+      for (var i = 0; i < LEGACY_LANG_KEYS.length; i++) {
+        var v = safeGet(LEGACY_LANG_KEYS[i]);
+        if (v === 'de' || v === 'en') { safeSet(KEY_LANG, v); break; }
+      }
+    }
+    if (!safeGet(KEY_THEME)) {
+      for (var j = 0; j < LEGACY_THEME_KEYS.length; j++) {
+        var t = safeGet(LEGACY_THEME_KEYS[j]);
+        if (t === 'dark' || t === 'light') { safeSet(KEY_THEME, t); break; }
+      }
+    }
+    if (!safeGet(KEY_THEME)) {
+      var mpi = safeGet('mpi-dark');
+      if (mpi === '1' || mpi === 'true') safeSet(KEY_THEME, 'dark');
+      else if (mpi === '0' || mpi === 'false') safeSet(KEY_THEME, 'light');
+    }
+    // Veraltete Einzelschlüssel entfernen, damit sie nie wieder als zweite
+    // „Wahrheit“ herangezogen werden können.
+    ['zfp-theme', 'zfp_theme', 'gefuege_theme', 'THEME_KEY', 'mt-theme', 'mpi-dark'].forEach(function (k) {
+      try { localStorage.removeItem(k); } catch (e) {}
+    });
+  })();
+
+  function getWerk()  { return safeGet(KEY_WERK)  || SCHWEINFURT_ID; }
+  function getLang()  { var v = safeGet(KEY_LANG);  return (v === 'en') ? 'en' : 'de'; }
+  function normTheme(v) { return (v === 'light' || v === 'dark') ? v : DEFAULT_THEME; }
+  function getTheme() { return normTheme(safeGet(KEY_THEME)); }
+
+  // Setzt das Theme sofort am <html>-Element (vor dem ersten Zeichnen, weil das
+  // Skript im <head> steht) – unabhängig davon, ob die Seite selbst reagiert.
+  // Seiten OHNE Dark Mode (PMÜ-Formulare) laden das Skript nur für Sprache/Werk und setzen
+  // <script ... data-theme-off>: dann werden weder data-theme noch color-scheme angefasst.
+  var THEME_OFF = false;
+  try { THEME_OFF = !!(document.currentScript && document.currentScript.hasAttribute('data-theme-off')); } catch (e) {}
+  function applyDom(theme) {
+    if (THEME_OFF) return;
+    try {
+      var root = document.documentElement;
+      root.setAttribute('data-theme', theme);
+      root.style.colorScheme = theme;
+    } catch (e) {}
+  }
+  applyDom(getTheme());
+
+  var listeners = { werk: [], lang: [], theme: [] };
+
+  function fire(kind, value) {
+    if (kind === 'theme') {
+      applyDom(value);
+      try { document.dispatchEvent(new CustomEvent('zfp:theme', { detail: value })); } catch (e) {}
+    }
+    var arr = listeners[kind];
+    for (var i = 0; i < arr.length; i++) {
+      try { arr[i](value); } catch (e) { /* eine kaputte Callback darf den Rest nicht stoppen */ }
+    }
+  }
+
+  function register(kind, cb, getter) {
+    if (typeof cb !== 'function') return;
+    listeners[kind].push(cb);
+    // Aktuellen Wert sofort liefern, damit die Seite initial korrekt rendert.
+    try { cb(getter()); } catch (e) {}
+  }
+
+  // ─── Setter: schreiben + lokale Callbacks feuern + andere Tabs bekommen
+  //     automatisch das native 'storage'-Event ────────────────────────────
+  function setWerk(id) {
+    if (!id || id === getWerk()) { fire('werk', getWerk()); return; }
+    safeSet(KEY_WERK, id);
+    fire('werk', id);
+  }
+  function setLang(lang) {
+    lang = (lang === 'en') ? 'en' : 'de';
+    safeSet(KEY_LANG, lang);
+    fire('lang', lang);
+  }
+  function toggleLang() { setLang(getLang() === 'de' ? 'en' : 'de'); }
+
+  function setTheme(theme) {
+    theme = normTheme(theme);
+    safeSet(KEY_THEME, theme);
+    fire('theme', theme);
+  }
+  function toggleTheme() { setTheme(getTheme() === 'dark' ? 'light' : 'dark'); }
+
+  // ─── Cross-Tab-Sync: Änderungen aus einem anderen Tab/Fenster ───────────
+  global.addEventListener('storage', function (e) {
+    if (!e) return;
+    if (e.key === KEY_WERK)  fire('werk',  e.newValue || SCHWEINFURT_ID);
+    else if (e.key === KEY_LANG)  fire('lang',  (e.newValue === 'en') ? 'en' : 'de');
+    else if (e.key === KEY_THEME) fire('theme', normTheme(e.newValue));
+  });
+
+  // Zurück/Vorwärts-Navigation (bfcache): Seite zeigt sonst evtl. ein veraltetes Theme.
+  var _lastThemeShown = getTheme();
+  global.addEventListener('pageshow', function (e) {
+    var t = getTheme();
+    if (e && e.persisted && t !== _lastThemeShown) fire('theme', t);
+    _lastThemeShown = t;
+  });
+
+  global.ZfPContext = {
+    KEY_WERK: KEY_WERK, KEY_LANG: KEY_LANG, KEY_THEME: KEY_THEME,
+    SCHWEINFURT_ID: SCHWEINFURT_ID,
+    getWerk: getWerk, setWerk: setWerk,
+    getLang: getLang, setLang: setLang, toggleLang: toggleLang,
+    DEFAULT_THEME: DEFAULT_THEME,
+    getTheme: getTheme, setTheme: setTheme, toggleTheme: toggleTheme,
+    get theme() { return getTheme(); },   // Lesezugriff wie früher in den lokalen Fallbacks
+    onWerk:  function (cb) { register('werk',  cb, getWerk); },
+    onLang:  function (cb) { register('lang',  cb, getLang); },
+    onTheme: function (cb) { register('theme', cb, getTheme); }
+  };
+
+  // ─── WERK-REGISTER + WERK-ABHÄNGIGE PFADE ───────────────────────────────
+  // Damit einfache Seiten (v. a. die PMÜ-Unterseiten) das aktive Werk erben
+  // können, ohne selbst ein Dropdown oder eigene Register-Logik zu enthalten,
+  // stellt das Modul hier eine kleine Hilfe bereit:
+  //   • ladeWerkRegister()  – lädt werke.json einmalig (mit Fallback)
+  //   • werkSuffix()        – Suffix des aktiven Werks ('' = Schweinfurt)
+  //   • protokolleBase()    – '/api/protokolle' bzw. '/api/protokolle__<suffix>'
+  var _werkeRegister = [{ id: SCHWEINFURT_ID, name: 'Schweinfurt', suffix: '' }];
+  var _registerGeladen = false;
+  var _registerPromise = null; // laufendes Laden zwischenspeichern, damit parallele
+                                // Aufrufe (z. B. mehrere Seiten-Skripte) NICHT jeweils
+                                // eine eigene Anfrage starten und alle auf dasselbe
+                                // Ergebnis warten können (siehe protokolleBase()-Fix).
+
+  function ladeWerkRegister() {
+    if (_registerGeladen) return Promise.resolve(_werkeRegister);
+    if (_registerPromise) return _registerPromise; // bereits im Gange – dieselbe Zusage zurückgeben
+    _registerPromise = fetch('/api/data/werke.json?t=' + Date.now())
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (arr) {
+        if (Array.isArray(arr) && arr.length) {
+          if (!arr.find(function (w) { return w.id === SCHWEINFURT_ID; }))
+            arr.unshift({ id: SCHWEINFURT_ID, name: 'Schweinfurt', suffix: '' });
+          _werkeRegister = arr;
+        }
+        _registerGeladen = true;
+        _registerPromise = null;
+        return _werkeRegister;
+      })
+      .catch(function () { _registerGeladen = true; _registerPromise = null; return _werkeRegister; });
+    return _registerPromise;
+  }
+
+  function werkSuffix() {
+    var id = getWerk();
+    var w = _werkeRegister.find(function (x) { return x.id === id; });
+    return (w && w.suffix) ? w.suffix : '';
+  }
+
+  function protokolleBase() {
+    var suf = werkSuffix();
+    return suf ? ('/api/protokolle__' + suf) : '/api/protokolle';
+  }
+
+  global.ZfPContext.ladeWerkRegister = ladeWerkRegister;
+  global.ZfPContext.werkSuffix = werkSuffix;
+  global.ZfPContext.protokolleBase = protokolleBase;
+})(window);
+
+</script>
 <style id="fit-css">
 /* ═══ Kompakt-Dashboard (wie UT): kleine Schrift, dichte Panels, alles auf einem Bildschirm ═══ */
 html.fit, html.fit body{height:100%; overflow:hidden;}
@@ -312,6 +536,88 @@ html.fit .fitgrid #gefInfo{font-size:11px; line-height:1.35;}
 html.fit .fitgrid #statsGef{grid-template-columns:repeat(3,1fr);}
 html.fit .gstates{gap:4px 6px;}
 html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
+
+/* Messwert-Anzeigen und Tabellen: gut lesbar */
+html.fit .stat .k{font-size:10.5px;} html.fit .stat .v{font-size:16px;} html.fit .stat .v small{font-size:11px;}
+html.fit table.res th{font-size:10.5px;} html.fit table.res td{font-size:12px;}
+html.fit .fcol table.res td, html.fit .fcol table.res th{padding:4px 6px;}
+html.fit .foot{font-size:11.5px;} html.fit .legend{font-size:11.5px;} html.fit .legend span{font-size:11.5px;}
+html.fit .stage-title{font-size:11.5px;}
+/* feste Spaltenaufteilung (Einstellungen | Gerätebild | Auswertung) */
+html.fit .fitgrid{grid-template-columns:300px minmax(0,1.2fr) minmax(0,1fr) !important; justify-content:stretch !important;}
+
+/* Schmale Bildschirme (≈1280 px): Vergleichstabelle ohne Spalte „Besonderheit“, kompakter */
+@media (max-width:1500px){
+  #cmpTable th{font-size:10px; letter-spacing:0; white-space:normal; line-height:1.15; vertical-align:bottom;}
+  #cmpTable td{font-size:11px; white-space:nowrap;}
+  #cmpTable th:nth-child(7), #cmpTable td:nth-child(7), #cmpTable th:nth-child(2), #cmpTable td:nth-child(2), #cmpTable th:nth-child(5), #cmpTable td:nth-child(5){display:none;}
+  #cmpTable th, #cmpTable td{padding:3px 6px; font-size:11.5px;}
+}
+</style>
+<style>
+/* ZfP-Portal · Simulationen im Portal-Design (Vorbild: Ätzdatenbank)
+ * Betrifft NUR Kopfbereich, Schriften, Knöpfe, Reiter, Schalter und Karten-Rahmen.
+ * Farben und Kontraste der Darstellungen (Canvas, Diagramme, Skalen, Messwerte, Status) bleiben unverändert;
+ * die Seiten-Variablen (--bg, --border, --text …) werden bewusst nicht angefasst. */
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800&display=swap');
+body{
+  --sd-green:#00893d;--sd-green-d:#006b30;--sd-green-t:#2fc16b;--sd-green-x:rgba(0,137,61,.14);
+  --sd-hdr:#1e1e1e;--sd-bdr:#444;--sd-txt:#ececec;--sd-mut:#b0b0b0;--sd-btn:#1e1e1e;--sd-page:#121212;--sd-card:#1e1e1e;
+}
+body.light,body.light-mode{
+  --sd-green-t:#00893d;--sd-green-x:rgba(0,137,61,.1);
+  --sd-hdr:#fff;--sd-bdr:#d0d0d0;--sd-txt:#1a1a1a;--sd-mut:#555;--sd-btn:#fff;--sd-page:#e0e0e0;--sd-card:#fff;
+}
+html,body{background:var(--sd-page)!important}
+body{background-image:none!important}
+
+/* Schriften */
+body,body *:not(#_):not(svg):not(svg *):not(canvas){font-family:'Barlow',Arial,sans-serif!important}
+body :is(h1,h2,h3,h4,button,summary,label,.stage-title,.sub-h,.badge,.tabs,.legend,.k,.stat .k,.foot):not(#_){font-family:'Barlow Condensed',Arial,sans-serif!important}
+body label{gap:8px}
+body .stat .v,body .stat .k,body table.res,body .foot,body .legend span{font-variant-numeric:tabular-nums}
+
+/* Kopfbereich wie Ätzdatenbank: weiße Karte, grüner Balken links, grüne Linie unten, Logo rechts */
+body header.top{background:var(--sd-hdr)!important;border:1.5px solid var(--sd-bdr)!important;border-left:6px solid var(--sd-green)!important;border-bottom:3px solid var(--sd-green)!important;border-radius:0!important;padding:8px 14px 8px 16px!important;margin-bottom:14px!important;box-shadow:none!important;align-items:center}
+body header.top .brand-eyebrow{display:none!important}
+body header.top h1{font-family:'Barlow Condensed',Arial,sans-serif!important;font-weight:700!important;font-size:clamp(17px,2.4vw,24px)!important;text-transform:uppercase;letter-spacing:.5px;line-height:1.15;color:var(--sd-txt)!important;background:none!important;-webkit-text-fill-color:var(--sd-txt)!important}
+body header.top h1 small{font-family:'Barlow',Arial,sans-serif!important;font-size:12.5px!important;font-weight:400!important;font-style:italic;text-transform:none;letter-spacing:0;color:var(--sd-mut)!important;-webkit-text-fill-color:var(--sd-mut)!important;margin-top:2px}
+body header.top .hdr-right,body header.top .badge-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+body header.top .hdr-right::after,body header.top .badge-row::after{display:none}
+body header.top .badge{border-radius:4px!important;font-family:'Barlow Condensed',Arial,sans-serif!important;font-size:13px!important;font-weight:600;letter-spacing:.3px;text-transform:none;padding:4px 10px!important}
+body .theme-btn,body .icon-btn,body .theme-toggle{width:38px!important;height:38px!important;border-radius:50%!important;background:var(--sd-btn)!important;border:2px solid var(--sd-bdr)!important;color:var(--sd-txt)!important;font-size:17px;display:inline-flex;align-items:center;justify-content:center;padding:0!important;transition:all .2s}
+body .theme-toggle{width:auto!important;min-width:38px;border-radius:19px!important;padding:0 10px!important;gap:5px}
+body .theme-btn:hover,body .icon-btn:hover,body .theme-toggle:hover{border-color:var(--sd-green)!important;transform:translateY(-2px);color:var(--sd-txt)!important}
+@media(max-width:600px){body header.top .hdr-right::after,body header.top .badge-row::after{display:none}}
+
+/* Knöpfe: eckig (4 px), Barlow Condensed, grüne Umrandung; gewählt/aktiv = grün gefüllt */
+body button:where(:not(.theme-btn,.icon-btn,.theme-toggle,.zfp-hilfe-btn,.lang-toggle,#langToggleBtn)){
+  font-size:14px;font-weight:700;letter-spacing:.3px;text-transform:none;
+  border:2px solid var(--sd-green)!important;border-radius:4px!important;background:var(--sd-btn);color:var(--sd-green-t);box-shadow:none}
+body button:where(:not(.theme-btn,.icon-btn,.theme-toggle,.zfp-hilfe-btn)):not(:disabled):hover{background:var(--sd-green-x);color:var(--sd-green-t);border-color:var(--sd-green)!important}
+body button.sel,body button.on,body button.active,body button.primary,body button[aria-pressed="true"],body button[aria-selected="true"]{background:var(--sd-green)!important;border-color:var(--sd-green)!important;color:#fff!important;box-shadow:none!important}
+body button.sel:hover,body button.on:hover,body button.active:hover,body button.primary:hover:not(:disabled){background:var(--sd-green-d)!important;color:#fff!important}
+body button.primary.stop,body .btn.stop,body button.danger{background:#c0392b!important;border-color:#c0392b!important;color:#fff!important}
+body button:disabled{opacity:.4}
+body button:focus-visible,body select:focus-visible,body input:focus-visible{outline:2px solid var(--sd-green)!important;outline-offset:2px}
+body .seg button,body .tabs button,body .dcac button,body .btnrow button{font-size:14px;line-height:1.2}
+body .seg.mini button{font-size:12.5px}
+
+/* Karten, Felder, Schalter */
+body .panel{background:var(--sd-card)!important;border:1.5px solid var(--sd-bdr)!important;border-top:3px solid var(--sd-green)!important;border-radius:4px!important;box-shadow:none!important}
+body .stat,body .callout,body .verdict,body .toggle,body select,body .readout,body .stage{border-radius:4px!important}
+body select{font-family:'Barlow',Arial,sans-serif!important;font-size:14px}
+body .stage-title,body .sub-h,body .panel>h2,body .panel>h3,body .panel>.hd{font-family:'Barlow Condensed',Arial,sans-serif!important;font-size:12.5px!important;font-weight:700;letter-spacing:.8px;color:var(--sd-green-t)!important}
+body input[type=range]{accent-color:var(--sd-green)}
+body input[type=range]::-webkit-slider-thumb{background:var(--sd-green)!important;border:2px solid #fff!important;box-shadow:0 1px 4px rgba(0,0,0,.4)!important}
+body input[type=range]::-moz-range-thumb{background:var(--sd-green);border:2px solid #fff}
+body .toggle.on .switch{background:var(--sd-green)!important}
+body .toggle.on .switch::after{background:#fff!important}
+body .toggle:hover{border-color:var(--sd-green)}
+body details.adv summary::before{color:var(--sd-green-t)!important}
+
+@media print{body header.top .hdr-right::after,body header.top .badge-row::after{display:none}}
+
 </style>
 </head>
 <body class="m-blase">
@@ -319,7 +625,7 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
 
   <header class="top">
     <div>
-      <p class="eyebrow">Dichtheitsprüfung</p>
+      <p class="eyebrow">ZfP · Dichtheitsprüfung</p>
       <h1>Dichtheitsprüf-Simulator
         <small id="h1sub">Leckrate aus der Kapillargeometrie · Blasentest, Druckabfall, Helium</small>
       </h1>
@@ -487,7 +793,7 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
               <span><i style="background:var(--red)"></i>Grenzwert</span>
             </div>
           </div>
-          <svg class="view" id="ranges" viewBox="0 0 640 320" role="img" aria-label="Nachweisbereiche"></svg>
+          <svg class="view" id="ranges" viewBox="0 0 640 340" role="img" aria-label="Nachweisbereiche"></svg>
           <div class="foot"><span id="rangeInfo">—</span></div>
         </div>
       </div>
@@ -516,6 +822,40 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
 (function(){
 'use strict';
 const $ = id => document.getElementById(id);
+
+/* ── Flackerfreie Darstellung: statt die SVG/Tabellen in jedem Bild komplett neu zu schreiben, werden nur geänderte Knoten/Attribute angepasst ── */
+function syncChildren(a, b){
+  const ac = a.childNodes, bc = b.childNodes;
+  for(let i = 0; i < bc.length; i++){
+    const n = bc[i], o = ac[i];
+    if(!o){ a.appendChild(n.cloneNode(true)); continue; }
+    if(o.nodeType !== n.nodeType || o.nodeName !== n.nodeName){ a.replaceChild(n.cloneNode(true), o); continue; }
+    if(n.nodeType === 3){ if(o.nodeValue !== n.nodeValue) o.nodeValue = n.nodeValue; continue; }
+    if(n.nodeType === 1){
+      /* font-size/data-s verwaltet die Schriftanpassung (svgtext-fit) – nicht jedes Bild auf den Ausgangswert zurücksetzen (sonst flackern alle Texte) */
+      Array.from(o.attributes).forEach(at => { if(at.name!=='data-s' && !n.hasAttribute(at.name)) o.removeAttribute(at.name); });
+      Array.from(n.attributes).forEach(at => {
+        if(at.name==='font-size' && o.hasAttribute('data-s')){ if(o.getAttribute('data-s') !== at.value){ o.setAttribute('data-s', at.value); o.setAttribute('font-size', at.value); } return; }
+        if(o.getAttribute(at.name) !== at.value) o.setAttribute(at.name, at.value);
+      });
+      syncChildren(o, n);
+    }
+  }
+  while(a.childNodes.length > bc.length) a.removeChild(a.lastChild);
+}
+function patchSVG(svg, html){
+  const tmp = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  tmp.innerHTML = html;
+  syncChildren(svg, tmp);
+  if(window.__fitRun) window.__fitRun();
+}
+/* innerHTML nur dann schreiben, wenn sich der Inhalt geändert hat (Tabellen, Kennzahlen, Legende) */
+function guardHTML(id){
+  const e = $(id); if(!e || e._guard) return; e._guard = true;
+  const d = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+  Object.defineProperty(e, 'innerHTML', { configurable: true, get(){ return d.get.call(this); }, set(v){ if(this._h === v) return; this._h = v; d.set.call(this, v); } });
+}
+
 const clamp = (v,a,b) => Math.max(a, Math.min(b,v));
 const deC = (v,d) => v.toFixed(d).replace('.',',');
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -798,7 +1138,7 @@ function drawSetup(){
     const cx = 40 + 820*clamp(S.t/total,0,1);
     s += `<line x1="${cx.toFixed(1)}" y1="362" x2="${cx.toFixed(1)}" y2="394" stroke="var(--red)" stroke-width="2"/>`;
   }
-  $('setup').innerHTML = s;
+  patchSVG($('setup'), s);
 }
 function barMeter(x, y, w, val, limit){
   const lo = -11, hi = 0;
@@ -940,7 +1280,7 @@ function drawChart(){
     const cx = toX(S.t);
     s += `<line x1="${cx.toFixed(1)}" y1="${tp}" x2="${cx.toFixed(1)}" y2="${tp+h}" stroke="var(--red)" stroke-width="1.5"/>`;
   }
-  $('chart').innerHTML = s;
+  patchSVG($('chart'), s);
 }
 function txt(x,y,str,o){
   o = o||{};
@@ -951,14 +1291,14 @@ function txt(x,y,str,o){
 
 /* ══════════ Nachweisbereiche ══════════ */
 function drawRanges(){
-  const W=640,H=320,l=126,r=20,tp=22,b=44, w=W-l-r, h=H-tp-b;
+  const W=640,H=340,l=126,r=20,tp=26,b=62, w=W-l-r, h=H-tp-b;
   const lo = -10, hi = 1;
   const toX = v => l + clamp((Math.log10(Math.max(v,1e-12))-lo)/(hi-lo),0,1)*w;
   let s = `<rect x="${l}" y="${tp}" width="${w}" height="${h}" fill="none" stroke="var(--border)" stroke-width="1.5"/>`;
   for(let e=lo; e<=hi; e++){
     const gx = toX(Math.pow(10,e));
     s += `<line x1="${gx.toFixed(1)}" y1="${tp}" x2="${gx.toFixed(1)}" y2="${tp+h}" stroke="var(--grid)" stroke-width="1"/>`;
-    if((e-lo)%2===0) s += txt(gx, tp+h+16, '1e'+e, {anchor:'middle', size:9.5});
+    if((e-lo)%2===0) s += txt(gx, tp+h+16, '1e'+e, {anchor:'middle', size:10.5});
   }
   const keys = Object.keys(METHODS);
   const rowH = h/keys.length;
@@ -969,17 +1309,17 @@ function drawRanges(){
     const cur = (k === S.method);
     s += `<rect x="${x1.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(x2-x1,2).toFixed(1)}" height="${bh.toFixed(1)}" `+
          `rx="4" fill="var(--cyan)" fill-opacity="${cur?0.30:0.13}" stroke="var(--cyan)" stroke-width="${cur?1.8:1}"/>`;
-    s += txt(l-8, y+bh*0.72, METHODS[k].kurz, {anchor:'end', size:10, fill:cur?'var(--amber)':'var(--text-dim)'});
-    s += txt(x1+5, y+bh*0.72, lim.toExponential(1), {anchor:'start', size:9, fill:'var(--cyan)'});
+    s += txt(l-8, y+bh*0.72, METHODS[k].kurz, {anchor:'end', size:11, fill:cur?'var(--amber)':'var(--text-dim)'});
+    s += txt(x1+5, y+bh*0.72, lim.toExponential(1), {anchor:'start', size:10.5, fill:'var(--cyan)'});
   });
   const q = methodQ(S.method);
   s += `<line x1="${toX(q).toFixed(1)}" y1="${tp-6}" x2="${toX(q).toFixed(1)}" y2="${tp+h}" stroke="var(--amber)" stroke-width="2.2"/>`;
-  s += txt(toX(q), tp-10, 'Q = '+q.toExponential(1), {anchor:'middle', size:9.5, fill:'var(--amber)'});
+  s += txt(toX(q), tp-10, 'Q = '+q.toExponential(1), {anchor:'middle', size:10.5, fill:'var(--amber)'});
   const lm = limMbl();
   s += `<line x1="${toX(lm).toFixed(1)}" y1="${tp}" x2="${toX(lm).toFixed(1)}" y2="${tp+h+8}" stroke="var(--red)" stroke-width="2" stroke-dasharray="5,4"/>`;
-  s += txt(toX(lm), tp+h+30, 'Grenzwert', {anchor:'middle', size:9.5, fill:'var(--red)'});
+  s += txt(toX(lm), tp+h+32, 'Grenzwert', {anchor:'middle', size:10.5, fill:'var(--red)'});
   s += txt(l+w/2, H-6, 'Leckrate [mbar·l/s]', {anchor:'middle', size:11, fill:'var(--text-dim)'});
-  $('ranges').innerHTML = s;
+  patchSVG($('ranges'), s);
   $('rangeInfo').textContent =
     'Die Balken beginnen jeweils an der Nachweisgrenze, die sich aus den eingestellten Prüfbedingungen ergibt.';
 }
@@ -1011,21 +1351,24 @@ function update(){
     `<div class="stat${c[2]?' '+c[2]:''}"><div class="k">${c[0]}</div><div class="v">${c[1]}</div></div>`).join('');
 
   const v = $('verdict');
+  let vcls, vhtml;
   if(!detect){
-    v.className = 'verdict bad';
-    v.innerHTML = `<b>Das Leck bleibt mit diesem Verfahren unentdeckt.</b> Q = ${q.toExponential(2)} liegt unter der Nachweisgrenze ${lim.toExponential(1)} mbar·l/s. `
+    vcls = 'verdict bad';
+    vhtml = `<b>Das Leck bleibt mit diesem Verfahren unentdeckt.</b> Q = ${q.toExponential(2)} liegt unter der Nachweisgrenze ${lim.toExponential(1)} mbar·l/s. `
       + hintFor(m, q, lim);
   } else if(!pass){
-    v.className = 'verdict bad';
-    v.innerHTML = `<b>Nachgewiesen und über dem Grenzwert — Bauteil n.i.O.</b> Die tatsächliche Luftleckrate beträgt ${qAir.Q.toExponential(2)} mbar·l/s gegenüber zulässig ${acc.toExponential(1)}.`;
+    vcls = 'verdict bad';
+    vhtml = `<b>Nachgewiesen und über dem Grenzwert — Bauteil n.i.O.</b> Die tatsächliche Luftleckrate beträgt ${qAir.Q.toExponential(2)} mbar·l/s gegenüber zulässig ${acc.toExponential(1)}.`;
   } else {
-    v.className = 'verdict ok';
-    v.innerHTML = `<b>Nachgewiesen, aber innerhalb des Grenzwerts — Bauteil i.O.</b> Luftleckrate ${qAir.Q.toExponential(2)} mbar·l/s gegenüber zulässig ${acc.toExponential(1)}.`;
+    vcls = 'verdict ok';
+    vhtml = `<b>Nachgewiesen, aber innerhalb des Grenzwerts — Bauteil i.O.</b> Luftleckrate ${qAir.Q.toExponential(2)} mbar·l/s gegenüber zulässig ${acc.toExponential(1)}.`;
   }
   if(detect && acc < lim){
-    v.className = 'verdict warn';
-    v.innerHTML += ` <b>Achtung:</b> der geforderte Grenzwert liegt unter der Nachweisgrenze des Verfahrens. Eine Freigabe wäre damit nicht belegbar.`;
+    vcls = 'verdict warn';
+    vhtml += ` <b>Achtung:</b> der geforderte Grenzwert liegt unter der Nachweisgrenze des Verfahrens. Eine Freigabe wäre damit nicht belegbar.`;
   }
+  if(v.className !== vcls) v.className = vcls;
+  if(v._h !== vhtml){ v._h = vhtml; v.innerHTML = vhtml; }
 
   $('bMethod').textContent = METHODS[m].kurz;
   $('bQ').textContent = 'Q = '+q.toExponential(1);
@@ -1088,7 +1431,7 @@ function updateRunBtn(){
   $('btnRun').textContent = S.running ? '⏸ Pause' : '▶ Prüfung starten';
   $('btnRun').classList.toggle('stop', S.running);
 }
-function render(){ drawSetup(); drawChart(); drawRanges(); update(); syncLabels(); }
+function render(){ ['stats','cmpTable','chartLegend'].forEach(guardHTML); drawSetup(); drawChart(); drawRanges(); update(); syncLabels(); }
 
 function syncLabels(){
   const d = diaUM();
@@ -1167,9 +1510,9 @@ function applyTheme(theme){
   document.body.classList.toggle('light', theme === 'light');
   $('themeBtn').textContent = theme === 'light' ? '☾' : '☀';
 }
-themeCtl.onTheme(applyTheme);
+ZfPContext.onTheme(applyTheme);
 $('themeBtn').addEventListener('click', () => {
-  themeCtl.toggleTheme();
+  ZfPContext.toggleTheme();
   render();
 });
 let rt = null;
@@ -1182,8 +1525,33 @@ updateRunBtn();
 render();
 })();
 </script>
+<script id="svgtext-fit">
+/* Gerätedarstellungen (SVG): Schrift in Bildschirm-Pixeln lesbar halten, egal wie stark die Grafik skaliert wird. Kein Zoom-Eingriff. */
+(function(){
+  var MINPX=12, MAXGROW=1.7, busy=false, SEL='svg.view';
+  function fixOne(svg){
+    var vb=svg.viewBox&&svg.viewBox.baseVal; if(!vb||!vb.width) return;
+    var w=svg.getBoundingClientRect().width; if(w<20) return;
+    var k=w/vb.width, ts=svg.querySelectorAll('text');
+    for(var i=0;i<ts.length;i++){
+      var t=ts[i], n=t.getAttribute('data-s');
+      if(!n){ n=parseFloat(t.getAttribute('font-size'))||10; t.setAttribute('data-s',n); }
+      n=parseFloat(n);
+      var want=Math.max(n, Math.min(n*MAXGROW, MINPX/k));
+      var ws=want.toFixed(2); if(t.getAttribute('font-size')!==ws) t.setAttribute('font-size', ws);
+    }
+  }
+  function run(){ busy=false; document.querySelectorAll(SEL).forEach(fixOne); }
+  window.__fitRun = run;
+  function sched(){ if(!busy){ busy=true; requestAnimationFrame(run); } }
+  new MutationObserver(function(m){ for(var i=0;i<m.length;i++){ if(m[i].type==='childList' && m[i].target.closest && m[i].target.closest(SEL)){ run(); return; } } }).observe(document.body,{childList:true,subtree:true});
+  window.addEventListener('resize',sched);
+  if(window.ResizeObserver){ var ro=new ResizeObserver(sched); document.querySelectorAll(SEL).forEach(function(s){ ro.observe(s); }); }
+  setTimeout(sched,300); setInterval(sched,1500);
+})();
+</script>
 <script id="fit-js">
-window.FIT_CFG={sideW:280,maxCols:3,minCol:440,};
+window.FIT_CFG={cols:[[0,1,2,3,4,5,6],[7,10,11],[8,9]],template:'clamp(300px,16vw,400px) 1.5fr 1fr'};
 (function(){
   /* ═══ Kompakt-Dashboard (wie UT) – reines CSS-Pixel-Layout, KEIN Zoom-Eingriff: Browser-Zoom (Strg +/−) wirkt normal ═══ */
   var C=window.FIT_CFG||{};

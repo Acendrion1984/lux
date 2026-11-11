@@ -9,6 +9,7 @@
 <noscript><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 <style>
   :root {
+    --dac:          #ff7ad9;   /* DAC-Kurven im A-Bild */
     /* Core palette */
     --bg:           #1c1e20;
     --bg-2:         #242628;
@@ -53,6 +54,7 @@
   }
 
   body.light-mode {
+    --dac:          #b5126f;
     --bg:           #f4f7f6;
     --bg-2:         #e9f1ee;
     --panel:        #ffffff;
@@ -476,17 +478,18 @@
     .stage > .side-col { grid-area: side; min-height: 0; overflow-y: auto; overflow-x: hidden;
       border-left: 1px solid var(--border); padding-left: 10px; }
     svg#ascan { height: clamp(150px, 26vh, 260px) !important; }
-    .side-title { display: block; margin: 2px 0 5px; }
+    .side-title { display: block; margin: 2px 0 6px; font-size: 12.5px !important; letter-spacing: .06em; }
     .side-col .readout-grid { display: grid !important; grid-template-columns: 1fr; gap: 3px; margin: 0 0 10px; }
     .side-col .stat { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; padding: 4px 7px !important; }
-    .side-col .stat .k { font-size: 9.5px; letter-spacing: .04em; white-space: normal; line-height: 1.2; }
-    .side-col .stat .v { font-size: 13px !important; white-space: nowrap; }
-    .side-col .stat .v small { font-size: 9.5px; }
+    .side-col .stat .k { font-size: 12px; letter-spacing: .02em; white-space: normal; line-height: 1.25; color: var(--text-dim); }
+    .side-col .stat .v { font-size: 16px !important; white-space: nowrap; }
+    .side-col .stat .v small { font-size: 12px; }
     .side-col .skiptbl-wrap { max-height: none !important; margin-top: 0; overflow-x: auto; overflow-y: visible; }
-    .side-col table.skiptbl { font-size: 10.5px; min-width: 0; }
-    .side-col table.skiptbl th { font-size: 8.5px; padding: 4px 3px; }
-    .side-col table.skiptbl td { padding: 4px 3px; }
-    .side-col .tagchip { font-size: 8.5px; padding: 0 4px; }
+    .side-col table.skiptbl { font-size: 12.5px; min-width: 0; }
+    .side-col table.skiptbl th { font-size: 10.5px; padding: 4px 4px; line-height: 1.2; color: var(--text-dim); }
+    .side-col table.skiptbl td { padding: 5px 4px; }
+    .side-col table.skiptbl td small, .side-col table.skiptbl td .sub { font-size: 11px; }
+    .side-col .tagchip { font-size: 10.5px; padding: 0 5px; }
   }
   @media (min-width: 1200px) and (max-height: 820px) {
     svg#ascan { height: 130px !important; }
@@ -609,27 +612,315 @@
 @media (min-width:1200px){
   .stage{grid-template-columns:minmax(0,1fr) clamp(262px,15vw,292px) !important; column-gap:8px !important;}
   .stage{padding:8px 10px !important;}
-  .side-col .stat .k{font-size:9px;}
-  .side-col .stat .v{font-size:12.5px !important;}
-  .side-col table.skiptbl th{font-size:8px; padding:3px 2px;}
-  .side-col table.skiptbl td{font-size:10px; padding:3px 2px;}
+  .side-col .stat .k{font-size:11px; color:var(--text-dim); letter-spacing:0;}
+  .side-col .stat .v{font-size:15px !important;}
+  .side-col table.skiptbl th{font-size:9.5px; padding:4px 2px; color:var(--text-dim); letter-spacing:0;}
+  .side-col table.skiptbl td{font-size:11.5px; padding:4px 2px;}
 }
 </style>
-<script>
-/* Lokaler Theme-Zustand (Hell/Dunkel), gespeichert in localStorage. */
-var themeCtl=(function(){
-  var cbs=[], mode=null, KEY='zfp-theme';
-  function store(v){ try{ if(v===undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY,v); }catch(e){} return null; }
-  function init(){ if(mode) return; var s=store(); mode=(s==='light'||s==='dark')?s:((document.body&&(document.body.classList.contains('light-mode')||document.body.classList.contains('light')))?'light':'dark'); }
-  return {
-    onTheme:function(f){ if(typeof f!=='function') return; cbs.push(f); init(); f(mode); },
-    toggleTheme:function(){ init(); mode=mode==='light'?'dark':'light'; store(mode); cbs.forEach(function(f){ try{ f(mode); }catch(e){} }); }
-  };
+<script id="perf-guard">
+/* Entlastung: Bildschleifen passen sich der Rechenzeit an (kein Dauer-Vollgas auf schwachen/mobilen Geräten) */
+(function(){var raf=window.requestAnimationFrame.bind(window),st=new WeakMap();
+window.requestAnimationFrame=function(cb){return raf(function w(t){
+  var o=st.get(cb)||{last:0,ema:0}; st.set(cb,o);
+  var gap=Math.min(100,o.ema*1.2);
+  if(o.last&&t-o.last<gap){return raf(w);}
+  var s=performance.now(); o.last=t; try{cb(t);}finally{o.ema=o.ema*0.8+(performance.now()-s)*0.2; if(o.ema<10) o.ema=0;}
+});};
 })();
 </script>
+<script>
+/* ============================================================================
+ * ZfP Shared Context – Werk / Sprache / Theme (seitenübergreifend)
+ * ----------------------------------------------------------------------------
+ * Eine EINZIGE Quelle der Wahrheit für die drei globalen Einstellungen, die
+ * über ALLE Apps hinweg synchron sein sollen:
+ *
+ *   • Werk    -> localStorage['zfp-aktives-werk']    (ID aus werke.json)
+ *   • Sprache -> localStorage['zfp-lang']            ('de' | 'en')
+ *   • Theme   -> localStorage['zfp-theme-preference']('dark' | 'light')
+ *
+ * GLOBALE THEME-REGELN (verbindlich für ALLE Seiten, auch Unter-Apps):
+ *   1. Es gibt genau EINEN Speicherschlüssel und genau EINEN Standardwert
+ *      (DEFAULT_THEME unten). Keine Seite darf eigene Schlüssel, eigene
+ *      Standardwerte, System-Einstellung (prefers-color-scheme) oder eigene
+ *      Fallback-Controller verwenden.
+ *   2. Das Skript steht im <head> jeder Seite MIT Dark Mode und setzt
+ *      <html data-theme="dark|light"> samt color-scheme bereits vor dem ersten
+ *      Zeichnen und bei jeder Änderung. Seiten OHNE Dark Mode (Admin, Login,
+ *      Handbuch) binden es nicht ein; die PMÜ-Protokollformulare ohne Dark Mode
+ *      binden es nur für Sprache/Werk ein (Attribut data-theme-off) und bleiben hell.
+ *   3. Seiten reagieren nur noch über ZfPContext.onTheme(fn) und schalten nur
+ *      noch über ZfPContext.toggleTheme() / setTheme() um.
+ *   4. Startwert = HELL. Nach „Dunkel“ bleibt es gespeichert, bis wieder
+ *      „Hell“ gewählt wird (gilt für alle Seiten gemeinsam).
+ *
+ * Frühere Versionen der einzelnen Seiten benutzten UNTERSCHIEDLICHE
+ * Schlüssel (z. B. 'zfp-lang-preference', 'MT_LANG_KEY', 'mpi-dark'). Deshalb
+ * blieben Sprache/Theme beim Seitenwechsel nicht erhalten. Dieses Modul
+ * migriert alte Schlüssel EINMALIG auf die kanonischen und hält danach alle
+ * offenen Tabs über das native 'storage'-Event synchron.
+ *
+ * Das Modul ändert von sich aus NICHTS am DOM. Jede Seite registriert per
+ * ZfPContext.onWerk / onLang / onTheme ihre eigene Anwendungsfunktion und
+ * bekommt den aktuellen Wert sofort + bei jeder späteren Änderung gemeldet.
+ * ========================================================================== */
+(function (global) {
+  'use strict';
 
+  var KEY_WERK  = 'zfp-aktives-werk';
+  var KEY_LANG  = 'zfp-lang';
+  var KEY_THEME = 'zfp-theme-preference';
+
+  var SCHWEINFURT_ID = 'schweinfurt';
+
+  // Einziger Standardwert: Das Portal startet IMMER hell. Wird auf Dunkel gestellt,
+  // merkt sich der Browser das (localStorage) – bis wieder auf Hell gestellt wird.
+  var DEFAULT_THEME = 'light';
+
+  // Alte Schlüssel, deren Wert (falls vorhanden und der neue noch leer ist)
+  // einmalig übernommen wird.
+  var LEGACY_LANG_KEYS  = ['zfp-lang-preference', 'MT_LANG_KEY', 'mt_lang'];
+  var LEGACY_THEME_KEYS = ['THEME_KEY', 'mt-theme', 'zfp-theme', 'zfp_theme', 'gefuege_theme'];
+
+  function safeGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function safeSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  // ─── Einmalige Migration alter Schlüssel ────────────────────────────────
+  (function migrate() {
+    if (!safeGet(KEY_LANG)) {
+      for (var i = 0; i < LEGACY_LANG_KEYS.length; i++) {
+        var v = safeGet(LEGACY_LANG_KEYS[i]);
+        if (v === 'de' || v === 'en') { safeSet(KEY_LANG, v); break; }
+      }
+    }
+    if (!safeGet(KEY_THEME)) {
+      for (var j = 0; j < LEGACY_THEME_KEYS.length; j++) {
+        var t = safeGet(LEGACY_THEME_KEYS[j]);
+        if (t === 'dark' || t === 'light') { safeSet(KEY_THEME, t); break; }
+      }
+    }
+    if (!safeGet(KEY_THEME)) {
+      var mpi = safeGet('mpi-dark');
+      if (mpi === '1' || mpi === 'true') safeSet(KEY_THEME, 'dark');
+      else if (mpi === '0' || mpi === 'false') safeSet(KEY_THEME, 'light');
+    }
+    // Veraltete Einzelschlüssel entfernen, damit sie nie wieder als zweite
+    // „Wahrheit“ herangezogen werden können.
+    ['zfp-theme', 'zfp_theme', 'gefuege_theme', 'THEME_KEY', 'mt-theme', 'mpi-dark'].forEach(function (k) {
+      try { localStorage.removeItem(k); } catch (e) {}
+    });
+  })();
+
+  function getWerk()  { return safeGet(KEY_WERK)  || SCHWEINFURT_ID; }
+  function getLang()  { var v = safeGet(KEY_LANG);  return (v === 'en') ? 'en' : 'de'; }
+  function normTheme(v) { return (v === 'light' || v === 'dark') ? v : DEFAULT_THEME; }
+  function getTheme() { return normTheme(safeGet(KEY_THEME)); }
+
+  // Setzt das Theme sofort am <html>-Element (vor dem ersten Zeichnen, weil das
+  // Skript im <head> steht) – unabhängig davon, ob die Seite selbst reagiert.
+  // Seiten OHNE Dark Mode (PMÜ-Formulare) laden das Skript nur für Sprache/Werk und setzen
+  // <script ... data-theme-off>: dann werden weder data-theme noch color-scheme angefasst.
+  var THEME_OFF = false;
+  try { THEME_OFF = !!(document.currentScript && document.currentScript.hasAttribute('data-theme-off')); } catch (e) {}
+  function applyDom(theme) {
+    if (THEME_OFF) return;
+    try {
+      var root = document.documentElement;
+      root.setAttribute('data-theme', theme);
+      root.style.colorScheme = theme;
+    } catch (e) {}
+  }
+  applyDom(getTheme());
+
+  var listeners = { werk: [], lang: [], theme: [] };
+
+  function fire(kind, value) {
+    if (kind === 'theme') {
+      applyDom(value);
+      try { document.dispatchEvent(new CustomEvent('zfp:theme', { detail: value })); } catch (e) {}
+    }
+    var arr = listeners[kind];
+    for (var i = 0; i < arr.length; i++) {
+      try { arr[i](value); } catch (e) { /* eine kaputte Callback darf den Rest nicht stoppen */ }
+    }
+  }
+
+  function register(kind, cb, getter) {
+    if (typeof cb !== 'function') return;
+    listeners[kind].push(cb);
+    // Aktuellen Wert sofort liefern, damit die Seite initial korrekt rendert.
+    try { cb(getter()); } catch (e) {}
+  }
+
+  // ─── Setter: schreiben + lokale Callbacks feuern + andere Tabs bekommen
+  //     automatisch das native 'storage'-Event ────────────────────────────
+  function setWerk(id) {
+    if (!id || id === getWerk()) { fire('werk', getWerk()); return; }
+    safeSet(KEY_WERK, id);
+    fire('werk', id);
+  }
+  function setLang(lang) {
+    lang = (lang === 'en') ? 'en' : 'de';
+    safeSet(KEY_LANG, lang);
+    fire('lang', lang);
+  }
+  function toggleLang() { setLang(getLang() === 'de' ? 'en' : 'de'); }
+
+  function setTheme(theme) {
+    theme = normTheme(theme);
+    safeSet(KEY_THEME, theme);
+    fire('theme', theme);
+  }
+  function toggleTheme() { setTheme(getTheme() === 'dark' ? 'light' : 'dark'); }
+
+  // ─── Cross-Tab-Sync: Änderungen aus einem anderen Tab/Fenster ───────────
+  global.addEventListener('storage', function (e) {
+    if (!e) return;
+    if (e.key === KEY_WERK)  fire('werk',  e.newValue || SCHWEINFURT_ID);
+    else if (e.key === KEY_LANG)  fire('lang',  (e.newValue === 'en') ? 'en' : 'de');
+    else if (e.key === KEY_THEME) fire('theme', normTheme(e.newValue));
+  });
+
+  // Zurück/Vorwärts-Navigation (bfcache): Seite zeigt sonst evtl. ein veraltetes Theme.
+  var _lastThemeShown = getTheme();
+  global.addEventListener('pageshow', function (e) {
+    var t = getTheme();
+    if (e && e.persisted && t !== _lastThemeShown) fire('theme', t);
+    _lastThemeShown = t;
+  });
+
+  global.ZfPContext = {
+    KEY_WERK: KEY_WERK, KEY_LANG: KEY_LANG, KEY_THEME: KEY_THEME,
+    SCHWEINFURT_ID: SCHWEINFURT_ID,
+    getWerk: getWerk, setWerk: setWerk,
+    getLang: getLang, setLang: setLang, toggleLang: toggleLang,
+    DEFAULT_THEME: DEFAULT_THEME,
+    getTheme: getTheme, setTheme: setTheme, toggleTheme: toggleTheme,
+    get theme() { return getTheme(); },   // Lesezugriff wie früher in den lokalen Fallbacks
+    onWerk:  function (cb) { register('werk',  cb, getWerk); },
+    onLang:  function (cb) { register('lang',  cb, getLang); },
+    onTheme: function (cb) { register('theme', cb, getTheme); }
+  };
+
+  // ─── WERK-REGISTER + WERK-ABHÄNGIGE PFADE ───────────────────────────────
+  // Damit einfache Seiten (v. a. die PMÜ-Unterseiten) das aktive Werk erben
+  // können, ohne selbst ein Dropdown oder eigene Register-Logik zu enthalten,
+  // stellt das Modul hier eine kleine Hilfe bereit:
+  //   • ladeWerkRegister()  – lädt werke.json einmalig (mit Fallback)
+  //   • werkSuffix()        – Suffix des aktiven Werks ('' = Schweinfurt)
+  //   • protokolleBase()    – '/api/protokolle' bzw. '/api/protokolle__<suffix>'
+  var _werkeRegister = [{ id: SCHWEINFURT_ID, name: 'Schweinfurt', suffix: '' }];
+  var _registerGeladen = false;
+  var _registerPromise = null; // laufendes Laden zwischenspeichern, damit parallele
+                                // Aufrufe (z. B. mehrere Seiten-Skripte) NICHT jeweils
+                                // eine eigene Anfrage starten und alle auf dasselbe
+                                // Ergebnis warten können (siehe protokolleBase()-Fix).
+
+  function ladeWerkRegister() {
+    if (_registerGeladen) return Promise.resolve(_werkeRegister);
+    if (_registerPromise) return _registerPromise; // bereits im Gange – dieselbe Zusage zurückgeben
+    _registerPromise = fetch('/api/data/werke.json?t=' + Date.now())
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (arr) {
+        if (Array.isArray(arr) && arr.length) {
+          if (!arr.find(function (w) { return w.id === SCHWEINFURT_ID; }))
+            arr.unshift({ id: SCHWEINFURT_ID, name: 'Schweinfurt', suffix: '' });
+          _werkeRegister = arr;
+        }
+        _registerGeladen = true;
+        _registerPromise = null;
+        return _werkeRegister;
+      })
+      .catch(function () { _registerGeladen = true; _registerPromise = null; return _werkeRegister; });
+    return _registerPromise;
+  }
+
+  function werkSuffix() {
+    var id = getWerk();
+    var w = _werkeRegister.find(function (x) { return x.id === id; });
+    return (w && w.suffix) ? w.suffix : '';
+  }
+
+  function protokolleBase() {
+    var suf = werkSuffix();
+    return suf ? ('/api/protokolle__' + suf) : '/api/protokolle';
+  }
+
+  global.ZfPContext.ladeWerkRegister = ladeWerkRegister;
+  global.ZfPContext.werkSuffix = werkSuffix;
+  global.ZfPContext.protokolleBase = protokolleBase;
+})(window);
+
+</script>
+
+<style>
+/* ZfP-Portal · Simulationen im Portal-Design (Vorbild: Ätzdatenbank)
+ * Betrifft NUR Kopfbereich, Schriften, Knöpfe, Reiter, Schalter und Karten-Rahmen.
+ * Farben und Kontraste der Darstellungen (Canvas, Diagramme, Skalen, Messwerte, Status) bleiben unverändert;
+ * die Seiten-Variablen (--bg, --border, --text …) werden bewusst nicht angefasst. */
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800&display=swap');
+body{
+  --sd-green:#00893d;--sd-green-d:#006b30;--sd-green-t:#2fc16b;--sd-green-x:rgba(0,137,61,.14);
+  --sd-hdr:#1e1e1e;--sd-bdr:#444;--sd-txt:#ececec;--sd-mut:#b0b0b0;--sd-btn:#1e1e1e;--sd-page:#121212;--sd-card:#1e1e1e;
+}
+body.light,body.light-mode{
+  --sd-green-t:#00893d;--sd-green-x:rgba(0,137,61,.1);
+  --sd-hdr:#fff;--sd-bdr:#d0d0d0;--sd-txt:#1a1a1a;--sd-mut:#555;--sd-btn:#fff;--sd-page:#e0e0e0;--sd-card:#fff;
+}
+html,body{background:var(--sd-page)!important}
+body{background-image:none!important}
+
+/* Schriften */
+body,body *:not(#_):not(svg):not(svg *):not(canvas){font-family:'Barlow',Arial,sans-serif!important}
+body :is(h1,h2,h3,h4,button,summary,label,.stage-title,.sub-h,.badge,.tabs,.legend,.k,.stat .k,.foot):not(#_){font-family:'Barlow Condensed',Arial,sans-serif!important}
+body label{gap:8px}
+body .stat .v,body .stat .k,body table.res,body .foot,body .legend span{font-variant-numeric:tabular-nums}
+
+/* Kopfbereich wie Ätzdatenbank: weiße Karte, grüner Balken links, grüne Linie unten, Logo rechts */
+body header.top{background:var(--sd-hdr)!important;border:1.5px solid var(--sd-bdr)!important;border-left:6px solid var(--sd-green)!important;border-bottom:3px solid var(--sd-green)!important;border-radius:0!important;padding:8px 14px 8px 16px!important;margin-bottom:14px!important;box-shadow:none!important;align-items:center}
+body header.top .brand-eyebrow{display:none!important}
+body header.top h1{font-family:'Barlow Condensed',Arial,sans-serif!important;font-weight:700!important;font-size:clamp(17px,2.4vw,24px)!important;text-transform:uppercase;letter-spacing:.5px;line-height:1.15;color:var(--sd-txt)!important;background:none!important;-webkit-text-fill-color:var(--sd-txt)!important}
+body header.top h1 small{font-family:'Barlow',Arial,sans-serif!important;font-size:12.5px!important;font-weight:400!important;font-style:italic;text-transform:none;letter-spacing:0;color:var(--sd-mut)!important;-webkit-text-fill-color:var(--sd-mut)!important;margin-top:2px}
+body header.top .hdr-right,body header.top .badge-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+body header.top .hdr-right::after,body header.top .badge-row::after{display:none}
+body header.top .badge{border-radius:4px!important;font-family:'Barlow Condensed',Arial,sans-serif!important;font-size:13px!important;font-weight:600;letter-spacing:.3px;text-transform:none;padding:4px 10px!important}
+body .theme-btn,body .icon-btn,body .theme-toggle{width:38px!important;height:38px!important;border-radius:50%!important;background:var(--sd-btn)!important;border:2px solid var(--sd-bdr)!important;color:var(--sd-txt)!important;font-size:17px;display:inline-flex;align-items:center;justify-content:center;padding:0!important;transition:all .2s}
+body .theme-toggle{width:auto!important;min-width:38px;border-radius:19px!important;padding:0 10px!important;gap:5px}
+body .theme-btn:hover,body .icon-btn:hover,body .theme-toggle:hover{border-color:var(--sd-green)!important;transform:translateY(-2px);color:var(--sd-txt)!important}
+@media(max-width:600px){body header.top .hdr-right::after,body header.top .badge-row::after{display:none}}
+
+/* Knöpfe: eckig (4 px), Barlow Condensed, grüne Umrandung; gewählt/aktiv = grün gefüllt */
+body button:where(:not(.theme-btn,.icon-btn,.theme-toggle,.zfp-hilfe-btn,.lang-toggle,#langToggleBtn)){
+  font-size:14px;font-weight:700;letter-spacing:.3px;text-transform:none;
+  border:2px solid var(--sd-green)!important;border-radius:4px!important;background:var(--sd-btn);color:var(--sd-green-t);box-shadow:none}
+body button:where(:not(.theme-btn,.icon-btn,.theme-toggle,.zfp-hilfe-btn)):not(:disabled):hover{background:var(--sd-green-x);color:var(--sd-green-t);border-color:var(--sd-green)!important}
+body button.sel,body button.on,body button.active,body button.primary,body button[aria-pressed="true"],body button[aria-selected="true"]{background:var(--sd-green)!important;border-color:var(--sd-green)!important;color:#fff!important;box-shadow:none!important}
+body button.sel:hover,body button.on:hover,body button.active:hover,body button.primary:hover:not(:disabled){background:var(--sd-green-d)!important;color:#fff!important}
+body button.primary.stop,body .btn.stop,body button.danger{background:#c0392b!important;border-color:#c0392b!important;color:#fff!important}
+body button:disabled{opacity:.4}
+body button:focus-visible,body select:focus-visible,body input:focus-visible{outline:2px solid var(--sd-green)!important;outline-offset:2px}
+body .seg button,body .tabs button,body .dcac button,body .btnrow button{font-size:14px;line-height:1.2}
+body .seg.mini button{font-size:12.5px}
+
+/* Karten, Felder, Schalter */
+body .panel{background:var(--sd-card)!important;border:1.5px solid var(--sd-bdr)!important;border-top:3px solid var(--sd-green)!important;border-radius:4px!important;box-shadow:none!important}
+body .stat,body .callout,body .verdict,body .toggle,body select,body .readout,body .stage{border-radius:4px!important}
+body select{font-family:'Barlow',Arial,sans-serif!important;font-size:14px}
+body .stage-title,body .sub-h,body .panel>h2,body .panel>h3,body .panel>.hd{font-family:'Barlow Condensed',Arial,sans-serif!important;font-size:12.5px!important;font-weight:700;letter-spacing:.8px;color:var(--sd-green-t)!important}
+body input[type=range]{accent-color:var(--sd-green)}
+body input[type=range]::-webkit-slider-thumb{background:var(--sd-green)!important;border:2px solid #fff!important;box-shadow:0 1px 4px rgba(0,0,0,.4)!important}
+body input[type=range]::-moz-range-thumb{background:var(--sd-green);border:2px solid #fff}
+body .toggle.on .switch{background:var(--sd-green)!important}
+body .toggle.on .switch::after{background:#fff!important}
+body .toggle:hover{border-color:var(--sd-green)}
+body details.adv summary::before{color:var(--sd-green-t)!important}
+
+@media print{body header.top .hdr-right::after,body header.top .badge-row::after{display:none}}
+
+</style>
 </head>
-<body class="light-mode">
+<body>
 <div class="app">
 
 
@@ -739,7 +1030,7 @@ var themeCtl=(function(){
           </div>
           <div class="field">
             <label><span>Nahtüberhöhung h</span> <span class="val" id="vWeldH">2.0</span> mm</label>
-            <input type="range" id="weldH" min="0" max="5" step="0.1" value="2">
+            <input type="range" id="weldH" min="0" max="2.5" step="0.1" value="1">
           </div>
           <div class="field">
             <label>Fehler in der Naht oder WEZ (optional)</label>
@@ -750,7 +1041,8 @@ var themeCtl=(function(){
               <button data-wd="haz">WEZ</button>
             </div>
           </div>
-          <div class="hint" id="weldHint">Stumpfnaht mit einstellbarer Nahtüberhöhung (Kugeldom oben), Unterseite bündig. Prüfkopf neben die Naht setzen; typische Fehler: Wurzel-/Flankenbindefehler, Schlacke, Poren; in der WEZ (neben der Naht): Risse.</div>
+          <button type="button" class="btn" id="weldSwapSide" style="width:100%;margin:6px 0">⇄ Prüfkopf auf die andere Nahtseite setzen</button>
+          <div class="hint" id="weldHint">Stumpfnaht mit Nahtüberhöhung (oben) und Wurzelüberhöhung (unten). Prüfkopf neben die Naht setzen; typische Fehler: Wurzel-/Flankenbindefehler, Schlacke, Poren; in der WEZ (neben der Naht): Risse.</div>
         </div>
         <div class="toggle-row" id="toggleDefect">
           <span>Künstlicher Fehler einblenden</span>
@@ -764,6 +1056,18 @@ var themeCtl=(function(){
           <div class="field">
             <label id="labelDefDepth">Fehlertiefe <span class="val" id="vDefDepth">20</span> mm</label>
             <input type="range" id="defectDepth" min="1" max="150" step="1" value="20">
+          </div>
+          <div class="field">
+            <label for="defectType">Reflektortyp</label>
+            <select id="defectType">
+              <option value="punkt">Punktreflektor (Kugel/Pore)</option>
+              <option value="sdh">Querbohrung (SDH)</option>
+              <option value="ksr">Kreisscheibenreflektor (KSR)</option>
+            </select>
+          </div>
+          <div class="field" id="defectTiltField" style="display:none">
+            <label>KSR-Neigung (Scheibennormale) <span class="val" id="vDefTilt">0</span>°</label>
+            <input type="range" id="defectTilt" min="-90" max="90" step="1" value="0">
           </div>
           <div class="field">
             <label>Reflektorgröße ⌀ <span class="val" id="vDefSize">3</span> mm</label>
@@ -855,6 +1159,7 @@ var themeCtl=(function(){
           <div class="field">
             <label>Messbereich <span class="val" id="vRange">200</span> mm</label>
             <input type="range" id="range" min="20" max="600" step="10" value="200">
+            <div class="toggle-row on" id="toggleAutoRange" style="margin-top:4px"><span>automatisch</span><div class="switch"></div></div>
           </div>
           <div class="field">
             <label>Verstärkung <span class="val" id="vGain">40</span> dB</label>
@@ -1009,8 +1314,8 @@ var themeCtl=(function(){
     freq:4, dia:10, bundle:true, skips:2,
     range:200, gain:40, delay:0,
     cL:5920, cT:3255, cWater:1483, cWedge:2730,
-    defect:{enabled:false, xf:150, depth:20, size:3},
-    weld:{enabled:false, x:null, phi:20, hc:2},
+    defect:{enabled:false, xf:150, depth:20, size:3, type:'punkt', tilt:0},
+    weld:{enabled:false, x:null, phi:20, hc:1},
     showNF:false, fieldColor:false, focus:0, seFocus:0, probe:'MWB45-4', probeType:'WPK',
     gate:{enabled:false, auto:true, range:'near', start:0, end:0, evalEnd:Infinity},
     rot:{angle:0, running:false, speed:30, stopAfter:true, showCov:true, travel:0, active:false},
@@ -1054,9 +1359,9 @@ var themeCtl=(function(){
       ? '<span class="icon">🌙</span><span class="icon" style="opacity:0.35">☀️</span>'
       : '<span class="icon">☀️</span><span class="icon" style="opacity:0.35">🌙</span>';
   }
-  themeCtl.onTheme(setTheme);
+  ZfPContext.onTheme(setTheme);
   el.themeToggle.addEventListener('click', ()=>{
-    themeCtl.toggleTheme();
+    ZfPContext.toggleTheme();
     render();
   });
 
@@ -1196,7 +1501,7 @@ var themeCtl=(function(){
     const mmRaw=clientXToMM(p.x,p.y);
     if(mmRaw==null) return;
     const min=+el.probeX.min, max=+el.probeX.max;
-    const mm=Math.max(min,Math.min(max,Math.round(mmRaw)));
+    const mm=weldClampX0(Math.max(min,Math.min(max,Math.round(mmRaw))),state.x0);
     state.x0=mm;
     el.probeX.value=mm;
     el.vX0.textContent=mm;
@@ -1288,6 +1593,11 @@ var themeCtl=(function(){
     el.vDefDepth.textContent=state.defect.depth;
     render();
   });
+  (function(){
+    const ty=$('defectType'), tf=$('defectTiltField'), tl=$('defectTilt'), vt=$('vDefTilt');
+    ty.addEventListener('change',()=>{ state.defect.type=ty.value; tf.style.display=ty.value==='ksr'?'block':'none'; render(); });
+    tl.addEventListener('input',()=>{ state.defect.tilt=+tl.value; vt.textContent=tl.value; render(); });
+  })();
   el.defectSize.addEventListener('input',()=>{
     state.defect.size=+el.defectSize.value;
     el.vDefSize.textContent=state.defect.size;
@@ -1366,11 +1676,17 @@ var themeCtl=(function(){
   // Fehler-Tiefe/-Position an geänderte Abmessungen anpassen (sonst bleibt der Regler auf
   // dem alten Maximum hängen, z. B. Tiefe max. 40 mm obwohl T = 100 mm)
   [el.param1, el.param2, el.param3, el.param4].forEach(inp=>inp.addEventListener('input',()=>{ updateDefectParams(); updateWeldUI(); render(); }));
-  bindRange(el.probeX,  el.vX0,     'x0');
+  el.probeX.addEventListener('input',()=>{
+    const v=weldClampX0(+el.probeX.value,state.x0);
+    el.probeX.value=v; state.x0=v; el.vX0.textContent=v; render();
+  });
   bindRange(el.freq,    el.vF,      'freq', v=>v.toFixed(1));
   bindRange(el.dia,     el.vD,      'dia',  v=>v.toFixed(1));
   bindRange(el.skips,   el.vSkips,  'skips');
+  el.range.addEventListener('input',()=>{ state.autoRange=false; $('toggleAutoRange').classList.remove('on'); });
   bindRange(el.range,   el.vRange,  'range');
+  state.autoRange=true;
+  $('toggleAutoRange').addEventListener('click',()=>{ state.autoRange=!state.autoRange; $('toggleAutoRange').classList.toggle('on',state.autoRange); render(); });
   bindRange(el.gain,    el.vGain,   'gain');
   bindRange(el.delay,   el.vDelay,  'delay', v=>v.toFixed(1));
   bindRange(el.waterMM, el.vWaterMM,'waterMM');
@@ -1388,6 +1704,7 @@ var themeCtl=(function(){
 
   el.segGeometry.addEventListener('click',e=>{
     const b=e.target.closest('button'); if(!b) return;
+    if(dac.on) dacSetOn(false,true);
     state.geometry=b.dataset.geo;
     if(state.geometry==='sphere' && !state.gate.enabled) setGateEnabled(true);
     // Beim Wechsel auf Tonne/Halbrohr Prüfkopf auf die Bauteilachse setzen (x₀ = 0)
@@ -1424,17 +1741,50 @@ var themeCtl=(function(){
       el.tWeldPos.innerHTML='Nahtlage φ (ab Scheitel)'; el.vWeldPos.textContent=state.weld.phi; el.uWeldPos.textContent='°';
     }
   }
+  // Kontakttechnik: Die Nahtüberhöhung (Aufwurf) verhindert die Ankopplung – der Prüfkopf lässt sich
+  // nicht darüber schieben. Er bleibt an der Kante stehen, auf der er zuvor stand.
+  let weldBlockedNote=false;
+  function weldClampX0(x,prev){
+    weldBlockedNote=false;
+    const g=state.geometry;
+    if(!weldActive(g) || state.water) return x;
+    const pd=probeDims(), front=pd.type==='WPK'?pd.len*0.4:pd.w/2, back=pd.type==='WPK'?pd.len*0.6:pd.w/2;
+    let lo,hi,toS,fromS;
+    if(g==='block'){ const w=weldDims(state.p2), xw=blockWeldX(); lo=xw-w.halfCap-front-0.5; hi=xw+w.halfCap+back+0.5; toS=v=>v; fromS=v=>v; }
+    else { const G=ringWeldGeo(); const R=G.R; lo=R*G.phi-G.w.halfCap-front-0.5; hi=R*G.phi+G.w.halfCap+back+0.5;
+      toS=v=>R*Math.asin(Math.max(-1,Math.min(1,v/R))); fromS=v=>R*Math.sin(v/R); }
+    const sx=toS(x);
+    const pS=(prev==null)?null:toS(prev);
+    const jumped=pS!=null && ((pS<=lo && sx>=hi) || (pS>=hi && sx<=lo));   // Sprung quer über die Naht
+    if(!(sx>lo && sx<hi) && !jumped) return x;
+    weldBlockedNote=true;
+    if(jumped) return Math.round(fromS(pS<=lo?lo:hi)+(pS<=lo?-0.5:0.5));
+    const mid=(lo+hi)/2, ps=(prev==null)?sx:toS(prev);
+    const side=(ps<=lo || (ps<hi && ps<mid))?lo:hi;
+    return Math.round(fromS(side)+(side===lo?-0.5:0.5));
+  }
+  $('weldSwapSide').addEventListener('click',()=>{
+    const g=state.geometry; if(!weldActive(g)) return;
+    const pd=probeDims(), front=pd.type==='WPK'?pd.len*0.4:pd.w/2, back=pd.type==='WPK'?pd.len*0.6:pd.w/2;
+    let x;
+    if(g==='block'){ const w=weldDims(state.p2), xw=blockWeldX(); x=(state.x0<xw)? xw+w.halfCap+back+1 : xw-w.halfCap-front-1; }
+    else { const G=ringWeldGeo(), R=G.R, s0=R*Math.asin(Math.max(-1,Math.min(1,state.x0/R))), c=R*G.phi;
+      const s1=(s0<c)? c+G.w.halfCap+back+1 : c-G.w.halfCap-front-1; x=R*Math.sin(s1/R); }
+    x=Math.round(Math.max(+el.probeX.min,Math.min(+el.probeX.max,x)));
+    state.x0=x; el.probeX.value=x; el.vX0.textContent=x; render();
+  });
   // Prüfkopf darf nicht auf der Nahtüberhöhung stehen – nur Hinweis, Berechnung läuft weiter
   function updateWeldHint(entryPt){
-    const base='Stumpfnaht mit einstellbarer Nahtüberhöhung (Kugeldom oben), Unterseite bündig. Prüfkopf neben die Naht setzen; typische Fehler: Wurzel-/Flankenbindefehler, Schlacke, Poren; in der WEZ (neben der Naht): Risse.';
+    const base='Stumpfnaht mit Nahtüberhöhung (oben) und Wurzelüberhöhung (unten). Prüfkopf neben die Naht setzen; typische Fehler: Wurzel-/Flankenbindefehler, Schlacke, Poren; in der WEZ (neben der Naht): Risse.';
     if(!weldActive(state.geometry)){ return; }
     const pd=probeDims(), front=pd.type==='WPK'?pd.len*0.4:pd.w/2, back=pd.type==='WPK'?pd.len*0.6:pd.w/2;
     let lo,hi,pos;
     if(state.geometry==='block'){ const w=weldDims(state.p2), xw=blockWeldX(); lo=xw-w.halfCap; hi=xw+w.halfCap; pos=entryPt.x; }
     else { const G=ringWeldGeo(); const s=G.R*Math.atan2(entryPt.x,G.R-entryPt.y); lo=G.R*G.phi-G.w.halfCap; hi=G.R*G.phi+G.w.halfCap; pos=s; }
     const hit=(pos+front>lo && pos-back<hi);
-    el.weldHint.textContent = hit ? '⚠ Der Prüfkopf liegt auf bzw. an der Nahtüberhöhung – für die Prüfung neben die Naht setzen (Prüfkopf wegschieben oder Naht verschieben).' : base;
-    el.weldHint.style.color = hit ? 'var(--amber)' : '';
+    el.weldHint.textContent = weldBlockedNote ? '⛔ Der Prüfkopf lässt sich nicht über die Nahtüberhöhung schieben: der Aufwurf verhindert die Ankopplung. Prüfung von beiden Seiten neben der Naht (Prüfkopf auf der anderen Nahtseite aufsetzen).'
+      : hit ? '⚠ Der Prüfkopf liegt auf bzw. an der Nahtüberhöhung – für die Prüfung neben die Naht setzen (Prüfkopf wegschieben oder Naht verschieben).' : base;
+    el.weldHint.style.color = (hit||weldBlockedNote) ? 'var(--amber)' : '';
   }
   function weldPlaceDefect(kind){
     const g=state.geometry; if(!weldActive(g)) return;
@@ -1541,6 +1891,7 @@ var themeCtl=(function(){
     let minX=(g==='block'||g==='tjoint')?0:-maxX;
     el.probeX.max=maxX; el.probeX.min=minX;
     if(state.x0>maxX){state.x0=maxX;} if(state.x0<minX){state.x0=minX;}
+    { const keep=weldBlockedNote; state.x0=weldClampX0(state.x0,null); weldBlockedNote=weldBlockedNote||keep; }
     el.probeX.value=state.x0; el.vX0.textContent=state.x0;
 
     updateDefectParams();
@@ -1784,7 +2135,7 @@ var themeCtl=(function(){
   }
   function setFocus(v){ state.focus=v; }
   function applyProbe(id){
-    state.probe=id;
+    dacProbeSwitch(state.probe,id); state.probe=id;
     const pr=currentProbe();
     probeSel.value=id;
     state.probeType=pr.type;
@@ -2136,9 +2487,9 @@ var themeCtl=(function(){
   function weldDims(T){
     // Schmale Stumpfnaht wie im ET-Simulator: oben 9 mm breit, unten 60 % davon
     const halfTop=4.5, g0=halfTop*0.6, tn=(halfTop-g0)/Math.max(T,1);
-    const hc=Math.max(0,Math.min(5,isFinite(+state.weld.hc)?+state.weld.hc:2));   // Nahtüberhöhung (einstellbar)
-    const halfCap=halfTop;                                        // Kugeldom endet bündig an den Nahtkanten (kein Überstand)
-    const hr=0, rhalf=g0;                                         // keine Wurzelüberhöhung, Nahtunterseite bündig
+    const hin=Math.max(0,Math.min(2.5,isFinite(+state.weld.hc)?+state.weld.hc:1));   // Nahtüberhöhung (einstellbar) – Scheitelhöhe der Decklage = 0,6 × Einstellwert, genau wie im ET-Simulator
+    const hc=0.6*hin, halfCap=halfTop;                            // Decklage endet an der Fugenkante (kein „Dom“ über die Fuge hinaus)
+    const hr=0.01, rhalf=g0;                                      // Wurzel wie im ET-Simulator: gerade, keine Wurzelüberhöhung
     return {g0,tn,halfTop,hc,halfCap,hr,rhalf};
   }
   function blockWeldX(){
@@ -2209,8 +2560,8 @@ var themeCtl=(function(){
   function partPolygon(g){
     if(g==='block' && weldActive('block')){
       const w=weldDims(state.p2), xw=blockWeldX(), L=state.p1, T=state.p2;
-      const dome=[]; if(w.hc>0.05) for(let i=1;i<8;i++){ const t=i/8; dome.push({x:xw-w.halfCap+2*w.halfCap*t, y:-4*w.hc*t*(1-t)}); }
-      return [{x:0,y:0},{x:xw-w.halfCap,y:0},...dome,{x:xw+w.halfCap,y:0},{x:L,y:0},{x:L,y:T},{x:0,y:T}];
+      const arc=[]; for(let i=0;i<=10;i++){ const q=i/10; arc.push({x:xw-w.halfCap+2*w.halfCap*q, y:-4*w.hc*q*(1-q)}); }   // Bogen (quadratische Kurve wie im ET-Simulator)
+      return [{x:0,y:0}].concat(arc,[{x:L,y:0},{x:L,y:T},{x:0,y:T}]);
     }
     if(g==='block') return [{x:0,y:0},{x:state.p1,y:0},{x:state.p1,y:state.p2},{x:0,y:state.p2}];
     const d=tjointDims();
@@ -2568,6 +2919,23 @@ var themeCtl=(function(){
     return {x:xf,y:depth};
   }
 
+  // Reflektortyp → relative Echohöhe.
+  // Kugel/Pore: wie bisher. Querbohrung (SDH, Zylinder): Echo ∝ √D, richtungsunabhängig in der Schnittebene.
+  // Kreisscheibe (KSR): Echo ∝ D² und stark winkelabhängig – Maximum nur, wenn der Schall senkrecht auf
+  // die Scheibe trifft (Gauß-Näherung der Richtcharakteristik, enger bei größerem Durchmesser).
+  function reflFactor(h,sizeFactor){
+    const d=state.defect, t=d.type||'punkt';
+    if(t==='sdh') return Math.min(1, 0.35+0.65*Math.sqrt(Math.min(1,d.size/6)));
+    if(t==='ksr'){
+      const beam=Math.atan2(h.ux,h.uy)*180/Math.PI;
+      let a=Math.abs(((beam-d.tilt)%180+180)%180); if(a>90) a=180-a; // Winkel Strahl ↔ Scheibennormale (0 = senkrecht)
+      const a0=Math.max(3, 36/Math.max(1,d.size));
+      const ang=Math.pow(0.5,(a/a0)*(a/a0));
+      return Math.min(1, 0.15+0.85*Math.pow(Math.min(1,d.size/6),2))*(0.1+0.9*ang);
+    }
+    return 0.45+0.55*sizeFactor;
+  }
+
   // Nächster Punkt des Schallpfads (Polylinie) zum Fehler + Schallweg bis dorthin.
   // Trifft das (divergente) Schallbündel den Fehler, gilt er als erfasst.
   function findDefectHit(steelPts, defectPt, nfd){
@@ -2747,11 +3115,14 @@ var themeCtl=(function(){
       }
     }
 
+    dacLive=dac.on?dacLiveEval():null;
     drawDiagram(couple,theta,nfd,steelPts,marks,clippedNote,state.geometry,entryPt,defectInfo,betaValid,offsetActive,offsetCalc);
     drawReadouts(couple,crit,nfd,marks,betaValid,offsetActive,offsetCalc,thicknessMeas);
     drawSkipTable(marks,defectInfo,betaValid);
     drawAscan(marks,nfd,defectInfo,betaValid);
     updateRotStatus();
+    if(dac.on) dacUpdateUI();
+    dacKeepUpdate();
     if(typeof updateProbeInfo==='function' && $('probeInfo')) updateProbeInfo();
   }
 
@@ -2886,7 +3257,7 @@ var themeCtl=(function(){
         svg+=`<rect x="${X(0)}" y="${Y(0)}" width="${state.p1*scale}" height="${T*scale}" fill="url(#steelGrad)"/>`;
         svg+=`<rect x="${X(0)}" y="${Y(0)}" width="${state.p1*scale}" height="${T*scale}" fill="url(#hatch)"/>`;
         svg+=`<rect x="${X(xw-wd.halfTop-hz).toFixed(1)}" y="${Y(0)}" width="${((wd.halfTop+hz)*2*scale).toFixed(1)}" height="${T*scale}" fill="var(--amber)" fill-opacity=".10"/>`;
-        const seam=`M ${Q(xw-wd.halfCap,0)} Q ${Q(xw,-2*hc)} ${Q(xw+wd.halfCap,0)} L ${Q(xw+wd.halfTop,0)} L ${Q(xw+wd.g0,T)} L ${Q(xw-wd.g0,T)} L ${Q(xw-wd.halfTop,0)} Z`;
+        const seam=`M ${Q(xw-wd.halfTop,0)} Q ${Q(xw,-2*hc)} ${Q(xw+wd.halfTop,0)} L ${Q(xw+wd.g0,T)} L ${Q(xw-wd.g0,T)} Z`;
         svg+=`<path d="${seam}" fill="var(--amber)" fill-opacity=".38" stroke="var(--amber)" stroke-width="1.6" stroke-linejoin="round"/>`;
         svg+=`<rect x="${X(0)}" y="${Y(0)}" width="${state.p1*scale}" height="${T*scale}" fill="none" stroke="#8898a8" stroke-width="1.3"/>`;
         svg+=`<text x="${X(xw+wd.halfCap)+8}" y="${Y(0)-6}" text-anchor="start" font-family="JetBrains Mono" font-size="11.5" font-weight="700" fill="var(--amber)" paint-order="stroke" stroke="${cv('--bg')}" stroke-width="3">Schweißnaht</text>`;
@@ -2986,7 +3357,7 @@ var themeCtl=(function(){
         const Pl=(rho,lat)=>Pp(G.P(rho,G.phi+lat/rho));            // lat = seitlicher Abstand (mm) von der Nahtmitte auf Radius rho
         const hw=wd.halfTop+hz, aR=R*scale, aI=r*scale;
         svg+=`<path d="M ${Pl(R,-hw)} A ${aR} ${aR} 0 0 1 ${Pl(R,hw)} L ${Pl(r,hw)} A ${aI} ${aI} 0 0 0 ${Pl(r,-hw)} Z" fill="var(--amber)" fill-opacity=".10"/>`;
-        const seam=`M ${Pl(R,-wd.halfCap)} Q ${Pl(R+2*hc,0)} ${Pl(R,wd.halfCap)} L ${Pl(R,wd.halfTop)} L ${Pl(r,wd.g0)} L ${Pl(r,-wd.g0)} L ${Pl(R,-wd.halfTop)} Z`;
+        const seam=`M ${Pl(R,-wd.halfTop)} Q ${Pl(R+2*hc,0)} ${Pl(R,wd.halfTop)} L ${Pl(r,wd.g0)} L ${Pl(r,-wd.g0)} Z`;
         svg+=`<path d="${seam}" fill="var(--amber)" fill-opacity=".38" stroke="var(--amber)" stroke-width="1.6" stroke-linejoin="round"/>`;
         const lp=G.P(R+wd.hc,G.phi+G.dc);
         svg+=`<text x="${(X(lp.x)+8).toFixed(1)}" y="${(Y(lp.y)-6).toFixed(1)}" text-anchor="start" font-family="JetBrains Mono" font-size="11.5" font-weight="700" fill="var(--amber)" paint-order="stroke" stroke="${cv('--bg')}" stroke-width="3">Schweißnaht</text>`;
@@ -2997,6 +3368,7 @@ var themeCtl=(function(){
     }
 
     // ── Prüfkopf-Körper ────────────────────────────────────────
+    if(dac.on&&geometry==='block') svg+=dacHolesSvg(X,Y,scale,cv);
     const pd=probeDims();
     let probeAnchorX, probeAnchorY, probeAngleDeg=0;
     if(state.water){
@@ -3216,10 +3588,11 @@ var themeCtl=(function(){
         {
           const am2=cv('--amber');
           const poly=e1+e2.trim().split(' ').reverse().join(' ');
-          if(!state.fieldColor) svg+=`<polygon points="${poly}" fill="${am2}" opacity=".16" stroke="none" clip-path="url(#fieldClip)"/>`;
+          if(!state.fieldColor) svg+=`<polygon points="${poly}" fill="${am2}" opacity=".12" stroke="none" clip-path="url(#fieldClip)"/>`;
+          // Bündelränder bewusst dezent (dünn, halbtransparent), damit Zentralstrahl und Fehler dominieren
           [e1,e2].forEach(e=>{
-            svg+=`<polyline points="${e}" fill="none" stroke="#0b1015" stroke-width="4.2" stroke-linejoin="round" opacity=".75" clip-path="url(#fieldClip)"/>`;
-            svg+=`<polyline points="${e}" fill="none" stroke="${am2}" stroke-width="2.2" stroke-dasharray="7 3" stroke-linejoin="round" opacity="1" clip-path="url(#fieldClip)"/>`;
+            svg+=`<polyline points="${e}" fill="none" stroke="#0b1015" stroke-width="3" stroke-linejoin="round" opacity=".3" clip-path="url(#fieldClip)"/>`;
+            svg+=`<polyline points="${e}" fill="none" stroke="${am2}" stroke-width="1.6" stroke-dasharray="6 3" stroke-linejoin="round" opacity=".68" clip-path="url(#fieldClip)"/>`;
           });
         }
         cum+=segLen;
@@ -3340,9 +3713,16 @@ var themeCtl=(function(){
         svg+=`<line x1="${X(defectInfo.point.x)}" y1="${Y(defectInfo.point.y)}" x2="${X(dp.x)}" y2="${Y(dp.y)}"
           stroke="${cv('--red')}" stroke-width="1.4" stroke-dasharray="2 2" opacity="0.85"/>`;
       }
+      if(state.defect.type==='ksr'){
+        const ta=state.defect.tilt*Math.PI/180, hl=Math.max(5,state.defect.size*scale/2);
+        // Scheibe in der Schnittebene: Linie senkrecht zur Normalen (Normale: 0° = lotrecht)
+        const tx=Math.cos(ta), ty=-Math.sin(ta);
+        svg+=`<line x1="${X(dp.x)-tx*hl}" y1="${Y(dp.y)-ty*hl}" x2="${X(dp.x)+tx*hl}" y2="${Y(dp.y)+ty*hl}" stroke="${rCol}" stroke-width="${hit?4:3}" stroke-linecap="round" opacity="${hit?1:0.85}"/>`;
+      } else {
       svg+=`<circle cx="${X(dp.x)}" cy="${Y(dp.y)}" r="${Math.max(3,state.defect.size*scale/2)}"
         fill="${hit?'rgba(255,95,86,.35)':'rgba(255,95,86,.12)'}" stroke="${rCol}" stroke-width="${hit?2:1.5}" stroke-dasharray="${hit?'none':'3 2'}" opacity="${hit?1:0.85}"/>`;
-      svg+=`<text x="${X(dp.x)+10}" y="${Y(dp.y)+4}" font-family="JetBrains Mono" font-size="13" font-weight="${hit?'700':'600'}" fill="${rCol}" paint-order="stroke" stroke="${cv('--bg')}" stroke-width="4">Fehler${hit?'':(inBundle?' (ausgeblendet)':' (außerh. Bündel)')}</text>`;
+      }
+      svg+=`<text x="${X(dp.x)+10}" y="${Y(dp.y)+4}" font-family="JetBrains Mono" font-size="13" font-weight="${hit?'700':'600'}" fill="${rCol}" paint-order="stroke" stroke="${cv('--bg')}" stroke-width="4">${({sdh:'Querbohrung',ksr:'KSR'})[state.defect.type]||'Fehler'}${hit?'':(inBundle?' (ausgeblendet)':' (außerh. Bündel)')}</text>`;
     }
 
     if(clippedNote){
@@ -3554,7 +3934,7 @@ var themeCtl=(function(){
         // Kleiner Reflektor: Schalldruck hin UND zurück → ∝ p(s)² (Abstandsgesetz ~1/s² im Fernfeld)
         // × Richtcharakteristik (h.dirF): Echo am größten (Pik), wenn der Fehler im Zentralstrahl liegt.
         const pr=pAxisRel(h.pathAtPoint,nfd);
-        const ev={sPath:h.pathAtPoint, amp:Math.max(0.02, (0.45+0.55*sizeFactor)*h.dirF*Math.min(1,1.6*pr*pr)), isDefect:true, inGate:inGate(h.pathAtPoint), rel:h.dirF};
+        const ev={sPath:h.pathAtPoint, amp:Math.max(0.02, reflFactor(h,sizeFactor)*h.dirF*Math.min(1,1.6*pr*pr)), isDefect:true, inGate:inGate(h.pathAtPoint), rel:h.dirF};
         defectEvents.push(ev);
         events.push(ev);
       });
@@ -3569,6 +3949,7 @@ var themeCtl=(function(){
       });
     }
 
+    dacPushEvents(events);
     // FIX Tauchtechnik: Die Stahl-Schallwege enthalten die Wasser-Vorlaufzeit nicht. Der
     // (automatisch gesetzte) Nullpunkt-Offset zieht sie aber ab — vorher wurde sie also
     // doppelt abgezogen und alle Echos erschienen ≈ 4·W zu früh. Jetzt: Wasserlaufzeit
@@ -3581,6 +3962,16 @@ var themeCtl=(function(){
       const ti = lastImmersion ? Math.abs(lastImmersion.thetaI) : Math.abs(lastTilt);
       const sgw=0.51*(state.cWater/1000)/(state.freq*state.dia), gw=Math.max(0.8, sgw<1?deg(Math.asin(sgw)):90);
       events.push({sPath:wOff, amp:Math.max(0.02, 0.95*Math.pow(0.5,(ti/gw)*(ti/gw))), isIE:true}); // Eintrittsecho
+    }
+    // Messbereich automatisch: bis zum letzten relevanten Echo (Regler bleibt für manuelles Stellen)
+    if(state.autoRange && !dac.on){
+      let mx=0; events.forEach(ev=>{ if(!ev.isIE && ev.sPath>mx) mx=ev.sPath; });
+      marks.forEach(m=>{ if(m.sPath!=null && isFinite(m.sPath) && m.sPath+wOff>mx) mx=m.sPath+wOff; });
+      if(dacShown()){ const P=dac.points; mx=Math.max(mx, Math.max(...P.map(q=>q.s))+wOff); }
+      if(mx>0){
+        const r=Math.max(20,Math.min(600,Math.ceil(mx*1.1/10)*10));
+        if(r!==state.range){ state.range=r; el.range.value=r; el.vRange.textContent=r; el.ascanRange.textContent=`0 – ${r} mm (Schallweg)`; }
+      }
     }
     const gainMul=Math.pow(10,(state.gain-40)/20);
     const delayMM=state.delay*c;
@@ -3602,7 +3993,7 @@ var themeCtl=(function(){
     // Tonne/Halbrohr: Grenzen = Schallwege der tatsächlichen Umlenkungen.
     // Bereich 1 (0 … ½S): Fehler von der Prüfkopfseite bis zur Rückwand, direkter Schall.
     // Bereich 2 (½S … S): nach der Umlenkung an der Rückwand — Fehlertiefe = 2T − Tiefe(Schallweg).
-    if(Math.abs(betaValid)>0.05){
+    if(Math.abs(betaValid)>0.05 && !dac.on){
       const toX=v=>padL+((v+wOff-delayMM)/state.range)*w;
       let bounds=[];
       if(isFlat(state.geometry)){
@@ -3629,10 +4020,12 @@ var themeCtl=(function(){
       });
     }
 
+    if(dac.on||dacShown()) svg+=dacGridSvg(padL,padT,w,h);
     // Baseline
     svg+=`<line x1="${padL}" y1="${padT+h}" x2="${padL+w}" y2="${padT+h}" stroke="#1e2d3a" stroke-width="1.2"/>`;
 
     const base=padT+h-2;
+    const tcgOn=dacTcg();
     let path=`M${padL},${base} `;
     for(let x=0;x<=w;x+=2){
       const mm=delayMM+(x/w)*state.range;
@@ -3640,7 +4033,7 @@ var themeCtl=(function(){
       events.forEach(ev=>{
         const dmm=mm-ev.sPath;
         const sigma=state.range*0.011;
-        y+=ev.amp*gainMul*Math.exp(-(dmm*dmm)/(2*sigma*sigma));
+        y+=ev.amp*gainMul*(tcgOn&&!ev.isIE?dacFac(ev.sPath-wOff):1)*Math.exp(-(dmm*dmm)/(2*sigma*sigma));
       });
       const yy=base-Math.min(1,y)*(h-10);
       path+=`L${padL+x},${yy} `;
@@ -3652,11 +4045,12 @@ var themeCtl=(function(){
       if(mm<0||mm>state.range) return;
       const isDefect=!!ev.isDefect;
       const gx=padL+(mm/state.range)*w;
-      const col=isDefect?'var(--red)':(ev.isIE?'var(--blue)':'var(--cyan)');
+      const col=isDefect?'var(--red)':(ev.isDac?'var(--amber)':(ev.isIE?'var(--blue)':'var(--cyan)'));
       svg+=`<line x1="${gx}" y1="${padT}" x2="${gx}" y2="${padT+10}" stroke="${col}" stroke-width="1"/>`;
       let label=isDefect?(defectEvents.length>1?'F'+(defectEvents.indexOf(ev)+1):'F'):(ev.isIE?'IE':(ev.lbl||(i+1)));
       if(isDefect && ev.rel!=null) label += ev.rel>=0.95 ? ' · Pik ✓' : ` · ${Math.round(ev.rel*100)} %`;
-      svg+=`<text x="${gx}" y="${padT+10+10}" font-family="JetBrains Mono" font-size="8.5" fill="${col}" text-anchor="middle">${label}</text>`;
+      if(isDefect && (dac.on||dacShown()) && dac.points.length>1){ const P=dac.points.slice().sort((a,b)=>a.s-b.s), ss=ev.sPath-wOff; if(ss>=P[0].s-0.01 && ss<=P[P.length-1].s+0.01){ const ref=dacAt(P,ss), pc=Math.min(9.99,ev.amp*gainMul)*100, d=20*Math.log10(Math.max(1e-3,pc)/Math.max(0.5,ref)); label+=' · '+(d>=0?'+':'−')+Math.abs(d).toFixed(1)+' dB DAC'; } }
+      svg+=`<text x="${gx}" y="${padT+10+10}" font-family="JetBrains Mono" font-size="8.5" fill="${col}" text-anchor="middle" paint-order="stroke" stroke="var(--panel)" stroke-width="3" stroke-linejoin="round">${label}</text>`;
     });
 
     // Nahfeldbereich im A-Bild (Schallweg im Bauteil 0 … N)
@@ -3689,6 +4083,7 @@ var themeCtl=(function(){
       if(trig) svg+=`<text x="${padL+w-6}" y="${padT+14}" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="#ff3b30" text-anchor="end">⚠ Anzeige im Auswertebereich</text>`;
     }
 
+    if(dac.on||dacShown()) svg+=dacCurveSvg(padL,padT,w,h,delayMM,gainMul,wOff);
     el.ascan.innerHTML=svg;
     el.ascan.setAttribute('viewBox',`0 0 ${VBW} ${VBH}`);  // VBH now 260
   }
@@ -3702,6 +4097,439 @@ var themeCtl=(function(){
   updateOffsetAvailability();
   updateRotAvailability();
   setGateEnabled(state.gate.enabled);
+    // ══════════════════════════════════════════════════════════════
+  // DAC · Distanz-Amplituden-Kurve (Referenzblock mit Querbohrungen)
+  // Block 360 × 100 mm mit n Querbohrungen (SDH) in gestaffelten Tiefen. Der Prüfkopf fährt
+  // die Bohrungen automatisch ab (Suchlauf auf das Echomaximum), die Bohrung mit dem höchsten
+  // Echo wird auf 80 % Schirmhöhe gesetzt, alle Echohöhen werden als Stützstellen aufgenommen
+  // und zur DAC verbunden (lineare Interpolation in dB).
+  // ══════════════════════════════════════════════════════════════
+  const dac={tcg:false, keep:true, on:false, n:5, size:3, speed:1, extra:true, skip:true, targets:null, points:[], refGain:null, refIdx:null, run:null, msg:'', sets:{}};
+  let dacLive=null, dacRAF=null, dacLast=0;
+  const DAC_DEPTHS={3:[30,50,70], 4:[30,45,55,70], 5:[30,40,50,60,70], 6:[30,40,50,60,70,80]};   // erste Bohrung bei ca. 30 mm
+  const DAC_BRIDGE=90;      // zusätzliche tiefe Bohrung: liefert Stützstellen zwischen 1. Halbsprung (Hinweg) und 2. Halbsprung (Rückweg)
+  const DAC_SMAX=300;       // die DAC-Kurve soll mindestens bis 300 mm Schallweg reichen
+  const DAC_PHASE={move:'Prüfkopf fährt zur Bohrung', sweep:'Suchlauf: Echomaximum suchen', back:'Zurück auf das Echomaximum',
+                   gain:'Referenzecho auf 80 % Schirmhöhe setzen', rec:'Stützstelle wird aufgenommen ✓'};
+
+  // ── Oberfläche (CSS, Panel, Statusleiste, Tabelle) ─────────────
+  (function(){
+    const st=document.createElement('style');
+    st.textContent=`
+      .dac-bar{flex:1 1 100%; display:flex; align-items:center; flex-wrap:wrap; gap:6px 14px; padding:5px 10px;
+        border:1.5px solid var(--amber); background:var(--amber-glow); border-radius:8px; font-family:var(--mono);
+        font-size:12px; color:var(--text);}
+      .dac-bar b{color:var(--amber); font-weight:700;}
+      body.light-mode .dac-bar b{color:#7a3e00;}
+      .dac-steps{display:inline-flex; gap:5px; margin-left:auto;}
+      .dstep{min-width:28px; height:22px; padding:0 4px; border-radius:11px; display:inline-flex; align-items:center; justify-content:center;
+        font-size:10.5px; font-weight:700; border:1.5px solid var(--border); color:var(--text-dim); background:var(--bg-2);}
+      .dstep.done{background:var(--green); border-color:var(--green); color:#06210b;}
+      .dstep.act{background:var(--amber); border-color:var(--amber); color:#1a0e00; box-shadow:0 0 8px var(--amber-glow); animation:pulse 1s ease-in-out infinite;}
+      .dac-tbl-wrap{overflow-x:auto; margin-bottom:6px;}
+      #dacTblWrap{margin-bottom:10px;}
+      #dacTblWrap table.skiptbl td small{color:var(--text-faint);}
+      #dacStart{flex:1 1 100%; padding:8px 6px;}
+    `;
+    document.head.appendChild(st);
+
+    const panel=document.createElement('div');
+    panel.className='panel';
+    panel.innerHTML=`
+      <h2><span class="n">5</span>DAC · Referenzblock</h2>
+      <div class="toggle-row" id="toggleDac"><span>DAC-Modus (Block mit Querbohrungen)</span><div class="switch"></div></div>
+      <div id="dacKeepBox" style="display:none">
+        <div class="hint" id="dacKeepTxt" style="color:var(--text)"></div>
+        <div class="toggle-row on" id="toggleDacKeep"><span>DAC in allen Bauteilen anzeigen &amp; bewerten</span><div class="switch"></div></div>
+        <div class="toggle-row" id="toggleDacTcg"><span>DAC hochziehen (alle Echos ausgleichen)</span><div class="switch"></div></div>
+        <div class="seg" style="margin-bottom:6px"><button type="button" id="dacClear2">DAC löschen</button></div>
+      </div>
+      <div id="dacFields" style="display:none">
+        <div class="field">
+          <label>Anzahl Bohrungen (+ 1 Brückenbohrung bei 90 mm)</label>
+          <div class="seg" id="segDacN">
+            <button type="button" data-n="3">3</button><button type="button" data-n="4">4</button>
+            <button type="button" data-n="5" class="active">5</button><button type="button" data-n="6">6</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Bohrungs-⌀ <span class="val" id="vDacD">3</span> mm</label>
+          <input type="range" id="dacD" min="1" max="6" step="0.5" value="3">
+        </div>
+        <div class="field">
+          <label>Ablaufgeschwindigkeit</label>
+          <div class="seg" id="segDacSpeed">
+            <button type="button" data-sp="0.5">0,5×</button><button type="button" data-sp="1" class="active">1×</button>
+            <button type="button" data-sp="2">2×</button><button type="button" data-sp="4">4×</button>
+          </div>
+        </div>
+        <div class="toggle-row on" id="toggleDacSkip"><span>Auch nach Umlenkung aufnehmen (große Tiefen)</span><div class="switch"></div></div>
+        <div class="toggle-row on" id="toggleDacExtra"><span>Zusatzkurven −6 dB / −12 dB</span><div class="switch"></div></div>
+        <div class="seg"><button type="button" id="dacStart" class="active">▶ DAC automatisch aufnehmen</button></div>
+        <div class="seg" style="margin-top:6px"><button type="button" id="dacClear">DAC löschen</button></div>
+        <div class="angle-info-box" id="dacStatus"></div>
+        <div class="hint">Ablauf: Der Prüfkopf wird je Bohrung über das Echomaximum geschoben (Suchlauf). Die Bohrung mit dem höchsten Echo wird auf 80 % Schirmhöhe gesetzt (Referenzverstärkung), alle Echohöhen werden als Stützstellen aufgenommen und zur Kurve verbunden (lineare Interpolation in dB). Danach lässt sich ein künstlicher Fehler gegen die DAC bewerten.</div>
+      </div>`;
+    document.querySelector('.sidebar').appendChild(panel);
+
+    const tbl=document.createElement('div');
+    tbl.id='dacTblWrap'; tbl.style.display='none';
+    tbl.innerHTML=`
+      <div class="stage-title" style="margin:2px 0 5px;display:block">DAC-Stützstellen</div>
+      <div class="dac-tbl-wrap"><table class="skiptbl">
+        <thead><tr><th>Bohrung</th><th>Tiefe</th><th>Schallweg s</th><th>Höhe (rel. 80 %)</th></tr></thead>
+        <tbody id="dacBody"></tbody></table></div>
+      <div class="hint" id="dacFoot"></div>`;
+    const sc=document.querySelector('.side-col');
+    sc.insertBefore(tbl, sc.firstChild);
+
+    const bar=document.createElement('div');
+    bar.className='dac-bar'; bar.id='dacBar'; bar.style.display='none';
+    bar.innerHTML=`<b id="dacBarT"></b><span id="dacBarP"></span><span class="dac-steps" id="dacSteps"></span>`;
+    document.querySelector('.stage-head').appendChild(bar);
+  })();
+  const dacUI={
+    skip:$('toggleDacSkip'), toggle:$('toggleDac'), fields:$('dacFields'), tbl:$('dacTblWrap'), bar:$('dacBar'),
+    start:$('dacStart'), clear:$('dacClear'), status:$('dacStatus'), body:$('dacBody'), foot:$('dacFoot'),
+    barT:$('dacBarT'), barP:$('dacBarP'), steps:$('dacSteps'),
+    segN:$('segDacN'), segSp:$('segDacSpeed'), size:$('dacD'), vSize:$('vDacD'), extra:$('toggleDacExtra')
+  };
+  el.gain.step='0.1';     // Referenzverstärkung wird auf 0,1 dB genau eingestellt
+
+  // ── Block, Bohrungen, Hilfsfunktionen ──────────────────────────
+  function dacHoles(){
+    const D=(DAC_DEPTHS[dac.n]||DAC_DEPTHS[5]).concat([DAC_BRIDGE]), n=D.length;
+    return D.map((depth,i)=>({i, depth, x:Math.round(290+i*150/(n-1))}));
+  }
+  function dacBeta(){ const c=computeCouple(); return c.valid?state.angle:0; }
+  function dacDD(h,leg){ const T=state.p2; return leg===0?h.depth:(leg===1?2*T-h.depth:2*T+h.depth); }   // Weg im Werkstück senkrecht zur Oberfläche: Hinweg, nach 1. und nach 2. Umlenkung
+  function dacCx(h,beta,leg){ const dd=dacDD(h,leg); return Math.max(0,Math.min(state.p1,h.x-dd*Math.tan(rad(beta)))); }   // Prüfkopfposition direkt über dem Strahl auf die Bohrung
+  function dacR(beta){ return 8+beta/12; }                                                              // halbe Suchlauf-Weite (mm)
+  function dacGM(){ return Math.pow(10,(state.gain-40)/20); }
+  function dacSetX(x){ state.x0=x; el.probeX.value=Math.round(x); el.vX0.textContent=fmtNum(x,0); }
+  function dacSetGain(g){ state.gain=Math.max(0,Math.min(80,Math.round(g*100)/100)); el.gain.value=state.gain; el.vGain.textContent=state.gain.toFixed(1); }
+  function dacFitRange(){
+    const cb=Math.cos(rad(dacBeta()))||1, maxS=Math.max(...dacAllTargets().map(t=>dacDD(t.h,t.leg)/cb));
+    const r=Math.min(600,Math.max(100,Math.ceil(maxS*1.1/10)*10));
+    state.range=r; el.range.value=r; el.vRange.textContent=r;
+  }
+  function dacSegSync(box,attr,val){ [...box.children].forEach(b=>b.classList.toggle('active', String(b.dataset[attr])===String(val))); }
+
+  // Echo einer Querbohrung bei Prüfkopfposition x0: gleiche Physik wie der künstliche Fehler
+  // (Strahlverlauf, Bündelbreite, Richtcharakteristik, Schallfeld auf der Achse).
+  function dacEval(h,x0,nfdIn){
+    const nfd=nfdIn||nearFieldAndDivergence();
+    if(!nfdIn) prepareBeam(nfd);
+    const path=buildSteelPath('block',state.p1,state.p2,state.p3,{x:x0,y:0},dacBeta(),state.skips);
+    const keep=state.defect.size; state.defect.size=dac.size;
+    const info=findDefectHit(path.pts,{x:h.x,y:h.depth},nfd);
+    state.defect.size=keep;
+    const out=[];
+    if(info && info.hit){
+      const sf=Math.min(1,dac.size/6);
+      info.hits.forEach(hit=>{
+        const pr=pAxisRel(hit.pathAtPoint,nfd);
+        out.push({s:hit.pathAtPoint, dirF:hit.dirF, amp:Math.max(0.02,(0.45+0.55*sf)*hit.dirF*Math.min(1,1.6*pr*pr))});
+      });
+    }
+    return out;     // nach Schallweg sortiert: [0] = direkter Weg
+  }
+  function dacLiveEval(){
+    const nfd=nearFieldAndDivergence(); prepareBeam(nfd);
+    return dacHoles().map(h=>({hole:h, hits:dacEval(h,state.x0,nfd)}));
+  }
+
+  // DAC-Kurve: lineare Interpolation in dB zwischen den Stützstellen (nach Schallweg sortiert)
+  function dacAt(P,s){
+    if(s<=P[0].s) return P[0].pct;
+    for(let i=0;i<P.length-1;i++){
+      if(s<=P[i+1].s){
+        const a=P[i], b=P[i+1], t=(s-a.s)/((b.s-a.s)||1);
+        const la=20*Math.log10(Math.max(0.5,a.pct)), lb=20*Math.log10(Math.max(0.5,b.pct));
+        return Math.pow(10,(la+(lb-la)*t)/20);
+      }
+    }
+    return P[P.length-1].pct;
+  }
+
+  // ── Aufnahme: Ablaufsteuerung ──────────────────────────────────
+  function dacRecord(t){
+    const h=t.h, ev=dacPick(dacEval(h,state.x0),t.leg); if(!ev) return;
+    const pct=Math.min(1,ev.amp*dacGM())*100;
+    dac.points=dac.points.filter(p=>p.key!==t.key);
+    dac.points.push({i:h.i, leg:t.leg, key:t.key, depth:h.depth, s:ev.s, amp:ev.amp, pct, x0:state.x0});
+  }
+  function dacTcg(){ return dac.tcg && dacShown(); }
+  function dacFac(sSteel){ const P=dac.points.slice().sort((a,b)=>a.s-b.s); const v=dacAt(P,Math.max(P[0].s,Math.min(P[P.length-1].s,sSteel))); return 80/Math.max(0.5,v); }
+  function dacShown(){ return !dac.on && dac.keep && dac.points.length>1; }
+  function dacKeepUpdate(){
+    const b=$('dacKeepBox'); if(!b) return;
+    const n=dac.points.length;
+    b.style.display=n?'block':'none';
+    const t=$('dacKeepTxt'); if(t) t.textContent=n?`Gespeicherte DAC: ${n} Stützstellen · Referenzverstärkung ${dac.refGain!=null?fmtNum(dac.refGain,1)+' dB':'—'}`:'';
+  }
+  function dacPick(a,leg){ const sp=state.p2/(Math.cos(rad(dacBeta()))||1); return a.find(e=>e.s>=leg*sp && e.s<(leg+1)*sp); }   // Durchgang 0 = Hinweg, 1 = nach Bodenreflexion, 2 = nach Oberflächenreflexion
+  function dacAllTargets(){
+    const cb=Math.cos(rad(dacBeta()))||1, H=dacHoles(), o=[];
+    const maxLeg=dac.skip?Math.max(0,Math.min(2,(state.skips|0)-1)):0;   // nur die eingestellten (aktiven) Sprünge: 1 Abschnitt = Hinweg, 2 = ½ Sprung, 3 = 1½ Sprung – keine automatische Erhöhung
+    H.forEach(h=>{ o.push({h,leg:0,key:h.i*3}); if(maxLeg>=1) o.push({h,leg:1,key:h.i*3+1}); });
+    if(maxLeg>=2) H.forEach(h=>o.push({h,leg:2,key:h.i*3+2}));   // 3. Abschnitt nur, wenn 3 Sprünge eingestellt sind – nie automatisch
+    return o;
+  }
+  function dacStart(){
+    if(dac.run) return;
+    dacClear(true);
+    const holes=dacHoles(), beta=dacBeta(), R=dacR(beta);
+    dacSetGain(40);
+    dacFitRange();
+    const scan=t=>{
+      const xc=dacCx(t.h,beta,t.leg); let b={amp:0,x:xc,s:0};
+      for(let x=Math.max(0,xc-R); x<=Math.min(state.p1,xc+R)+1e-9; x+=0.25){
+        const ev=dacPick(dacEval(t.h,x),t.leg); if(ev && ev.amp>b.amp) b={amp:ev.amp,x,s:ev.s};
+      }
+      return b;
+    };
+    const T=dacAllTargets().map(t=>Object.assign(t,(b=>({amp:b.amp,s:b.s}))(scan(t)))).filter(t=>t.amp>0);
+    const mx=Math.max(0,...T.filter(t=>!t.leg).map(t=>t.amp));
+    if(!(mx>0)){ dac.msg='Keine Bohrung erreichbar – Winkel/Prüfkopf prüfen.'; dacUpdateUI(); render(); return; }
+    const refT=T.find(t=>!t.leg && t.amp>=mx*0.98);
+    dac.refIdx=refT.h.i; dac.msg='';
+    /* Aufnahmereihenfolge: streng nach Schallweg (kürzester zuerst, längster zuletzt).
+       Vorab wird die Referenzbohrung (stärkstes Echo, Hinweg) nur eingestellt (80 %), aber noch nicht aufgenommen. */
+    const byS=(a,b)=>a.s-b.s;
+    dac.targets=T.slice().sort(byS);     // Reihenfolge der Schallwege: kürzester zuerst, längster zuletzt
+    const order=[Object.assign({},refT,{setup:true}), ...dac.targets];
+    dac.run={order, k:0, phase:'move', pt:0, from:state.x0, g0:state.gain, best:null, recorded:false};
+    dacLast=0;
+    dacRAF=requestAnimationFrame(dacTick);
+    dacUpdateUI(); render();
+  }
+  function dacStop(silent){
+    if(dacRAF){ cancelAnimationFrame(dacRAF); dacRAF=null; }
+    dac.run=null; dacLast=0;
+    if(!silent){ render(); }
+    dacUpdateUI();
+  }
+  // DAC je Prüfkopf: beim Wechsel wird die Kurve des bisherigen Prüfkopfs gemerkt und die des neuen (falls vorhanden) wieder geladen – jeder Prüfkopf hat seine eigene DAC
+  function dacProbeSwitch(oldId,newId){
+    if(oldId===newId) return;
+    if(dac.points.length) dac.sets[oldId]={points:dac.points,targets:dac.targets,refGain:dac.refGain,refIdx:dac.refIdx};
+    dacStop(true);
+    const q=dac.sets[newId];
+    dac.points=q?q.points:[]; dac.targets=q?q.targets:null; dac.refGain=q?q.refGain:null; dac.refIdx=q?q.refIdx:null; dac.msg='';
+    if(typeof dacUpdateUI==='function') dacUpdateUI();
+  }
+  function dacClear(silent){
+    dacStop(true);
+    dac.points=[]; dac.targets=null; dac.refGain=null; dac.refIdx=null; dac.msg='';
+    if(!silent) render();
+    dacUpdateUI();
+  }
+  function dacTick(ts){
+    const r=dac.run; if(!r){ dacRAF=null; return; }
+    if(!dacLast) dacLast=ts;
+    const dt=Math.min(0.1,(ts-dacLast)/1000)*dac.speed; dacLast=ts;
+    r.pt+=dt;
+    const tg=r.order[r.k], h=tg.h, beta=dacBeta(), xc=dacCx(h,beta,tg.leg), R=dacR(beta);
+    const xa=Math.max(0,xc-R), xb=Math.min(state.p1,xc+R);
+    const ease=p=>p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2, lerp=(a,b,p)=>a+(b-a)*p;
+    const go=ph=>{ r.phase=ph; r.pt=0; r.from=state.x0; r.g0=state.gain; r.recorded=false; };
+    let finished=false;
+    if(r.phase==='move'){
+      const dur=Math.max(0.4,Math.abs(xa-r.from)/70), p=Math.min(1,r.pt/dur);
+      dacSetX(lerp(r.from,xa,ease(p)));
+      if(p>=1){ go('sweep'); r.best={amp:0,x:xc,s:0}; }
+    } else if(r.phase==='sweep'){
+      const dur=Math.max(0.6,(xb-xa)/14), p=Math.min(1,r.pt/dur);
+      dacSetX(lerp(xa,xb,p));
+      const ev=dacPick(dacEval(h,state.x0),tg.leg);
+      if(ev && ev.amp>r.best.amp) r.best={amp:ev.amp, x:state.x0, s:ev.s};
+      if(p>=1){
+        for(let x=xa; x<=xb+1e-9; x+=0.25){ const e2=dacPick(dacEval(h,x),tg.leg); if(e2 && e2.amp>r.best.amp) r.best={amp:e2.amp,x,s:e2.s}; }
+        if(r.best.amp<=0){ r.k++; if(r.k>=r.order.length) finished=true; else go('move'); }   // Bohrung nicht erfassbar → überspringen
+        else go('back');
+      }
+    } else if(r.phase==='back'){
+      const dur=Math.max(0.3,Math.abs(r.best.x-r.from)/40), p=Math.min(1,r.pt/dur);
+      dacSetX(lerp(r.from,r.best.x,ease(p)));
+      if(p>=1) go(tg.setup?'gain':'rec');
+    } else if(r.phase==='gain'){
+      const g1=40+20*Math.log10(0.8/r.best.amp), p=Math.min(1,r.pt/1.2);
+      dacSetGain(lerp(r.g0,g1,ease(p)));
+      if(p>=1){ dacSetGain(g1); dac.refGain=state.gain; r.k++; go('move'); }   // Referenz nur eingestellt – Aufnahme folgt in Tiefenreihenfolge
+    } else if(r.phase==='rec'){
+      if(!r.recorded){ dacRecord(tg); r.recorded=true; }
+      if(r.pt>=0.9){ r.k++; if(r.k>=r.order.length) finished=true; else go('move'); }
+    }
+    if(finished){
+      dac.run=null; dacRAF=null; dacLast=0;
+      render(); dacUpdateUI();
+      return;
+    }
+    render();
+    dacRAF=requestAnimationFrame(dacTick);
+  }
+
+  // ── Modus ein/aus ──────────────────────────────────────────────
+  function dacSetOn(on,silent){
+    if(on===dac.on) return;
+    if(!on) dacStop(true);
+    dac.on=on;
+    dacUI.toggle.classList.toggle('on',on);
+    dacUI.fields.style.display=on?'block':'none';
+    dacUI.tbl.style.display=on?'block':'none';
+    dacUI.bar.style.display=on?'flex':'none';
+    [el.param1,el.param2,el.param3].forEach(i=>{ i.disabled=on; i.style.opacity=on?'.45':''; });
+    if(on){
+      if(state.probeType==='TAUCH') applyProbe('MWB45-4');
+      setWater(false);
+      state.geometry='block'; state.p1=560; state.p2=100; state.p3=100;
+      state.weld.enabled=false;
+      view.z=1; view.cx=null; view.cy=null; view.mode='all';
+      setGateEnabled(false);
+      syncSegGeometry(); updateGeometryParams();
+      dacFitRange();
+      dacSetX(dacCx(dacHoles()[0],dacBeta(),0));
+    }
+    if(!silent) render();
+    dacUpdateUI();
+  }
+
+  // ── Anzeige: Statusleiste, Tabelle, Seitenleiste ───────────────
+  function dacUpdateUI(){
+    const r=dac.run, TG=r?r.order.filter(t=>!t.setup):(dac.points.length&&dac.targets?dac.targets:dacAllTargets()), N=TG.length, lb=t=>'B'+(t.h.i+1)+"'".repeat(t.leg);
+    dacUI.start.textContent = r ? '■ Aufnahme stoppen' : '▶ DAC automatisch aufnehmen';
+    let t, p;
+    if(r){
+      const tg=r.order[r.k];
+      t=tg.setup?`DAC-Aufnahme · Referenz einstellen · ${lb(tg)} (${tg.h.depth} mm) → 80 %`:`DAC-Aufnahme · Schritt ${r.k}/${N} · ${lb(tg)} (${tg.h.depth} mm${tg.leg===2?', nach 2. Umlenkung (1½ Sprung)':tg.leg?', nach Umlenkung (Rückweg)':', Hinweg'}) · Schallweg ≈ ${fmtNum(dacDD(tg.h,tg.leg)/(Math.cos(rad(dacBeta()))||1),0)} mm`;
+      p=DAC_PHASE[r.phase];
+      if((r.phase==='sweep'||r.phase==='back') && r.best && r.best.amp>0) p+=` · Max ${Math.round(Math.min(1,r.best.amp*dacGM())*100)} %`;
+    } else if(dac.msg){ t='DAC'; p=dac.msg; }
+    else if(dac.points.length){
+      t=`DAC fertig · ${dac.points.length} Stützstellen`;
+      p=(dac.refIdx!=null?`80 % = Bohrung B${dac.refIdx+1} · `:'')+(dac.refGain!=null?`Referenzverstärkung ${fmtNum(dac.refGain,1)} dB`:'');
+    } else { t='DAC-Referenzblock'; p='Start: „DAC automatisch aufnehmen“'; }
+    dacUI.barT.textContent=t; dacUI.barP.textContent=p;
+    dacUI.steps.innerHTML=TG.map(t=>{
+      const done=dac.points.some(q=>q.key===t.key), act=r && r.order[r.k]===t;
+      return `<span class="dstep${done?' done':''}${act?' act':''}">${lb(t)}</span>`;
+    }).join('');
+
+    const cb=Math.cos(rad(dacBeta()))||1;
+    dacUI.body.innerHTML=TG.map(t=>{
+      const h=t.h, q=dac.points.find(x=>x.key===t.key), act=r && r.order[r.k]===t;
+      const dB=q?20*Math.log10(Math.max(1e-3,q.pct)/80):0, dd=dacDD(h,t.leg);
+      return `<tr${act?' style="background:var(--amber-glow)"':''}><td>${act?'▶ ':''}${lb(t)}${q?' ✓':''}</td><td>${h.depth} mm${t.leg?' <small>('+'↩'.repeat(t.leg)+')</small>':''}</td>`+
+        `<td>${q?fmtNum(q.s,1):'≈ '+fmtNum(dd/cb,1)} mm</td>`+
+        `<td>${q?Math.round(q.pct)+' % <small>('+(Math.abs(dB)<0.05?'±0':fmtNum(dB,1))+' dB)</small>':'—'}</td></tr>`;
+    }).join('');
+    dacUI.foot.textContent=`Referenzverstärkung: ${dac.refGain!=null?fmtNum(dac.refGain,1)+' dB':'—'} · Kurve: lineare Interpolation in dB zwischen den Stützstellen.`;
+    dacUI.status.innerHTML=
+      `<span class="akey">Stützstellen</span><span class="aval">${dac.points.length} / ${N}</span>`+
+      `<span class="akey">Referenz (80 %)</span><span class="aval">${dac.refIdx!=null?'B'+(dac.refIdx+1):'—'}</span>`+
+      `<span class="akey">Verstärkung</span><span class="aval">${fmtNum(state.gain,1)} dB</span>`+
+      `<span class="akey">Messbereich</span><span class="aval">${state.range} mm</span>`;
+  }
+
+  // ── Zeichnung: Bohrungen im Block ──────────────────────────────
+  function dacHolesSvg(X,Y,scale,cv){
+    const gm=dacGM(), r=dac.run, act=r?r.order[r.k].h.i:-1;
+    let s='';
+    dacHoles().forEach((h,i)=>{
+      const rr=Math.max(2.8,dac.size*scale/2), cx=X(h.x), cy=Y(h.depth);
+      const L=dacLive&&dacLive[i], pct=(L&&L.hits.length)?Math.min(1,Math.max(...L.hits.map(e=>e.amp))*gm):0;
+      const done=dac.points.some(q=>q.i===i);
+      if(pct>0.04) s+=`<circle cx="${cx}" cy="${cy}" r="${(rr+4+pct*8).toFixed(1)}" fill="rgba(255,95,86,${(0.12+0.3*pct).toFixed(2)})" stroke="${cv('--red')}" stroke-width="1.5" opacity="${(0.4+0.6*pct).toFixed(2)}"/>`;
+      if(act===i) s+=`<circle cx="${cx}" cy="${cy}" r="${rr+11}" fill="none" stroke="${cv('--amber')}" stroke-width="1.8" stroke-dasharray="4 3"/>`;
+      s+=`<circle cx="${cx}" cy="${cy}" r="${rr}" fill="#0b1015" stroke="${done?'#4dce5d':'#d0dce8'}" stroke-width="1.6"/>`;
+      if(r && act===i && r.phase==='rec'){
+        const f=Math.min(1,r.pt/0.9);
+        s+=`<circle cx="${cx}" cy="${cy}" r="${(rr+6+f*20).toFixed(1)}" fill="none" stroke="#4dce5d" stroke-width="2.2" opacity="${(1-f).toFixed(2)}"/>`;
+      }
+      s+=`<text x="${cx+rr+9}" y="${cy+4}" font-family="JetBrains Mono" font-size="12" font-weight="700" fill="${done?'#4dce5d':cv('--dim-text')}" paint-order="stroke" stroke="${cv('--bg')}" stroke-width="3.5" stroke-linejoin="round">B${i+1} · ${h.depth} mm</text>`;
+    });
+    return s;
+  }
+
+  // ── Zeichnung: A-Bild (Raster, Echos der Bohrungen, DAC-Kurve) ─
+  function dacPushEvents(events){
+    if(!dac.on || !dacLive) return;
+    dacLive.forEach(L=>L.hits.forEach((e,k)=>events.push({sPath:e.s, amp:e.amp, isDac:true, lbl:'B'+(L.hole.i+1)+(k?"'":'')})));
+  }
+  function dacGridSvg(padL,padT,w,h){
+    const base=padT+h-2, H=h-10, ph=dac.run&&dac.run.phase==='gain';
+    let o='';
+    [20,40,60,80,100].forEach(p=>{
+      const y=base-p/100*H, ref=(p===80);
+      o+=`<line x1="${padL}" y1="${y.toFixed(1)}" x2="${padL+w}" y2="${y.toFixed(1)}" stroke="${ref?'#4dce5d':'var(--grid-color)'}" stroke-width="${ref?(ph?2:1.4):1}" ${ref?'stroke-dasharray="6 4"':''} opacity="${ref?.95:1}"/>`;
+      o+=`<text x="${padL+3}" y="${(y-2).toFixed(1)}" font-family="JetBrains Mono" font-size="9" font-weight="${ref?700:400}" fill="${ref?'#4dce5d':'var(--text-faint)'}">${p} %${ref?' (Referenz)':''}</text>`;
+    });
+    return o;
+  }
+  function dacCurveSvg(padL,padT,w,h,delayMM,gainMul,wOff0){
+    const wO=wOff0||0;
+    const base=padT+h-2, H=h-10, rng=state.range, col='#ff7a1a';
+    const xs=s=>padL+((s+wO-delayMM)/rng)*w, ys=p=>base-Math.min(1.08,Math.max(0,p/100))*H;
+    let o='';
+    // Maximum-Marke während des Suchlaufs (Spitzenwert-Speicher)
+    const r=dac.run;
+    if(r && r.best && r.best.amp>0 && (r.phase==='sweep'||r.phase==='back')){
+      const pc=Math.min(1,r.best.amp*gainMul)*100, x=xs(r.best.s), y=ys(pc);
+      o+=`<line x1="${padL}" y1="${y.toFixed(1)}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${col}" stroke-width="1.2" stroke-dasharray="3 3" opacity=".85"/>`;
+      o+=`<path d="M${x.toFixed(1)},${(y-2).toFixed(1)} l-5,-9 h10 z" fill="${col}"/>`;
+      o+=`<text x="${(x+8).toFixed(1)}" y="${(y-4).toFixed(1)}" font-family="JetBrains Mono" font-size="10" font-weight="700" fill="${col}">Max ${Math.round(pc)} %</text>`;
+    }
+    const P=dac.points.slice().sort((a,b)=>a.s-b.s);
+    if(!P.length) return o;
+    if(P.length>1){
+      const s0=P[0].s, s1=P[P.length-1].s;
+      const curve=(f,dash,op,sw,lbl)=>{
+        let pts='';
+        for(let k=0;k<=80;k++){ const s=s0+(s1-s0)*k/80; pts+=`${xs(s).toFixed(1)},${ys((dacTcg()?80:dacAt(P,s))*f).toFixed(1)} `; }
+        o+=`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="${sw}" ${dash?`stroke-dasharray="${dash}"`:''} opacity="${op}" stroke-linejoin="round"/>`;
+        o+=`<text x="${(xs(s1)+5).toFixed(1)}" y="${(ys((dacTcg()?80:dacAt(P,s1))*f)+3).toFixed(1)}" font-family="JetBrains Mono" font-size="9.5" font-weight="700" fill="${col}" opacity="${op}">${lbl}</text>`;
+      };
+      if(dac.extra){ curve(0.5,'6 4',.75,1.4,'−6 dB'); curve(0.25,'3 4',.6,1.2,'−12 dB'); }
+      curve(1,null,1,2.4,'DAC');
+    }
+    P.forEach(q=>{
+      const x=xs(q.s), y=ys(dacTcg()?80:q.pct);
+      o+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.8" fill="${col}" stroke="#ffffff" stroke-width="1.4"/>`;
+      o+=`<text x="${x.toFixed(1)}" y="${(y-8).toFixed(1)}" text-anchor="middle" font-family="JetBrains Mono" font-size="9.5" font-weight="700" fill="${col}" paint-order="stroke" stroke="var(--bg)" stroke-width="2.5">B${q.i+1}${q.leg?"'":''}</text>`;
+    });
+    return o;
+  }
+
+  // ── Bedienung ──────────────────────────────────────────────────
+  dacUI.toggle.addEventListener('click',()=>dacSetOn(!dac.on));
+  $('toggleDacKeep').addEventListener('click',()=>{ dac.keep=!dac.keep; $('toggleDacKeep').classList.toggle('on',dac.keep); render(); });
+  $('toggleDacTcg').addEventListener('click',()=>{ dac.tcg=!dac.tcg; $('toggleDacTcg').classList.toggle('on',dac.tcg); render(); });
+  $('dacClear2').addEventListener('click',()=>{ dacClear(); });
+  dacUI.segN.addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    dac.n=+b.dataset.n; dacSegSync(dacUI.segN,'n',dac.n);
+    dacClear(true); dacSetX(dacCx(dacHoles()[0],dacBeta(),0)); render(); dacUpdateUI();
+  });
+  dacUI.segSp.addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b) return;
+    dac.speed=+b.dataset.sp; dacSegSync(dacUI.segSp,'sp',b.dataset.sp);
+  });
+  dacUI.size.addEventListener('input',()=>{
+    dac.size=+dacUI.size.value; dacUI.vSize.textContent=dac.size;
+    dacClear(true); render(); dacUpdateUI();
+  });
+  dacUI.skip.addEventListener('click',()=>{
+    dac.skip=!dac.skip; dacUI.skip.classList.toggle('on',dac.skip);
+    dacClear(true); dacFitRange(); render(); dacUpdateUI();
+  });
+  dacUI.extra.addEventListener('click',()=>{
+    dac.extra=!dac.extra; dacUI.extra.classList.toggle('on',dac.extra); render();
+  });
+  dacUI.start.addEventListener('click',()=>{ if(dac.run) dacStop(); else dacStart(); });
+  dacUI.clear.addEventListener('click',()=>dacClear());
+
+
   applyProbe(state.probe);
   render();
 

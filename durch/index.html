@@ -152,19 +152,241 @@
 
   .gauge .needle.thin{background:var(--amber);width:2px;height:18px;top:-2px;}
 </style>
-<script>
-/* Lokaler Theme-Zustand (Hell/Dunkel), gespeichert in localStorage. */
-var themeCtl=(function(){
-  var cbs=[], mode=null, KEY='zfp-theme';
-  function store(v){ try{ if(v===undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY,v); }catch(e){} return null; }
-  function init(){ if(mode) return; var s=store(); mode=(s==='light'||s==='dark')?s:((document.body&&(document.body.classList.contains('light-mode')||document.body.classList.contains('light')))?'light':'dark'); }
-  return {
-    onTheme:function(f){ if(typeof f!=='function') return; cbs.push(f); init(); f(mode); },
-    toggleTheme:function(){ init(); mode=mode==='light'?'dark':'light'; store(mode); cbs.forEach(function(f){ try{ f(mode); }catch(e){} }); }
-  };
+<script id="perf-guard">
+/* Entlastung: Bildschleifen passen sich der Rechenzeit an (kein Dauer-Vollgas auf schwachen/mobilen Geräten) */
+(function(){var raf=window.requestAnimationFrame.bind(window),st=new WeakMap();
+window.requestAnimationFrame=function(cb){return raf(function w(t){
+  var o=st.get(cb)||{last:0,ema:0}; st.set(cb,o);
+  var gap=Math.min(100,o.ema*1.2);
+  if(o.last&&t-o.last<gap){return raf(w);}
+  var s=performance.now(); o.last=t; try{cb(t);}finally{o.ema=o.ema*0.8+(performance.now()-s)*0.2; if(o.ema<10) o.ema=0;}
+});};
 })();
 </script>
+<script>
+/* ============================================================================
+ * ZfP Shared Context – Werk / Sprache / Theme (seitenübergreifend)
+ * ----------------------------------------------------------------------------
+ * Eine EINZIGE Quelle der Wahrheit für die drei globalen Einstellungen, die
+ * über ALLE Apps hinweg synchron sein sollen:
+ *
+ *   • Werk    -> localStorage['zfp-aktives-werk']    (ID aus werke.json)
+ *   • Sprache -> localStorage['zfp-lang']            ('de' | 'en')
+ *   • Theme   -> localStorage['zfp-theme-preference']('dark' | 'light')
+ *
+ * GLOBALE THEME-REGELN (verbindlich für ALLE Seiten, auch Unter-Apps):
+ *   1. Es gibt genau EINEN Speicherschlüssel und genau EINEN Standardwert
+ *      (DEFAULT_THEME unten). Keine Seite darf eigene Schlüssel, eigene
+ *      Standardwerte, System-Einstellung (prefers-color-scheme) oder eigene
+ *      Fallback-Controller verwenden.
+ *   2. Das Skript steht im <head> jeder Seite MIT Dark Mode und setzt
+ *      <html data-theme="dark|light"> samt color-scheme bereits vor dem ersten
+ *      Zeichnen und bei jeder Änderung. Seiten OHNE Dark Mode (Admin, Login,
+ *      Handbuch) binden es nicht ein; die PMÜ-Protokollformulare ohne Dark Mode
+ *      binden es nur für Sprache/Werk ein (Attribut data-theme-off) und bleiben hell.
+ *   3. Seiten reagieren nur noch über ZfPContext.onTheme(fn) und schalten nur
+ *      noch über ZfPContext.toggleTheme() / setTheme() um.
+ *   4. Startwert = HELL. Nach „Dunkel“ bleibt es gespeichert, bis wieder
+ *      „Hell“ gewählt wird (gilt für alle Seiten gemeinsam).
+ *
+ * Frühere Versionen der einzelnen Seiten benutzten UNTERSCHIEDLICHE
+ * Schlüssel (z. B. 'zfp-lang-preference', 'MT_LANG_KEY', 'mpi-dark'). Deshalb
+ * blieben Sprache/Theme beim Seitenwechsel nicht erhalten. Dieses Modul
+ * migriert alte Schlüssel EINMALIG auf die kanonischen und hält danach alle
+ * offenen Tabs über das native 'storage'-Event synchron.
+ *
+ * Das Modul ändert von sich aus NICHTS am DOM. Jede Seite registriert per
+ * ZfPContext.onWerk / onLang / onTheme ihre eigene Anwendungsfunktion und
+ * bekommt den aktuellen Wert sofort + bei jeder späteren Änderung gemeldet.
+ * ========================================================================== */
+(function (global) {
+  'use strict';
 
+  var KEY_WERK  = 'zfp-aktives-werk';
+  var KEY_LANG  = 'zfp-lang';
+  var KEY_THEME = 'zfp-theme-preference';
+
+  var SCHWEINFURT_ID = 'schweinfurt';
+
+  // Einziger Standardwert: Das Portal startet IMMER hell. Wird auf Dunkel gestellt,
+  // merkt sich der Browser das (localStorage) – bis wieder auf Hell gestellt wird.
+  var DEFAULT_THEME = 'light';
+
+  // Alte Schlüssel, deren Wert (falls vorhanden und der neue noch leer ist)
+  // einmalig übernommen wird.
+  var LEGACY_LANG_KEYS  = ['zfp-lang-preference', 'MT_LANG_KEY', 'mt_lang'];
+  var LEGACY_THEME_KEYS = ['THEME_KEY', 'mt-theme', 'zfp-theme', 'zfp_theme', 'gefuege_theme'];
+
+  function safeGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function safeSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  // ─── Einmalige Migration alter Schlüssel ────────────────────────────────
+  (function migrate() {
+    if (!safeGet(KEY_LANG)) {
+      for (var i = 0; i < LEGACY_LANG_KEYS.length; i++) {
+        var v = safeGet(LEGACY_LANG_KEYS[i]);
+        if (v === 'de' || v === 'en') { safeSet(KEY_LANG, v); break; }
+      }
+    }
+    if (!safeGet(KEY_THEME)) {
+      for (var j = 0; j < LEGACY_THEME_KEYS.length; j++) {
+        var t = safeGet(LEGACY_THEME_KEYS[j]);
+        if (t === 'dark' || t === 'light') { safeSet(KEY_THEME, t); break; }
+      }
+    }
+    if (!safeGet(KEY_THEME)) {
+      var mpi = safeGet('mpi-dark');
+      if (mpi === '1' || mpi === 'true') safeSet(KEY_THEME, 'dark');
+      else if (mpi === '0' || mpi === 'false') safeSet(KEY_THEME, 'light');
+    }
+    // Veraltete Einzelschlüssel entfernen, damit sie nie wieder als zweite
+    // „Wahrheit“ herangezogen werden können.
+    ['zfp-theme', 'zfp_theme', 'gefuege_theme', 'THEME_KEY', 'mt-theme', 'mpi-dark'].forEach(function (k) {
+      try { localStorage.removeItem(k); } catch (e) {}
+    });
+  })();
+
+  function getWerk()  { return safeGet(KEY_WERK)  || SCHWEINFURT_ID; }
+  function getLang()  { var v = safeGet(KEY_LANG);  return (v === 'en') ? 'en' : 'de'; }
+  function normTheme(v) { return (v === 'light' || v === 'dark') ? v : DEFAULT_THEME; }
+  function getTheme() { return normTheme(safeGet(KEY_THEME)); }
+
+  // Setzt das Theme sofort am <html>-Element (vor dem ersten Zeichnen, weil das
+  // Skript im <head> steht) – unabhängig davon, ob die Seite selbst reagiert.
+  // Seiten OHNE Dark Mode (PMÜ-Formulare) laden das Skript nur für Sprache/Werk und setzen
+  // <script ... data-theme-off>: dann werden weder data-theme noch color-scheme angefasst.
+  var THEME_OFF = false;
+  try { THEME_OFF = !!(document.currentScript && document.currentScript.hasAttribute('data-theme-off')); } catch (e) {}
+  function applyDom(theme) {
+    if (THEME_OFF) return;
+    try {
+      var root = document.documentElement;
+      root.setAttribute('data-theme', theme);
+      root.style.colorScheme = theme;
+    } catch (e) {}
+  }
+  applyDom(getTheme());
+
+  var listeners = { werk: [], lang: [], theme: [] };
+
+  function fire(kind, value) {
+    if (kind === 'theme') {
+      applyDom(value);
+      try { document.dispatchEvent(new CustomEvent('zfp:theme', { detail: value })); } catch (e) {}
+    }
+    var arr = listeners[kind];
+    for (var i = 0; i < arr.length; i++) {
+      try { arr[i](value); } catch (e) { /* eine kaputte Callback darf den Rest nicht stoppen */ }
+    }
+  }
+
+  function register(kind, cb, getter) {
+    if (typeof cb !== 'function') return;
+    listeners[kind].push(cb);
+    // Aktuellen Wert sofort liefern, damit die Seite initial korrekt rendert.
+    try { cb(getter()); } catch (e) {}
+  }
+
+  // ─── Setter: schreiben + lokale Callbacks feuern + andere Tabs bekommen
+  //     automatisch das native 'storage'-Event ────────────────────────────
+  function setWerk(id) {
+    if (!id || id === getWerk()) { fire('werk', getWerk()); return; }
+    safeSet(KEY_WERK, id);
+    fire('werk', id);
+  }
+  function setLang(lang) {
+    lang = (lang === 'en') ? 'en' : 'de';
+    safeSet(KEY_LANG, lang);
+    fire('lang', lang);
+  }
+  function toggleLang() { setLang(getLang() === 'de' ? 'en' : 'de'); }
+
+  function setTheme(theme) {
+    theme = normTheme(theme);
+    safeSet(KEY_THEME, theme);
+    fire('theme', theme);
+  }
+  function toggleTheme() { setTheme(getTheme() === 'dark' ? 'light' : 'dark'); }
+
+  // ─── Cross-Tab-Sync: Änderungen aus einem anderen Tab/Fenster ───────────
+  global.addEventListener('storage', function (e) {
+    if (!e) return;
+    if (e.key === KEY_WERK)  fire('werk',  e.newValue || SCHWEINFURT_ID);
+    else if (e.key === KEY_LANG)  fire('lang',  (e.newValue === 'en') ? 'en' : 'de');
+    else if (e.key === KEY_THEME) fire('theme', normTheme(e.newValue));
+  });
+
+  // Zurück/Vorwärts-Navigation (bfcache): Seite zeigt sonst evtl. ein veraltetes Theme.
+  var _lastThemeShown = getTheme();
+  global.addEventListener('pageshow', function (e) {
+    var t = getTheme();
+    if (e && e.persisted && t !== _lastThemeShown) fire('theme', t);
+    _lastThemeShown = t;
+  });
+
+  global.ZfPContext = {
+    KEY_WERK: KEY_WERK, KEY_LANG: KEY_LANG, KEY_THEME: KEY_THEME,
+    SCHWEINFURT_ID: SCHWEINFURT_ID,
+    getWerk: getWerk, setWerk: setWerk,
+    getLang: getLang, setLang: setLang, toggleLang: toggleLang,
+    DEFAULT_THEME: DEFAULT_THEME,
+    getTheme: getTheme, setTheme: setTheme, toggleTheme: toggleTheme,
+    get theme() { return getTheme(); },   // Lesezugriff wie früher in den lokalen Fallbacks
+    onWerk:  function (cb) { register('werk',  cb, getWerk); },
+    onLang:  function (cb) { register('lang',  cb, getLang); },
+    onTheme: function (cb) { register('theme', cb, getTheme); }
+  };
+
+  // ─── WERK-REGISTER + WERK-ABHÄNGIGE PFADE ───────────────────────────────
+  // Damit einfache Seiten (v. a. die PMÜ-Unterseiten) das aktive Werk erben
+  // können, ohne selbst ein Dropdown oder eigene Register-Logik zu enthalten,
+  // stellt das Modul hier eine kleine Hilfe bereit:
+  //   • ladeWerkRegister()  – lädt werke.json einmalig (mit Fallback)
+  //   • werkSuffix()        – Suffix des aktiven Werks ('' = Schweinfurt)
+  //   • protokolleBase()    – '/api/protokolle' bzw. '/api/protokolle__<suffix>'
+  var _werkeRegister = [{ id: SCHWEINFURT_ID, name: 'Schweinfurt', suffix: '' }];
+  var _registerGeladen = false;
+  var _registerPromise = null; // laufendes Laden zwischenspeichern, damit parallele
+                                // Aufrufe (z. B. mehrere Seiten-Skripte) NICHT jeweils
+                                // eine eigene Anfrage starten und alle auf dasselbe
+                                // Ergebnis warten können (siehe protokolleBase()-Fix).
+
+  function ladeWerkRegister() {
+    if (_registerGeladen) return Promise.resolve(_werkeRegister);
+    if (_registerPromise) return _registerPromise; // bereits im Gange – dieselbe Zusage zurückgeben
+    _registerPromise = fetch('/api/data/werke.json?t=' + Date.now())
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (arr) {
+        if (Array.isArray(arr) && arr.length) {
+          if (!arr.find(function (w) { return w.id === SCHWEINFURT_ID; }))
+            arr.unshift({ id: SCHWEINFURT_ID, name: 'Schweinfurt', suffix: '' });
+          _werkeRegister = arr;
+        }
+        _registerGeladen = true;
+        _registerPromise = null;
+        return _werkeRegister;
+      })
+      .catch(function () { _registerGeladen = true; _registerPromise = null; return _werkeRegister; });
+    return _registerPromise;
+  }
+
+  function werkSuffix() {
+    var id = getWerk();
+    var w = _werkeRegister.find(function (x) { return x.id === id; });
+    return (w && w.suffix) ? w.suffix : '';
+  }
+
+  function protokolleBase() {
+    var suf = werkSuffix();
+    return suf ? ('/api/protokolle__' + suf) : '/api/protokolle';
+  }
+
+  global.ZfPContext.ladeWerkRegister = ladeWerkRegister;
+  global.ZfPContext.werkSuffix = werkSuffix;
+  global.ZfPContext.protokolleBase = protokolleBase;
+})(window);
+
+</script>
 <style id="fit-css">
 /* ═══ Kompakt-Dashboard (wie UT): kleine Schrift, dichte Panels, alles auf einem Bildschirm ═══ */
 html.fit, html.fit body{height:100%; overflow:hidden;}
@@ -260,11 +482,77 @@ html.fit svg, html.fit .stage svg, html.fit #setup, html.fit #wave, html.fit #ch
 html.fit .panel.fit2 > .ctl-row, html.fit .panel.fit2 > .field{min-width:0; overflow:hidden;}
 html.fit .panel.fit2 select, html.fit .panel.fit2 input[type=range]{width:100%; max-width:100%; min-width:0;}
 </style>
+<style>
+/* ZfP-Portal · Simulationen im Portal-Design (Vorbild: Ätzdatenbank)
+ * Betrifft NUR Kopfbereich, Schriften, Knöpfe, Reiter, Schalter und Karten-Rahmen.
+ * Farben und Kontraste der Darstellungen (Canvas, Diagramme, Skalen, Messwerte, Status) bleiben unverändert;
+ * die Seiten-Variablen (--bg, --border, --text …) werden bewusst nicht angefasst. */
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800&display=swap');
+body{
+  --sd-green:#00893d;--sd-green-d:#006b30;--sd-green-t:#2fc16b;--sd-green-x:rgba(0,137,61,.14);
+  --sd-hdr:#1e1e1e;--sd-bdr:#444;--sd-txt:#ececec;--sd-mut:#b0b0b0;--sd-btn:#1e1e1e;--sd-page:#121212;--sd-card:#1e1e1e;
+}
+body.light,body.light-mode{
+  --sd-green-t:#00893d;--sd-green-x:rgba(0,137,61,.1);
+  --sd-hdr:#fff;--sd-bdr:#d0d0d0;--sd-txt:#1a1a1a;--sd-mut:#555;--sd-btn:#fff;--sd-page:#e0e0e0;--sd-card:#fff;
+}
+html,body{background:var(--sd-page)!important}
+body{background-image:none!important}
+
+/* Schriften */
+body,body *:not(#_):not(svg):not(svg *):not(canvas){font-family:'Barlow',Arial,sans-serif!important}
+body :is(h1,h2,h3,h4,button,summary,label,.stage-title,.sub-h,.badge,.tabs,.legend,.k,.stat .k,.foot):not(#_){font-family:'Barlow Condensed',Arial,sans-serif!important}
+body label{gap:8px}
+body .stat .v,body .stat .k,body table.res,body .foot,body .legend span{font-variant-numeric:tabular-nums}
+
+/* Kopfbereich wie Ätzdatenbank: weiße Karte, grüner Balken links, grüne Linie unten, Logo rechts */
+body header.top{background:var(--sd-hdr)!important;border:1.5px solid var(--sd-bdr)!important;border-left:6px solid var(--sd-green)!important;border-bottom:3px solid var(--sd-green)!important;border-radius:0!important;padding:8px 14px 8px 16px!important;margin-bottom:14px!important;box-shadow:none!important;align-items:center}
+body header.top .brand-eyebrow{display:none!important}
+body header.top h1{font-family:'Barlow Condensed',Arial,sans-serif!important;font-weight:700!important;font-size:clamp(17px,2.4vw,24px)!important;text-transform:uppercase;letter-spacing:.5px;line-height:1.15;color:var(--sd-txt)!important;background:none!important;-webkit-text-fill-color:var(--sd-txt)!important}
+body header.top h1 small{font-family:'Barlow',Arial,sans-serif!important;font-size:12.5px!important;font-weight:400!important;font-style:italic;text-transform:none;letter-spacing:0;color:var(--sd-mut)!important;-webkit-text-fill-color:var(--sd-mut)!important;margin-top:2px}
+body header.top .hdr-right,body header.top .badge-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+body header.top .hdr-right::after,body header.top .badge-row::after{display:none}
+body header.top .badge{border-radius:4px!important;font-family:'Barlow Condensed',Arial,sans-serif!important;font-size:13px!important;font-weight:600;letter-spacing:.3px;text-transform:none;padding:4px 10px!important}
+body .theme-btn,body .icon-btn,body .theme-toggle{width:38px!important;height:38px!important;border-radius:50%!important;background:var(--sd-btn)!important;border:2px solid var(--sd-bdr)!important;color:var(--sd-txt)!important;font-size:17px;display:inline-flex;align-items:center;justify-content:center;padding:0!important;transition:all .2s}
+body .theme-toggle{width:auto!important;min-width:38px;border-radius:19px!important;padding:0 10px!important;gap:5px}
+body .theme-btn:hover,body .icon-btn:hover,body .theme-toggle:hover{border-color:var(--sd-green)!important;transform:translateY(-2px);color:var(--sd-txt)!important}
+@media(max-width:600px){body header.top .hdr-right::after,body header.top .badge-row::after{display:none}}
+
+/* Knöpfe: eckig (4 px), Barlow Condensed, grüne Umrandung; gewählt/aktiv = grün gefüllt */
+body button:where(:not(.theme-btn,.icon-btn,.theme-toggle,.zfp-hilfe-btn,.lang-toggle,#langToggleBtn)){
+  font-size:14px;font-weight:700;letter-spacing:.3px;text-transform:none;
+  border:2px solid var(--sd-green)!important;border-radius:4px!important;background:var(--sd-btn);color:var(--sd-green-t);box-shadow:none}
+body button:where(:not(.theme-btn,.icon-btn,.theme-toggle,.zfp-hilfe-btn)):not(:disabled):hover{background:var(--sd-green-x);color:var(--sd-green-t);border-color:var(--sd-green)!important}
+body button.sel,body button.on,body button.active,body button.primary,body button[aria-pressed="true"],body button[aria-selected="true"]{background:var(--sd-green)!important;border-color:var(--sd-green)!important;color:#fff!important;box-shadow:none!important}
+body button.sel:hover,body button.on:hover,body button.active:hover,body button.primary:hover:not(:disabled){background:var(--sd-green-d)!important;color:#fff!important}
+body button.primary.stop,body .btn.stop,body button.danger{background:#c0392b!important;border-color:#c0392b!important;color:#fff!important}
+body button:disabled{opacity:.4}
+body button:focus-visible,body select:focus-visible,body input:focus-visible{outline:2px solid var(--sd-green)!important;outline-offset:2px}
+body .seg button,body .tabs button,body .dcac button,body .btnrow button{font-size:14px;line-height:1.2}
+body .seg.mini button{font-size:12.5px}
+
+/* Karten, Felder, Schalter */
+body .panel{background:var(--sd-card)!important;border:1.5px solid var(--sd-bdr)!important;border-top:3px solid var(--sd-green)!important;border-radius:4px!important;box-shadow:none!important}
+body .stat,body .callout,body .verdict,body .toggle,body select,body .readout,body .stage{border-radius:4px!important}
+body select{font-family:'Barlow',Arial,sans-serif!important;font-size:14px}
+body .stage-title,body .sub-h,body .panel>h2,body .panel>h3,body .panel>.hd{font-family:'Barlow Condensed',Arial,sans-serif!important;font-size:12.5px!important;font-weight:700;letter-spacing:.8px;color:var(--sd-green-t)!important}
+body input[type=range]{accent-color:var(--sd-green)}
+body input[type=range]::-webkit-slider-thumb{background:var(--sd-green)!important;border:2px solid #fff!important;box-shadow:0 1px 4px rgba(0,0,0,.4)!important}
+body input[type=range]::-moz-range-thumb{background:var(--sd-green);border:2px solid #fff}
+body .toggle.on .switch{background:var(--sd-green)!important}
+body .toggle.on .switch::after{background:#fff!important}
+body .toggle:hover{border-color:var(--sd-green)}
+body details.adv summary::before{color:var(--sd-green-t)!important}
+
+@media print{body header.top .hdr-right::after,body header.top .badge-row::after{display:none}}
+
+</style>
 </head>
 <body>
 <div class="app">
   <header class="top">
     <div class="title-group">
+      <p class="brand-eyebrow">ZFP SIMULATOR</p>
       <h1>Durchstrahlprüf-Simulator<small>RT · Röntgenaufnahme, Belichtung &amp; Bildgüte (IQI)</small></h1>
     </div>
     <div class="hdr-right">
@@ -435,10 +723,14 @@ const cvProf=$('cvProf'), pctx=cvProf.getContext('2d');
 const GEOM_W=900, GEOM_H=270, FILM_W=900, FILM_H=320, PROF_W=900, PROF_H=170;
 
 function hiDPI(canvas, ctx, cw, ch){
+  // Auflösung an die tatsächlich dargestellte Breite anpassen (große/breite Bildschirme → nicht hochskaliert/unscharf)
   const dpr = Math.max(1, window.devicePixelRatio||1);
-  canvas.width = cw*dpr; canvas.height = ch*dpr;
+  const cssW = canvas.getBoundingClientRect().width || cw;
+  const sc = Math.min(3, Math.max(dpr, cssW*dpr/cw));
+  canvas.width = Math.round(cw*sc); canvas.height = Math.round(ch*sc);
   canvas.style.aspectRatio = (cw/ch);
-  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.setTransform(canvas.width/cw,0,0,canvas.height/ch,0,0);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
 }
 function setupCanvases(){ hiDPI(cvGeom,gctx,GEOM_W,GEOM_H); hiDPI(cvFilm,fctx,FILM_W,FILM_H); hiDPI(cvProf,pctx,PROF_W,PROF_H); }
 setupCanvases();
@@ -475,12 +767,12 @@ const OBJS={ weld:'Schweißnaht', solid:'Vollmaterial', cast:'Gussteil' };
 const K_VIS=1.8;
 const DG=1.7;                    // Anzeigenverstärkung: kräftigerer Dichtesprung der Fehler (größere/dichtere Hohlräume)                 // Erkennbarkeitsschwelle: ΔD ≥ K·σ
 const MM=0.2;                    // Film: 1 px = 0,2 mm
-const PLATE={x0:110,x1:790,y0:26,y1:294}, WELD_X=450, CAP_H=1.8, CAP_W=6.5;
-const IQI={x0:388,x1:512,y0:46,pitch:16};
-const Y_DEF=210, X_DEF=456, STEP_X=590;
+const PLATE={x0:60,x1:840,y0:22,y1:298}, WELD_Y=176, CAP_H=1.8, CAP_W=6.5;   // Naht verläuft WAAGERECHT: „quer zur Naht“ ist senkrecht – wie in der Skizze (Querschnitt)
+const IQI={x0:130,x1:254,y0:34,pitch:11};   // Drahtsteg OBERHALB der Naht auf dem Grundwerkstoff: 7 Drähte parallel zur Naht, dünnster Draht außen (oben), dickster zur Naht hin
+const Y_DEF=182, X_DEF=520, STEP_X=660;   // Fehlerlage: X = längs der Naht, Y = quer zur Naht
 const PORES=[[0,-7,2.4],[1.6,-3.5,1.8],[-1.4,0,2.0],[0.9,3.4,1.3],[-0.8,7.0,1.6],[2.0,9.5,1.1]];   // mm: x, y, Ø
-const crackPoly=(()=>{ const r=rngSeed(555), p=[]; for(let i=0;i<=12;i++){ const t=i/12; p.push([X_DEF+Math.sin(t*6)*3+(r()-0.5)*7*(0.4+Math.sin(t*3.4)*0.6), Y_DEF-56+t*112]); } return p; })();
-const slagPoly=(()=>{ const r=rngSeed(321), p=[]; for(let i=0;i<=8;i++){ const t=i/8; p.push([X_DEF+(r()-0.5)*9+Math.sin(t*4)*3, Y_DEF-30+t*60]); } return p; })();
+const crackPoly=(()=>{ const r=rngSeed(555), p=[]; for(let i=0;i<=12;i++){ const t=i/12; p.push([X_DEF-56+t*112, Y_DEF+Math.sin(t*6)*3+(r()-0.5)*7*(0.4+Math.sin(t*3.4)*0.6)]); } return p; })();
+const slagPoly=(()=>{ const r=rngSeed(321), p=[]; for(let i=0;i<=8;i++){ const t=i/8; p.push([X_DEF-30+t*60, Y_DEF+(r()-0.5)*9+Math.sin(t*4)*3]); } return p; })();
 
 /* ── Eingabeelemente ─────────────────────────────────────── */
 const kvEl=$('kv'), mavEl=$('mav'), thickEl=$('thick'), sfdEl=$('sfd'), focEl=$('foc'), angEl=$('ang');
@@ -498,8 +790,9 @@ function setTheme(mode){
   $('themeBtn').textContent = light ? '☾' : '☀';
   if(ready) draw();
 }
-themeCtl.onTheme(setTheme);
-$('themeBtn').addEventListener('click',()=>{ themeCtl.toggleTheme(); if(ready) draw(); });
+const ctxTheme = ZfPContext;  // Theme ausschließlich global (zfp-context.js)
+ctxTheme.onTheme(setTheme);
+$('themeBtn').addEventListener('click',()=>{ ctxTheme.toggleTheme(); if(ready) draw(); });
 
 /* ── Physikmodell ────────────────────────────────────────── */
 function model(){
@@ -548,7 +841,7 @@ function distPoly(poly,x,y){ let best=1e9; for(let i=0;i<poly.length-1;i++){ con
 
 function prepare(m){
   const s=m.s, pre={m,pores:[],crack:null,slag:null};
-  if(m.type==='pore') PORES.forEach(p=>{ const d=p[2]; pre.pores.push({x:X_DEF+p[0]/MM, y:Y_DEF+p[1]/MM, d, dD:DG*0.434*m.G*m.mu*d*erf(d/(2*s*1.4142)), sg:Math.hypot(d/2.5,s)}); });
+  if(m.type==='pore') PORES.forEach(p=>{ const d=p[2]; pre.pores.push({x:X_DEF+p[1]/MM, y:Y_DEF+p[0]/MM, d, dD:DG*0.434*m.G*m.mu*d*erf(d/(2*s*1.4142)), sg:Math.hypot(d/2.5,s)}); });
   if(m.type==='crack') pre.crack={amp:m.defect.eff, sg:Math.hypot(0.12/2.5,s)};
   if(m.type==='inclusion') pre.slag={amp:m.defect.eff, sg:Math.hypot(2.2/2.5,s)};
   return pre;
@@ -556,8 +849,8 @@ function prepare(m){
 /* Statische Ebenen einmalig berechnen → Echtzeit-Rendering */
 const NPX=FILM_W*FILM_H;
 const ST=(()=>{ const mott=new Float32Array(NPX), capW=new Float32Array(NPX), capS=new Float32Array(NPX), capC=new Float32Array(NPX), step=new Float32Array(NPX), edge=new Float32Array(NPX), grain=new Float32Array(NPX);
-  for(let y=0;y<FILM_H;y++) for(let x=0;x<FILM_W;x++){ const i=y*FILM_W+x, mt=fbm(x/FILM_W,y/FILM_H)-0.5, xm=(x-WELD_X)*MM; mott[i]=mt;
-    let c=0; if(Math.abs(xm)<4*CAP_W) c=CAP_H*Math.exp(-(xm*xm)/(2*CAP_W*CAP_W))*(1+0.07*Math.sin(y*0.31+mt*9));
+  for(let y=0;y<FILM_H;y++) for(let x=0;x<FILM_W;x++){ const i=y*FILM_W+x, mt=fbm(x/FILM_W,y/FILM_H)-0.5, xm=(y-WELD_Y)*MM; mott[i]=mt;
+    let c=0; if(Math.abs(xm)<4*CAP_W) c=CAP_H*Math.exp(-(xm*xm)/(2*CAP_W*CAP_W))*(1+0.07*Math.sin(x*0.31+mt*9));
     capW[i]=c+mt*0.8; capS[i]=mt*0.8; capC[i]=mt*1.6;
     const u=clamp((x-STEP_X)/30,0,1); step[i]=u*u*(3-2*u);
     edge[i]=Math.min(x-PLATE.x0,PLATE.x1-x,y-PLATE.y0,PLATE.y1-y)*MM; grain[i]=grainAt(x,y); }
@@ -569,14 +862,14 @@ const Dbuf=new Float32Array(NPX); let dKey='';
 function addFeatures(m,pre){
   const s=m.s;
   // IQI-Drähte absorbieren → heller (Profil hängt nur von der Zeile ab)
-  m.wireSet.forEach((w,k)=>{ const yc=IQI.y0+k*IQI.pitch, r=Math.ceil((w.d/2+4*s)/MM)+1;
+  m.wireSet.forEach((w,k)=>{ const yc=IQI.y0+(6-k)*IQI.pitch, r=Math.ceil((w.d/2+4*s)/MM)+1;
     for(let y=yc-r;y<=yc+r;y++){ const dy=(y-yc)*MM, v=w.dD*0.5*(erf((dy+w.d/2)/(s*1.4142))-erf((dy-w.d/2)/(s*1.4142))); if(v<1e-4) continue;
       const row=y*FILM_W; for(let x=IQI.x0;x<=IQI.x1;x++) Dbuf[row+x]-=v; } });
   // Poren → dunkler
   pre.pores.forEach(p=>{ const R=Math.ceil(4*p.sg/MM), x0=Math.round(p.x), y0=Math.round(p.y);
     for(let y=y0-R;y<=y0+R;y++) for(let x=x0-R;x<=x0+R;x++){ const dx=(x-p.x)*MM, dy=(y-p.y)*MM, r2=dx*dx+dy*dy; if(r2>16*p.sg*p.sg) continue; Dbuf[y*FILM_W+x]+=p.dD*Math.exp(-r2/(2*p.sg*p.sg)); } });
   const line=(poly,amp,sg,mod,xr,yr)=>{ const R=Math.ceil(5*sg/MM);
-    for(let y=Y_DEF-yr;y<=Y_DEF+yr;y++) for(let x=X_DEF-xr;x<=X_DEF+xr;x++){ const d=distPoly(poly,x,y)*MM; if(d>5*sg) continue; Dbuf[y*FILM_W+x]+=amp*(mod?(0.75+0.25*Math.sin(y*0.3)):1)*Math.exp(-d*d/(2*sg*sg)); } };
+    for(let y=Y_DEF-xr;y<=Y_DEF+xr;y++) for(let x=X_DEF-yr;x<=X_DEF+yr;x++){ const d=distPoly(poly,x,y)*MM; if(d>5*sg) continue; Dbuf[y*FILM_W+x]+=amp*(mod?(0.75+0.25*Math.sin(x*0.3)):1)*Math.exp(-d*d/(2*sg*sg)); } };
   if(pre.crack) line(crackPoly,pre.crack.amp,pre.crack.sg,false,16,62);
   if(pre.slag) line(slagPoly,pre.slag.amp,pre.slag.sg,true,34,38);
 }
@@ -612,14 +905,16 @@ function drawFilm(m,pre){
   fctx.strokeStyle='rgba(255,255,255,.22)'; fctx.lineWidth=1; fctx.strokeRect(0.5,0.5,FILM_W-1,FILM_H-1);
   fctx.fillStyle='rgba(0,0,0,.55)'; fctx.beginPath(); fctx.moveTo(0,0); fctx.lineTo(16,0); fctx.lineTo(0,16); fctx.fill();
 
+  // Orientierung (passend zur Skizze oben: quer zur Naht = senkrecht)
+  fctx.save(); fctx.fillStyle='rgba(200,212,224,.55)'; fctx.font='10px "JetBrains Mono",monospace'; fctx.textAlign='right'; fctx.fillText('↕ quer zur Naht (wie Skizze)   ↔ Nahtrichtung',FILM_W-10,14); fctx.restore();
   // Bleimarken (Blei absorbiert → erscheint weiß, sobald der Film belichtet ist)
   const lead=clamp(m.dFreeC/1.5,0,1);
   if(lead>0){
     fctx.save(); fctx.globalAlpha=0.92*lead; fctx.shadowColor='rgba(0,0,0,.7)'; fctx.shadowBlur=3; fctx.fillStyle='#fff'; fctx.font='bold 13px "JetBrains Mono",monospace';
     fctx.fillText('RT-0417',PLATE.x0+14,PLATE.y1-26); fctx.font='10px "JetBrains Mono",monospace';
     fctx.fillText('ISO 17636-1 · Kl. '+classSel.value,PLATE.x0+14,PLATE.y1-12);
-    fctx.fillText(m.mat.wire+' W'+m.wireSet[0].num+'–'+m.wireSet[6].num,IQI.x1+14,IQI.y0-12);
-    m.wireSet.forEach((w,k)=>{ fctx.fillText(String(w.num),IQI.x0-18,IQI.y0+k*IQI.pitch+3); });
+    fctx.textAlign='left'; fctx.fillText(m.mat.wire+' W'+m.wireSet[0].num+'–'+m.wireSet[6].num,IQI.x1+14,IQI.y0-4);
+    fctx.textAlign='right'; m.wireSet.forEach((w,k)=>{ fctx.fillText(String(w.num),IQI.x0-8,IQI.y0+(6-k)*IQI.pitch+3); }); fctx.textAlign='left';
     fctx.restore();
   }
   // Auswertehilfe
@@ -627,17 +922,17 @@ function drawFilm(m,pre){
   if(showAid){
     fctx.save(); fctx.lineWidth=1.4;
     fctx.strokeStyle='rgba(200,212,224,.38)'; fctx.setLineDash([2,4]); fctx.lineWidth=1; fctx.strokeRect(PLATE.x0+.5,PLATE.y0+.5,PLATE.x1-PLATE.x0,PLATE.y1-PLATE.y0); fctx.setLineDash([]); fctx.lineWidth=1.4;
-    m.wireSet.forEach((w,k)=>{ const y=IQI.y0+k*IQI.pitch; tag(IQI.x1+12,y+4,w.vis?'✓':'✕',w.vis?'#5fe072':'#ff8a82','bold 11px "JetBrains Mono",monospace'); });
-    fctx.strokeStyle='#4de9d4'; fctx.setLineDash([5,4]); fctx.strokeRect(IQI.x0-4,IQI.y0-10,IQI.x1-IQI.x0+8,6*IQI.pitch+20); fctx.setLineDash([]);
+    m.wireSet.forEach((w,k)=>{ const y=IQI.y0+(6-k)*IQI.pitch; fctx.font='bold 11px "JetBrains Mono",monospace'; fctx.lineWidth=3; fctx.strokeStyle='rgba(6,10,14,.85)'; fctx.strokeText(w.vis?'✓':'✕',IQI.x1+10,y+4); fctx.fillStyle=w.vis?'#5fe072':'#ff8a82'; fctx.fillText(w.vis?'✓':'✕',IQI.x1+10,y+4); });
+    fctx.lineWidth=1.4; fctx.strokeStyle='#4de9d4'; fctx.setLineDash([5,4]); fctx.strokeRect(IQI.x0-26,IQI.y0-12,IQI.x1-IQI.x0+52,6*IQI.pitch+24); fctx.setLineDash([]);
     const sel = m.visIdx>=0 ? 'sichtbar bis W'+m.wireSet[m.visIdx].num+' ('+fmt(m.wireSet[m.visIdx].d,2)+' mm)' : 'kein Draht sichtbar';
-    tag(IQI.x1+38,IQI.y0+6,'IQI:','#4de9d4'); tag(IQI.x1+38,IQI.y0+22,sel,'#4de9d4');
-    const yl=lineY(m);
-    fctx.strokeStyle='#4de9d4'; fctx.beginPath(); fctx.moveTo(330,yl); fctx.lineTo(570,yl); fctx.stroke();
-    fctx.beginPath(); fctx.moveTo(330,yl-5); fctx.lineTo(330,yl+5); fctx.moveTo(570,yl-5); fctx.lineTo(570,yl+5); fctx.stroke();
+    tag(IQI.x1+36,IQI.y0+14,'IQI:','#4de9d4'); tag(IQI.x1+36,IQI.y0+30,sel,'#4de9d4');
+    const xl=lineX(m), yA=WELD_Y-120, yB=WELD_Y+120;
+    fctx.strokeStyle='#4de9d4'; fctx.beginPath(); fctx.moveTo(xl,yA); fctx.lineTo(xl,yB); fctx.stroke();
+    fctx.beginPath(); fctx.moveTo(xl-5,yA); fctx.lineTo(xl+5,yA); fctx.moveTo(xl-5,yB); fctx.lineTo(xl+5,yB); fctx.stroke();
     if(m.type!=='none'){
       fctx.strokeStyle=m.defVisible?'#ff6f66':'rgba(200,210,220,.7)'; fctx.setLineDash([4,4]);
-      fctx.beginPath(); fctx.ellipse(X_DEF+4,Y_DEF+6,m.type==='pore'?36:(m.type==='crack'?20:30),m.type==='pore'?66:62,0,0,Math.PI*2); fctx.stroke(); fctx.setLineDash([]);
-      tag(X_DEF+44,Y_DEF-6,m.defVisible?'Fehler':'Fehlerlage (nicht erkennbar)',m.defVisible?'#ff8a82':'#d2dae2','bold 11px "JetBrains Mono",monospace');
+      fctx.beginPath(); fctx.ellipse(X_DEF+6,Y_DEF+4,m.type==='pore'?66:62,m.type==='pore'?36:(m.type==='crack'?20:30),0,0,Math.PI*2); fctx.stroke(); fctx.setLineDash([]);
+      tag(X_DEF+60,Y_DEF-48,m.defVisible?'Fehler':'Fehlerlage (nicht erkennbar)',m.defVisible?'#ff8a82':'#d2dae2','bold 11px "JetBrains Mono",monospace');
     }
     if(m.obj==='cast'){ fctx.strokeStyle='#ffc94d'; fctx.setLineDash([3,5]); fctx.beginPath(); fctx.moveTo(STEP_X+15,PLATE.y0+4); fctx.lineTo(STEP_X+15,PLATE.y1-4); fctx.stroke(); fctx.setLineDash([]);
       tag(STEP_X+26,PLATE.y1-44,'Dickensprung (0,8·t)','#ffc94d'); tag(STEP_X+26,PLATE.y1-26,'dünner Bereich: D '+fmt(m.densThin,2),m.densThin>4.0?'#ff8a82':'#ffc94d'); }
@@ -649,7 +944,7 @@ function drawFilm(m,pre){
     fctx.fillText('Belichtung läuft · '+Math.round(m.mav/m.mavFull*100)+' % der Dosis',FILM_W/2,FILM_H-20); fctx.restore();
   }
 }
-function lineY(m){ return m.type==='pore'?Y_DEF+PORES[0][1]/MM:Y_DEF; }
+function lineX(m){ return m.type==='pore'?X_DEF+PORES[0][1]/MM:X_DEF; }   // Messlinie quer zur Naht durch den Fehler
 
 /* ── Darstellung: Dichteprofil ───────────────────────────── */
 function drawProfile(m,pre){
@@ -657,9 +952,9 @@ function drawProfile(m,pre){
   g.clearRect(0,0,w,h);
   const bg=g.createLinearGradient(0,0,0,h); bg.addColorStop(0,P.bg1); bg.addColorStop(1,P.bg2); g.fillStyle=bg; g.fillRect(0,0,w,h);
   const L=58,R=16,T=16,B=30, pw=w-L-R, ph=h-T-B;
-  const yl=Math.round(lineY(m)), xs=[], ds=[], bs=[];
+  const xl=Math.round(lineX(m)), xs=[], ds=[], bs=[];
   const CB=thickArr(m), SA=stepAmp(m);
-  for(let x=330;x<=570;x++){ const i=yl*FILM_W+x; xs.push(x); ds.push(Dbuf[i]); bs.push(m.density*Math.exp(-m.mu*(CB[i]+SA*ST.step[i]))+ST.mott[i]*0.05); }
+  for(let y=WELD_Y-120;y<=WELD_Y+120;y++){ const i=y*FILM_W+xl; xs.push(y); ds.push(Dbuf[i]); bs.push(m.density*Math.exp(-m.mu*(CB[i]+SA*ST.step[i]))+ST.mott[i]*0.05); }
   const band=K_VIS*m.sigma;
   const lo=Math.min(...ds,...bs.map(v=>v-band)), hi=Math.max(...ds,...bs.map(v=>v+band));
   const mid=(lo+hi)/2, half=Math.max(0.22,(hi-lo)/2+0.04), yMin=mid-half, yMax=mid+half;
@@ -746,9 +1041,12 @@ function drawGeom(m){
     g.fillStyle=P.red; g.font='10px "JetBrains Mono",monospace'; g.fillText('θ '+m.ang+'°',cx+len/2+6,cy-4); }
   if(m.type!=='none'){ g.font='10px "JetBrains Mono",monospace'; g.fillStyle=P.red; g.textAlign='center'; g.fillText({pore:'Poren',crack:'Riss',inclusion:isW?'Schlacke':'Einschluss'}[m.type],cx,axisY-48); g.textAlign='left'; }
 
-  // IQI quellenseitig
-  g.fillStyle=P.lead; g.fillRect(xL-9,axisY-92,9,48); g.fillStyle=P.cyan; for(let k=0;k<5;k++) g.fillRect(xL-8,axisY-88+k*9,7,Math.max(1,0.6+k*0.5));
-  g.fillStyle=P.cyan; g.font='10px "JetBrains Mono",monospace'; g.textAlign='right'; g.fillText('IQI',xL-14,axisY-70); g.textAlign='left';
+  // IQI quellenseitig: Drahtsteg liegt OBERHALB der Naht auf dem Grundwerkstoff (nicht direkt auf der Naht);
+  // die 7 Drähte verlaufen parallel zur Naht (hier als Punkte im Querschnitt), dünnster Draht außen (oben)
+  g.fillStyle=P.lead; g.fillRect(xL-9,axisY-94,9,50);
+  g.fillStyle=P.cyan; for(let k=0;k<7;k++) g.fillRect(xL-8,axisY-91+k*6.6,7,Math.max(1,0.6+k*0.5));
+  g.fillStyle=P.cyan; g.font='10px "JetBrains Mono",monospace'; g.textAlign='right'; g.fillText('IQI',xL-14,axisY-78); g.fillText('neben der Naht',xL-14,axisY-66); g.textAlign='left';
+  g.fillStyle=P.text; g.font='10px "JetBrains Mono",monospace'; g.textAlign='right'; g.fillText('Naht läuft ⊗ in die Zeichenebene',xR+110,pb+14); g.textAlign='left';
 
   // Filmkassette
   g.fillStyle=P.lead; g.fillRect(filmX+8,pt-6,16,pb-pt+12);

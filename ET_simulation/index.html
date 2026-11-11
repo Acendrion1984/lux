@@ -12,7 +12,7 @@
   :root{
     --bg:#16191c; --bg-2:#1f2327; --panel:#262b30; --panel-2:#2b3137;
     --border:#454d57; --border-soft:#363d45;
-    --text:#eef1f4; --text-dim:#b2bac2; --text-faint:#78828d;
+    --text:#f5f7f9; --text-dim:#cdd4db; --text-faint:#a6b1bc;
     --amber:#ffc94d; --amber-dim:#7d5b1c; --amber-glow:rgba(255,201,77,.22);
     --cyan:#4de9d4; --cyan-glow:rgba(77,233,212,.16);
     --blue:#6cc0ec; --red:#ff6f66; --green:#5fe072; --violet:#b48cf2;
@@ -23,7 +23,7 @@
   body.light{
     --bg:#e6ebf1; --bg-2:#f2f5f9; --panel:#fbfcfe; --panel-2:#eef2f7;
     --border:#8098ae; --border-soft:#b3c3d1;
-    --text:#0b1520; --text-dim:#2c3f51; --text-faint:#526a7d;
+    --text:#06101a; --text-dim:#1d2f40; --text-faint:#3a5063;
     --amber:#8a4d00; --amber-dim:#d9a441; --amber-glow:rgba(138,77,0,.14);
     --cyan:#06665a; --cyan-glow:rgba(6,102,90,.12);
     --blue:#0a4a6e; --red:#a8231a; --green:#166b2a; --violet:#5c3a9e;
@@ -213,7 +213,8 @@
   details.note.plain summary::before{content:'▸  Modell und Formeln';}
   details.note.plain[open] summary::before{content:'▾  Modell und Formeln';}
 
-  #segMode{display:grid; grid-template-columns:repeat(2,1fr); gap:5px;}
+  #segMode{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); opacity:0;}
+  #modeSel{font-size:12px; padding:8px 10px; font-weight:600;}
   #segMode button{width:100%; padding:8px 6px; line-height:1.25;}
   select.sel{width:100%; padding:7px 9px; border-radius:8px; border:1.5px solid var(--border); background:var(--bg-2); color:var(--text); font-family:var(--mono); font-size:10.5px;}
   select.sel:focus-visible{outline:2px solid var(--cyan); outline-offset:2px;}
@@ -239,17 +240,240 @@
   .gstates{display:grid;grid-template-columns:1fr 1fr;gap:5px 6px;}
   .gstates .toggle{margin:0;padding:6px 8px;font-size:10.5px;cursor:pointer;}
 </style>
-<script>
-/* Lokaler Theme-Zustand (Hell/Dunkel), gespeichert in localStorage. */
-var themeCtl=(function(){
-  var cbs=[], mode=null, KEY='zfp-theme';
-  function store(v){ try{ if(v===undefined) return localStorage.getItem(KEY); localStorage.setItem(KEY,v); }catch(e){} return null; }
-  function init(){ if(mode) return; var s=store(); mode=(s==='light'||s==='dark')?s:((document.body&&(document.body.classList.contains('light-mode')||document.body.classList.contains('light')))?'light':'dark'); }
-  return {
-    onTheme:function(f){ if(typeof f!=='function') return; cbs.push(f); init(); f(mode); },
-    toggleTheme:function(){ init(); mode=mode==='light'?'dark':'light'; store(mode); cbs.forEach(function(f){ try{ f(mode); }catch(e){} }); }
-  };
+<script id="perf-guard">
+/* Entlastung: Bildschleifen passen sich der Rechenzeit an (kein Dauer-Vollgas auf schwachen/mobilen Geräten) */
+(function(){var raf=window.requestAnimationFrame.bind(window),st=new WeakMap();
+window.requestAnimationFrame=function(cb){return raf(function w(t){
+  var o=st.get(cb)||{last:0,ema:0}; st.set(cb,o);
+  var gap=Math.min(100,o.ema*1.2);
+  if(o.last&&t-o.last<gap){return raf(w);}
+  var s=performance.now(); o.last=t; try{cb(t);}finally{o.ema=o.ema*0.8+(performance.now()-s)*0.2; if(o.ema<10) o.ema=0;}
+});};
 })();
+</script>
+<script>
+/* ============================================================================
+ * ZfP Shared Context – Werk / Sprache / Theme (seitenübergreifend)
+ * ----------------------------------------------------------------------------
+ * Eine EINZIGE Quelle der Wahrheit für die drei globalen Einstellungen, die
+ * über ALLE Apps hinweg synchron sein sollen:
+ *
+ *   • Werk    -> localStorage['zfp-aktives-werk']    (ID aus werke.json)
+ *   • Sprache -> localStorage['zfp-lang']            ('de' | 'en')
+ *   • Theme   -> localStorage['zfp-theme-preference']('dark' | 'light')
+ *
+ * GLOBALE THEME-REGELN (verbindlich für ALLE Seiten, auch Unter-Apps):
+ *   1. Es gibt genau EINEN Speicherschlüssel und genau EINEN Standardwert
+ *      (DEFAULT_THEME unten). Keine Seite darf eigene Schlüssel, eigene
+ *      Standardwerte, System-Einstellung (prefers-color-scheme) oder eigene
+ *      Fallback-Controller verwenden.
+ *   2. Das Skript steht im <head> jeder Seite MIT Dark Mode und setzt
+ *      <html data-theme="dark|light"> samt color-scheme bereits vor dem ersten
+ *      Zeichnen und bei jeder Änderung. Seiten OHNE Dark Mode (Admin, Login,
+ *      Handbuch) binden es nicht ein; die PMÜ-Protokollformulare ohne Dark Mode
+ *      binden es nur für Sprache/Werk ein (Attribut data-theme-off) und bleiben hell.
+ *   3. Seiten reagieren nur noch über ZfPContext.onTheme(fn) und schalten nur
+ *      noch über ZfPContext.toggleTheme() / setTheme() um.
+ *   4. Startwert = HELL. Nach „Dunkel“ bleibt es gespeichert, bis wieder
+ *      „Hell“ gewählt wird (gilt für alle Seiten gemeinsam).
+ *
+ * Frühere Versionen der einzelnen Seiten benutzten UNTERSCHIEDLICHE
+ * Schlüssel (z. B. 'zfp-lang-preference', 'MT_LANG_KEY', 'mpi-dark'). Deshalb
+ * blieben Sprache/Theme beim Seitenwechsel nicht erhalten. Dieses Modul
+ * migriert alte Schlüssel EINMALIG auf die kanonischen und hält danach alle
+ * offenen Tabs über das native 'storage'-Event synchron.
+ *
+ * Das Modul ändert von sich aus NICHTS am DOM. Jede Seite registriert per
+ * ZfPContext.onWerk / onLang / onTheme ihre eigene Anwendungsfunktion und
+ * bekommt den aktuellen Wert sofort + bei jeder späteren Änderung gemeldet.
+ * ========================================================================== */
+(function (global) {
+  'use strict';
+
+  var KEY_WERK  = 'zfp-aktives-werk';
+  var KEY_LANG  = 'zfp-lang';
+  var KEY_THEME = 'zfp-theme-preference';
+
+  var SCHWEINFURT_ID = 'schweinfurt';
+
+  // Einziger Standardwert: Das Portal startet IMMER hell. Wird auf Dunkel gestellt,
+  // merkt sich der Browser das (localStorage) – bis wieder auf Hell gestellt wird.
+  var DEFAULT_THEME = 'light';
+
+  // Alte Schlüssel, deren Wert (falls vorhanden und der neue noch leer ist)
+  // einmalig übernommen wird.
+  var LEGACY_LANG_KEYS  = ['zfp-lang-preference', 'MT_LANG_KEY', 'mt_lang'];
+  var LEGACY_THEME_KEYS = ['THEME_KEY', 'mt-theme', 'zfp-theme', 'zfp_theme', 'gefuege_theme'];
+
+  function safeGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function safeSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  // ─── Einmalige Migration alter Schlüssel ────────────────────────────────
+  (function migrate() {
+    if (!safeGet(KEY_LANG)) {
+      for (var i = 0; i < LEGACY_LANG_KEYS.length; i++) {
+        var v = safeGet(LEGACY_LANG_KEYS[i]);
+        if (v === 'de' || v === 'en') { safeSet(KEY_LANG, v); break; }
+      }
+    }
+    if (!safeGet(KEY_THEME)) {
+      for (var j = 0; j < LEGACY_THEME_KEYS.length; j++) {
+        var t = safeGet(LEGACY_THEME_KEYS[j]);
+        if (t === 'dark' || t === 'light') { safeSet(KEY_THEME, t); break; }
+      }
+    }
+    if (!safeGet(KEY_THEME)) {
+      var mpi = safeGet('mpi-dark');
+      if (mpi === '1' || mpi === 'true') safeSet(KEY_THEME, 'dark');
+      else if (mpi === '0' || mpi === 'false') safeSet(KEY_THEME, 'light');
+    }
+    // Veraltete Einzelschlüssel entfernen, damit sie nie wieder als zweite
+    // „Wahrheit“ herangezogen werden können.
+    ['zfp-theme', 'zfp_theme', 'gefuege_theme', 'THEME_KEY', 'mt-theme', 'mpi-dark'].forEach(function (k) {
+      try { localStorage.removeItem(k); } catch (e) {}
+    });
+  })();
+
+  function getWerk()  { return safeGet(KEY_WERK)  || SCHWEINFURT_ID; }
+  function getLang()  { var v = safeGet(KEY_LANG);  return (v === 'en') ? 'en' : 'de'; }
+  function normTheme(v) { return (v === 'light' || v === 'dark') ? v : DEFAULT_THEME; }
+  function getTheme() { return normTheme(safeGet(KEY_THEME)); }
+
+  // Setzt das Theme sofort am <html>-Element (vor dem ersten Zeichnen, weil das
+  // Skript im <head> steht) – unabhängig davon, ob die Seite selbst reagiert.
+  // Seiten OHNE Dark Mode (PMÜ-Formulare) laden das Skript nur für Sprache/Werk und setzen
+  // <script ... data-theme-off>: dann werden weder data-theme noch color-scheme angefasst.
+  var THEME_OFF = false;
+  try { THEME_OFF = !!(document.currentScript && document.currentScript.hasAttribute('data-theme-off')); } catch (e) {}
+  function applyDom(theme) {
+    if (THEME_OFF) return;
+    try {
+      var root = document.documentElement;
+      root.setAttribute('data-theme', theme);
+      root.style.colorScheme = theme;
+    } catch (e) {}
+  }
+  applyDom(getTheme());
+
+  var listeners = { werk: [], lang: [], theme: [] };
+
+  function fire(kind, value) {
+    if (kind === 'theme') {
+      applyDom(value);
+      try { document.dispatchEvent(new CustomEvent('zfp:theme', { detail: value })); } catch (e) {}
+    }
+    var arr = listeners[kind];
+    for (var i = 0; i < arr.length; i++) {
+      try { arr[i](value); } catch (e) { /* eine kaputte Callback darf den Rest nicht stoppen */ }
+    }
+  }
+
+  function register(kind, cb, getter) {
+    if (typeof cb !== 'function') return;
+    listeners[kind].push(cb);
+    // Aktuellen Wert sofort liefern, damit die Seite initial korrekt rendert.
+    try { cb(getter()); } catch (e) {}
+  }
+
+  // ─── Setter: schreiben + lokale Callbacks feuern + andere Tabs bekommen
+  //     automatisch das native 'storage'-Event ────────────────────────────
+  function setWerk(id) {
+    if (!id || id === getWerk()) { fire('werk', getWerk()); return; }
+    safeSet(KEY_WERK, id);
+    fire('werk', id);
+  }
+  function setLang(lang) {
+    lang = (lang === 'en') ? 'en' : 'de';
+    safeSet(KEY_LANG, lang);
+    fire('lang', lang);
+  }
+  function toggleLang() { setLang(getLang() === 'de' ? 'en' : 'de'); }
+
+  function setTheme(theme) {
+    theme = normTheme(theme);
+    safeSet(KEY_THEME, theme);
+    fire('theme', theme);
+  }
+  function toggleTheme() { setTheme(getTheme() === 'dark' ? 'light' : 'dark'); }
+
+  // ─── Cross-Tab-Sync: Änderungen aus einem anderen Tab/Fenster ───────────
+  global.addEventListener('storage', function (e) {
+    if (!e) return;
+    if (e.key === KEY_WERK)  fire('werk',  e.newValue || SCHWEINFURT_ID);
+    else if (e.key === KEY_LANG)  fire('lang',  (e.newValue === 'en') ? 'en' : 'de');
+    else if (e.key === KEY_THEME) fire('theme', normTheme(e.newValue));
+  });
+
+  // Zurück/Vorwärts-Navigation (bfcache): Seite zeigt sonst evtl. ein veraltetes Theme.
+  var _lastThemeShown = getTheme();
+  global.addEventListener('pageshow', function (e) {
+    var t = getTheme();
+    if (e && e.persisted && t !== _lastThemeShown) fire('theme', t);
+    _lastThemeShown = t;
+  });
+
+  global.ZfPContext = {
+    KEY_WERK: KEY_WERK, KEY_LANG: KEY_LANG, KEY_THEME: KEY_THEME,
+    SCHWEINFURT_ID: SCHWEINFURT_ID,
+    getWerk: getWerk, setWerk: setWerk,
+    getLang: getLang, setLang: setLang, toggleLang: toggleLang,
+    DEFAULT_THEME: DEFAULT_THEME,
+    getTheme: getTheme, setTheme: setTheme, toggleTheme: toggleTheme,
+    get theme() { return getTheme(); },   // Lesezugriff wie früher in den lokalen Fallbacks
+    onWerk:  function (cb) { register('werk',  cb, getWerk); },
+    onLang:  function (cb) { register('lang',  cb, getLang); },
+    onTheme: function (cb) { register('theme', cb, getTheme); }
+  };
+
+  // ─── WERK-REGISTER + WERK-ABHÄNGIGE PFADE ───────────────────────────────
+  // Damit einfache Seiten (v. a. die PMÜ-Unterseiten) das aktive Werk erben
+  // können, ohne selbst ein Dropdown oder eigene Register-Logik zu enthalten,
+  // stellt das Modul hier eine kleine Hilfe bereit:
+  //   • ladeWerkRegister()  – lädt werke.json einmalig (mit Fallback)
+  //   • werkSuffix()        – Suffix des aktiven Werks ('' = Schweinfurt)
+  //   • protokolleBase()    – '/api/protokolle' bzw. '/api/protokolle__<suffix>'
+  var _werkeRegister = [{ id: SCHWEINFURT_ID, name: 'Schweinfurt', suffix: '' }];
+  var _registerGeladen = false;
+  var _registerPromise = null; // laufendes Laden zwischenspeichern, damit parallele
+                                // Aufrufe (z. B. mehrere Seiten-Skripte) NICHT jeweils
+                                // eine eigene Anfrage starten und alle auf dasselbe
+                                // Ergebnis warten können (siehe protokolleBase()-Fix).
+
+  function ladeWerkRegister() {
+    if (_registerGeladen) return Promise.resolve(_werkeRegister);
+    if (_registerPromise) return _registerPromise; // bereits im Gange – dieselbe Zusage zurückgeben
+    _registerPromise = fetch('/api/data/werke.json?t=' + Date.now())
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (arr) {
+        if (Array.isArray(arr) && arr.length) {
+          if (!arr.find(function (w) { return w.id === SCHWEINFURT_ID; }))
+            arr.unshift({ id: SCHWEINFURT_ID, name: 'Schweinfurt', suffix: '' });
+          _werkeRegister = arr;
+        }
+        _registerGeladen = true;
+        _registerPromise = null;
+        return _werkeRegister;
+      })
+      .catch(function () { _registerGeladen = true; _registerPromise = null; return _werkeRegister; });
+    return _registerPromise;
+  }
+
+  function werkSuffix() {
+    var id = getWerk();
+    var w = _werkeRegister.find(function (x) { return x.id === id; });
+    return (w && w.suffix) ? w.suffix : '';
+  }
+
+  function protokolleBase() {
+    var suf = werkSuffix();
+    return suf ? ('/api/protokolle__' + suf) : '/api/protokolle';
+  }
+
+  global.ZfPContext.ladeWerkRegister = ladeWerkRegister;
+  global.ZfPContext.werkSuffix = werkSuffix;
+  global.ZfPContext.protokolleBase = protokolleBase;
+})(window);
+
 </script>
 
 <style id="fit-css">
@@ -266,6 +490,13 @@ html.fit .icon-btn{width:30px; height:30px; font-size:14px;}
 html.fit .fitgrid{flex:1 1 0; min-height:0; display:grid; gap:8px; margin:0; align-items:stretch;}
 html.fit .fcol{display:flex; flex-direction:column; gap:8px; min-height:0; min-width:0; overflow-y:auto; overflow-x:hidden; padding:0 2px 4px 0; scrollbar-width:thin;}
 html.fit .fcol > *{flex:0 0 auto; margin:0 !important;}
+html.fit .fcol.dual{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); grid-auto-rows:auto; align-content:start; column-gap:8px; row-gap:8px;}
+html.fit .fcol.dual > .sub{display:flex; flex-direction:column; gap:8px; min-width:0;}
+html.fit .fcol.dual > .sub > *{flex:0 0 auto; margin:0 !important;}
+html.fit .fcol.dual > .spanall{grid-column:1 / -1;}
+html.fit .fitgrid #pcDecay{max-height:300px !important; width:100% !important;}
+html.fit .fitgrid #pcProfile{max-height:230px !important; width:100% !important;}
+html.fit .fitgrid .fcol.dual > .spanall #secSvg{max-height:330px !important; width:100% !important;}
 html.fit .panel{padding:8px 10px 9px; border-radius:10px;}
 html.fit .panel h2, html.fit .stage-title, html.fit .panel > .stage-title{margin:0 0 5px; font-size:10.5px; letter-spacing:.07em; line-height:1.25;}
 html.fit .stage-head{gap:4px 10px; flex-wrap:wrap; padding:0 0 4px; margin:0 0 2px;}
@@ -296,6 +527,7 @@ html.fit .pbar{margin:6px 0 4px;}
 html.fit .stage, html.fit .panel > .stage{margin:0;}
 html.fit .foot{font-size:10.5px; padding-top:3px;}
 html.fit .kv{font-size:11px;}
+html.fit:not(.zz):not(.zz) .legend{font-size:12px;}
 html.fit canvas, html.fit svg.view{max-width:100%; height:auto;}
 html.fit .step p, html.fit .pstep p{display:none;}
 html.fit .step.cur p, html.fit .pstep.cur p{display:block;}
@@ -358,6 +590,72 @@ html.fit .fitgrid #gefInfo{font-size:11px; line-height:1.35;}
 html.fit .fitgrid #statsGef{grid-template-columns:repeat(3,1fr);}
 html.fit .gstates{gap:4px 6px;}
 html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
+
+</style>
+<style>
+/* ZfP-Portal · Simulationen im Portal-Design (Vorbild: Ätzdatenbank)
+ * Betrifft NUR Kopfbereich, Schriften, Knöpfe, Reiter, Schalter und Karten-Rahmen.
+ * Farben und Kontraste der Darstellungen (Canvas, Diagramme, Skalen, Messwerte, Status) bleiben unverändert;
+ * die Seiten-Variablen (--bg, --border, --text …) werden bewusst nicht angefasst. */
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800&display=swap');
+body{
+  --sd-green:#00893d;--sd-green-d:#006b30;--sd-green-t:#2fc16b;--sd-green-x:rgba(0,137,61,.14);
+  --sd-hdr:#1e1e1e;--sd-bdr:#444;--sd-txt:#ececec;--sd-mut:#b0b0b0;--sd-btn:#1e1e1e;--sd-page:#121212;--sd-card:#1e1e1e;
+}
+body.light,body.light-mode{
+  --sd-green-t:#00893d;--sd-green-x:rgba(0,137,61,.1);
+  --sd-hdr:#fff;--sd-bdr:#d0d0d0;--sd-txt:#1a1a1a;--sd-mut:#555;--sd-btn:#fff;--sd-page:#e0e0e0;--sd-card:#fff;
+}
+html,body{background:var(--sd-page)!important}
+body{background-image:none!important}
+
+/* Schriften */
+body,body *:not(#_):not(svg):not(svg *):not(canvas){font-family:'Barlow',Arial,sans-serif!important}
+body :is(h1,h2,h3,h4,button,summary,label,.stage-title,.sub-h,.badge,.tabs,.legend,.k,.stat .k,.foot):not(#_){font-family:'Barlow Condensed',Arial,sans-serif!important}
+body label{gap:8px}
+body .stat .v,body .stat .k,body table.res,body .foot,body .legend span{font-variant-numeric:tabular-nums}
+
+/* Kopfbereich wie Ätzdatenbank: weiße Karte, grüner Balken links, grüne Linie unten, Logo rechts */
+body header.top{background:var(--sd-hdr)!important;border:1.5px solid var(--sd-bdr)!important;border-left:6px solid var(--sd-green)!important;border-bottom:3px solid var(--sd-green)!important;border-radius:0!important;padding:8px 14px 8px 16px!important;margin-bottom:14px!important;box-shadow:none!important;align-items:center}
+body header.top .brand-eyebrow{display:none!important}
+body header.top h1{font-family:'Barlow Condensed',Arial,sans-serif!important;font-weight:700!important;font-size:clamp(17px,2.4vw,24px)!important;text-transform:uppercase;letter-spacing:.5px;line-height:1.15;color:var(--sd-txt)!important;background:none!important;-webkit-text-fill-color:var(--sd-txt)!important}
+body header.top h1 small{font-family:'Barlow',Arial,sans-serif!important;font-size:12.5px!important;font-weight:400!important;font-style:italic;text-transform:none;letter-spacing:0;color:var(--sd-mut)!important;-webkit-text-fill-color:var(--sd-mut)!important;margin-top:2px}
+body header.top .hdr-right,body header.top .badge-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+body header.top .hdr-right::after,body header.top .badge-row::after{display:none}
+body header.top .badge{border-radius:4px!important;font-family:'Barlow Condensed',Arial,sans-serif!important;font-size:13px!important;font-weight:600;letter-spacing:.3px;text-transform:none;padding:4px 10px!important}
+body .theme-btn,body .icon-btn,body .theme-toggle{width:38px!important;height:38px!important;border-radius:50%!important;background:var(--sd-btn)!important;border:2px solid var(--sd-bdr)!important;color:var(--sd-txt)!important;font-size:17px;display:inline-flex;align-items:center;justify-content:center;padding:0!important;transition:all .2s}
+body .theme-toggle{width:auto!important;min-width:38px;border-radius:19px!important;padding:0 10px!important;gap:5px}
+body .theme-btn:hover,body .icon-btn:hover,body .theme-toggle:hover{border-color:var(--sd-green)!important;transform:translateY(-2px);color:var(--sd-txt)!important}
+@media(max-width:600px){body header.top .hdr-right::after,body header.top .badge-row::after{display:none}}
+
+/* Knöpfe: eckig (4 px), Barlow Condensed, grüne Umrandung; gewählt/aktiv = grün gefüllt */
+body button:where(:not(.theme-btn,.icon-btn,.theme-toggle,.zfp-hilfe-btn,.lang-toggle,#langToggleBtn)){
+  font-size:14px;font-weight:700;letter-spacing:.3px;text-transform:none;
+  border:2px solid var(--sd-green)!important;border-radius:4px!important;background:var(--sd-btn);color:var(--sd-green-t);box-shadow:none}
+body button:where(:not(.theme-btn,.icon-btn,.theme-toggle,.zfp-hilfe-btn)):not(:disabled):hover{background:var(--sd-green-x);color:var(--sd-green-t);border-color:var(--sd-green)!important}
+body button.sel,body button.on,body button.active,body button.primary,body button[aria-pressed="true"],body button[aria-selected="true"]{background:var(--sd-green)!important;border-color:var(--sd-green)!important;color:#fff!important;box-shadow:none!important}
+body button.sel:hover,body button.on:hover,body button.active:hover,body button.primary:hover:not(:disabled){background:var(--sd-green-d)!important;color:#fff!important}
+body button.primary.stop,body .btn.stop,body button.danger{background:#c0392b!important;border-color:#c0392b!important;color:#fff!important}
+body button:disabled{opacity:.4}
+body button:focus-visible,body select:focus-visible,body input:focus-visible{outline:2px solid var(--sd-green)!important;outline-offset:2px}
+body .seg button,body .tabs button,body .dcac button,body .btnrow button{font-size:14px;line-height:1.2}
+body .seg.mini button{font-size:12.5px}
+
+/* Karten, Felder, Schalter */
+body .panel{background:var(--sd-card)!important;border:1.5px solid var(--sd-bdr)!important;border-top:3px solid var(--sd-green)!important;border-radius:4px!important;box-shadow:none!important}
+body .stat,body .callout,body .verdict,body .toggle,body select,body .readout,body .stage{border-radius:4px!important}
+body select{font-family:'Barlow',Arial,sans-serif!important;font-size:14px}
+body .stage-title,body .sub-h,body .panel>h2,body .panel>h3,body .panel>.hd{font-family:'Barlow Condensed',Arial,sans-serif!important;font-size:12.5px!important;font-weight:700;letter-spacing:.8px;color:var(--sd-green-t)!important}
+body input[type=range]{accent-color:var(--sd-green)}
+body input[type=range]::-webkit-slider-thumb{background:var(--sd-green)!important;border:2px solid #fff!important;box-shadow:0 1px 4px rgba(0,0,0,.4)!important}
+body input[type=range]::-moz-range-thumb{background:var(--sd-green);border:2px solid #fff}
+body .toggle.on .switch{background:var(--sd-green)!important}
+body .toggle.on .switch::after{background:#fff!important}
+body .toggle:hover{border-color:var(--sd-green)}
+body details.adv summary::before{color:var(--sd-green-t)!important}
+
+@media print{body header.top .hdr-right::after,body header.top .badge-row::after{display:none}}
+
 </style>
 </head>
 <body>
@@ -374,6 +672,7 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
       <span class="badge"><span class="dot"></span>Simulation</span>
       <span class="badge" id="bProbe">—</span>
       <span class="badge" id="bMat">—</span>
+      <span class="badge" id="bDelta" title="Standardeindringtiefe δ bei aktueller Frequenz und Werkstoff">δ —</span>
       <span class="badge" id="bSig">—</span>
       <button class="icon-btn" id="themeBtn" aria-label="Hell/Dunkel umschalten">☀</button>
     </div>
@@ -384,6 +683,7 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
 
       <div class="panel">
         <h2>Prüfaufgabe</h2>
+        <select class="sel" id="modeSel" aria-label="Prüfaufgabe wählen"></select>
         <div class="seg" id="segMode">
           <button data-mode="riss" class="on">Rissprüfung</button>
           <button data-mode="corr">Korrosion<br>zwischen 2 Platten</button>
@@ -730,7 +1030,7 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
 
       <div id="moreSide" style="display:contents"></div>
       <div class="panel gef-only" data-scn="gef">
-        <h2>Wärmebehandlung des Prüfteils</h2>
+        <h2>① Prüfteil herstellen · Wärmebehandlung</h2>
         <div class="hint" style="margin-top:0">Stahl 100Cr6: Aus der Wärmebehandlung entsteht das Gefüge – und damit Härte, Leitfähigkeit und Permeabilität, die das Wirbelstromgerät misst.</div>
         <div class="field">
           <label for="gCool">Abkühlung nach dem Austenitisieren</label>
@@ -750,8 +1050,11 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
           <input type="range" id="gTt" min="20" max="700" step="10" value="200">
         </div>
         <div class="btnrow">
-          <button class="btn" id="btnGRiddle">🎲 Rätselteil</button>
-          <button class="btn" id="btnGReveal" disabled>Auflösen</button>
+          <button class="btn" id="btnGRiddle">🎲 Teil aus dem Los ziehen</button>
+        </div>
+        <div id="gDecide" style="display:none">
+          <div class="hint" style="margin-top:6px">Das Teil ist verdeckt. Prüfen Sie es (Frequenz wählen, Landkarte und Gefügebild ansehen) und entscheiden Sie:</div>
+          <div class="btnrow"><button class="btn primary" id="btnGOk">✔ i. O.</button><button class="btn" id="btnGNok">✖ n. i. O.</button></div>
         </div>
         <div class="kv" style="margin-top:10px">
           <span class="k">Gefüge</span><span class="v" id="gkS">—</span>
@@ -762,16 +1065,14 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
       </div>
 
       <div class="panel gef-only" data-scn="gef">
-        <h2>Wirbelstromprüfung</h2>
+        <h2>② Prüfen · Wirbelstromprüfung</h2>
         <div class="field">
           <label for="gFreq">Prüffrequenz <span class="val" id="vGFreq">0,5 kHz</span></label>
           <input type="range" id="gFreq" min="0" max="100" step="1" value="35">
           <div class="hint">Bei niedriger Frequenz wirkt vor allem die Permeabilität, bei hoher die Leitfähigkeit – nur die passende Frequenz trennt ähnliche Gefüge.</div>
         </div>
-        <div class="field">
-          <label for="gSoll">Soll-Gefüge (Prüfauftrag)</label>
-          <select class="sel" id="gSoll"></select>
-        </div>
+        <div class="hint" style="margin-top:0"><b>Prüfauftrag:</b> Soll-Gefüge ist immer <b>Martensit, angelassen 200 °C</b> – Teile in diesem Toleranzfeld sind i. O.</div>
+        <select id="gSoll" style="display:none"></select>
         <div class="row2">
           <div class="field">
             <label for="gDia">Probe ∅ <span class="val" id="vGDia">20 mm</span></label>
@@ -784,7 +1085,7 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
         </div>
       </div>
       <div class="panel gef-only" data-scn="gef">
-        <h2>Gefügezustände (Kandidaten)</h2>
+        <h2>③ Kandidaten eingrenzen (optional)</h2>
         <div class="hint" style="margin-top:0">Nur <b>aktive</b> Zustände erscheinen in der Landkarte und kommen als Ergebnis der Bestimmung infrage. Der Soll-Zustand bleibt immer aktiv.</div>
         <div id="gefStates" class="gstates"></div>
         <div class="btnrow" style="margin-top:6px">
@@ -951,7 +1252,7 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
       <div id="moreMain" style="display:contents"></div>
       <div class="stage gef-only" data-scn="gef">
         <div class="stage-head">
-          <span class="stage-title">Gefügebild · schematischer Schliff</span>
+          <span class="stage-title">④ Kontrollieren · Gefügebild (schematischer Schliff)</span>
           <span class="stage-sub" id="gMicroInfo">—</span>
         </div>
         <canvas class="view" id="cvMicro" width="900" height="330" role="img" aria-label="Gefügebild von Prüfteil und Referenz"></canvas>
@@ -961,7 +1262,7 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
       <div class="stagegrid wide gef-only" data-scn="gef">
         <div class="stage">
           <div class="stage-head">
-            <span class="stage-title">Gefüge-Landkarte · Impedanzebene</span>
+            <span class="stage-title">Hintergrund · Gefüge-Landkarte (Impedanzebene)</span>
             <div class="legend">
               <span><i class="pt" style="background:var(--amber)"></i>Prüfteil</span>
               <span><i style="background:var(--green)"></i>Soll</span>
@@ -971,21 +1272,21 @@ html.fit .gstates .toggle{padding:5px 7px; font-size:11px;}
           <div class="foot"><span id="gMapInfo">—</span></div>
         </div>
         <div class="stage">
-          <div class="stage-head"><span class="stage-title">Trennbarkeit über der Frequenz</span></div>
+          <div class="stage-head"><span class="stage-title">Hintergrund · Trennbarkeit über der Frequenz</span></div>
           <svg class="view" id="gefFreq" viewBox="0 0 620 300" role="img" aria-label="Abstand zum Soll über der Frequenz"></svg>
           <div class="foot"><span id="gFreqInfo">—</span></div>
         </div>
       </div>
 
       <div class="stage gef-only" data-scn="gef">
-        <div class="stage-head"><span class="stage-title">Gefügebestimmung</span></div>
+        <div class="stage-head"><span class="stage-title">③ Auswerten · Gefügebestimmung</span></div>
         <div class="stats" id="statsGef"></div>
         <div class="verdict" id="verdictGef">—</div>
         <div id="gefCand" style="margin-top:10px"></div>
       </div>
 
       <div class="stage gef-only" data-scn="gef">
-        <div class="stage-head"><span class="stage-title">Gefüge-Atlas · 100Cr6</span><span class="stage-sub">Zeile anklicken = Referenzgefüge ansehen</span></div>
+        <div class="stage-head"><span class="stage-title">Hintergrund · Gefüge-Atlas 100Cr6</span><span class="stage-sub">Zeile anklicken = Referenzgefüge ansehen</span></div>
         <div id="gefAtlas" style="overflow-x:auto"></div>
         <div class="verdict" id="gefInfo" style="margin-top:10px">—</div>
       </div>
@@ -1539,7 +1840,7 @@ function drawScnOverlay(c2, sx, sy, dpr){
   };
   if(S.mode === 'riss'){ if(S.crackOn) crackLine(); }
   else if(S.mode === 'corr'){
-    c2.font = (10*dpr)+'px JetBrains Mono, monospace';
+    c2.font = (13*dpr)+'px JetBrains Mono, monospace';
     S.corr.forEach((d,i) => {
       if(!d.on) return;
       const st = corrStage(d); c2.strokeStyle = i === S.corrSel ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.5)';
@@ -1556,7 +1857,7 @@ function drawScnOverlay(c2, sx, sy, dpr){
   } else if(S.mode === 'weld'){
     if(S.weldSeam){
       [-1,1].forEach(sg => { c2.beginPath(); c2.moveTo((S.weldX+sg*S.weldW/2)*sx, 0); c2.lineTo((S.weldX+sg*S.weldW/2)*sx, S.plateWidth*sy); c2.stroke(); });
-      c2.font = (10*dpr)+'px JetBrains Mono, monospace'; c2.fillText('Naht', (S.weldX-3)*sx, 30*dpr);
+      c2.font = (13*dpr)+'px JetBrains Mono, monospace'; c2.fillText('Naht', (S.weldX-3)*sx, 30*dpr);
     }
     if(S.weldPores){ WPORES.forEach(q => { c2.beginPath(); c2.arc((S.weldX+q[0])*sx, q[1]*S.plateWidth*sy, Math.max(3*dpr, q[2]/2*sx), 0, Math.PI*2); c2.stroke(); }); }
     if(S.crackOn) crackLine();
@@ -1658,7 +1959,7 @@ function drawSection(C){
     s += txt(W/2, H-6, 'Längsschnitt · das Rohr wird einmal mit konstanter Geschwindigkeit durch die feststehende Spule gezogen', {anchor:'middle', size:9.5, fill:'var(--text-faint)'});
   }
   if(S.mode === 'hole') s += holeSection();
-  el.innerHTML = s;
+  patchSvg(el, s);
 }
 
 /* ══════════ Auswertetexte der neuen Prüfaufgaben ══════════ */
@@ -1780,7 +2081,23 @@ const MEAS_MODES = ['cond','coat','pec','mfm','chd'];
 const isMeas = () => MEAS_MODES.indexOf(S.mode) >= 0;
 const gz = () => (Math.random()+Math.random()+Math.random()+Math.random()-2)/0.577;
 const fmt1 = (v,d) => deC(v,d);
-const svgE = (id, s) => { $(id).innerHTML = s; };
+/* SVG flackerfrei aktualisieren: nur Knoten ersetzen, die sich wirklich geändert haben
+   (Achsenbeschriftungen, Raster usw. bleiben bestehen, statt bei jedem Bild neu aufgebaut zu werden). */
+function patchSvg(el, s){
+  if(el._last === s) return;
+  el._last = s;
+  const tmp = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  tmp.innerHTML = s;
+  if(window.__fitSvgTexts) window.__fitSvgTexts(el, tmp);
+  const nn = Array.from(tmp.childNodes);
+  for(let i=0; i<nn.length; i++){
+    const o = el.childNodes[i];
+    if(!o) el.appendChild(nn[i]);
+    else if(!o.isEqualNode(nn[i])) el.replaceChild(nn[i], o);
+  }
+  while(el.childNodes.length > nn.length) el.removeChild(el.lastChild);
+}
+const svgE = (id, s) => { patchSvg($(id), s); };
 const selOpts = (arr, cur) => arr.map(o => `<option value="${o[0]}"${String(o[0])===String(cur)?' selected':''}>${esc(o[1])}</option>`).join('');
 const rangeRow = (id, label, min, max, step, val, unit) => `<div class="field"><label for="${id}">${label} <span class="val" id="v_${id}">${val} ${unit}</span></label><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}"></div>`;
 const toggleRow = (id, label, on) => `<div class="toggle${on?' on':''}" id="${id}"><span>${label}</span><div class="switch"></div></div>`;
@@ -2021,14 +2338,15 @@ const CCOATS = {
   phos: {name:'Manganphosphat (Phosphatierung)', kind:'iso',  spec:[5,12],   std:[3,5,10,20],   rough:1.8, note:'rau, porös, nichtleitend'},
   brun: {name:'Brünierung (Schwarzoxid)',        kind:'iso',  spec:[0.5,2],  std:[0.5,1,2,4],   rough:0.3, note:'sehr dünn, nichtleitend'},
   dlc:  {name:'DLC (a-C:H, PVD)',                kind:'iso',  spec:[2,4],    std:[1,2,3,5],     rough:0.3, note:'hart, nichtleitend bis halbleitend'},
-  lack: {name:'Lack / Konservierungsschicht',    kind:'iso',  spec:[40,100], std:[25,50,100,200],rough:0.5, note:'dick, nichtleitend'},
+  lack: {name:'Lack / Konservierungsschicht',    kind:'iso',  spec:[40,100], std:[20,40,60,80,100,120,140,160,180,200,220,240,260,280,300],rough:0.5, note:'dick, nichtleitend'},
   zn:   {name:'Zink galvanisch',                 kind:'cond', spec:[8,15],   std:[5,10,15,25],  sigma:16.7, rough:0.6, note:'leitend, nichtmagnetisch'},
   zni:  {name:'Zink-Nickel',                     kind:'cond', spec:[8,15],   std:[5,10,15,25],  sigma:6.0,  rough:0.6, note:'leitend, nichtmagnetisch'},
   cr:   {name:'Hartchrom',                       kind:'cond', spec:[10,30],  std:[10,20,30,50], sigma:7.7,  rough:0.6, note:'leitend, nichtmagnetisch'},
   elox: {name:'Eloxal (nur auf Aluminium)',      kind:'iso',  spec:[10,25],  std:[10,15,25,40], rough:0.4, note:'nichtleitend, nur Käfig/Gehäuse aus Alu'},
 };
 S.coat = {sub:'100cr6', coat:'phos', d:8, coil:2, f:5, subT:3, Ra:1.0, R:200, edge:15, scat:0, stdKind:'foil', std1:3, std2:10,
-          nullOK:false, pts:[], series:[]};
+          nullOK:false, pts:[], series:[], specLo:null, specHi:null, std3:null};
+const ctSp = c => { const co = CCOATS[c.coat]; return [c.specLo != null ? c.specLo : co.spec[0], c.specHi != null ? c.specHi : co.spec[1]]; };
 const ctSub = c => matById(c.sub), ctMag = c => ctSub(c).mu > 1.5;
 const ctLam = c => 0.28*c.coil*1000;                                       // Sensorreichweite in µm
 const ctDc = (c, co) => 503/Math.sqrt(c.f*1e6*co.sigma)*1000;                // Eindringtiefe in der leitenden Schicht (µm)
@@ -2086,6 +2404,7 @@ function ctHTML(){
     <div class="field"><label for="ctSub">Grundwerkstoff</label><select class="sel" id="ctSub">${selOpts(subs, 'h100'.replace('h100','100cr6'))}</select></div>
     <div class="field"><label for="ctCoat">Schicht</label><select class="sel" id="ctCoat">${selOpts(coats, 'phos')}</select></div>
     ${rangeRow('ctD','Wahre Schichtdicke',0.5,150,0.5,8,'µm')}
+    <div class="row2"><div class="field"><label for="ctSpecLo">Sollschicht von (µm)</label><input class="sel" type="number" id="ctSpecLo" min="0" max="300" step="1"></div><div class="field"><label for="ctSpecHi">Sollschicht bis (µm)</label><input class="sel" type="number" id="ctSpecHi" min="0" max="300" step="1"></div></div>
     <div class="row2">${rangeRow('ctSubT','Wanddicke des Teils',0.5,10,0.5,3,'mm')}${rangeRow('ctRa','Rauheit Ra',0.2,6,0.1,1,'µm')}</div>
     <div class="row2">${rangeRow('ctRad','Krümmungsradius',5,200,5,200,'mm')}${rangeRow('ctEdge','Randabstand',1,20,1,15,'mm')}</div>
     ${rangeRow('ctScat','Chargenstreuung Grundwerkstoff',0,15,1,0,'%')}
@@ -2098,7 +2417,8 @@ function ctHTML(){
     </div>
     <div class="field"><label for="ctStdKind">Kalibriernormale</label><select class="sel" id="ctStdKind">${selOpts([['foil','Kunststofffolien (nichtleitend)'],['same','beschichtete Normale (gleiche Schicht)']], 'foil')}</select></div>
     <div class="row2"><div class="field"><label for="ctStd1">Normal 1</label><select class="sel" id="ctStd1"></select></div><div class="field"><label for="ctStd2">Normal 2</label><select class="sel" id="ctStd2"></select></div></div>
-    <div class="btnrow"><button class="btn" id="btnCtNull">Null (blankes Teil)</button><button class="btn" id="btnCtF1">Normal 1 messen</button><button class="btn" id="btnCtF2">Normal 2 messen</button><button class="btn" id="btnCtClr">Kalibrierung löschen</button></div>
+    <div class="field"><label for="ctStd3">Weiteres Normal (zusätzlicher Kalibrierpunkt)</label><select class="sel" id="ctStd3"></select></div>
+    <div class="btnrow"><button class="btn" id="btnCtNull">Null (blankes Teil)</button><button class="btn" id="btnCtF1">Normal 1 messen</button><button class="btn" id="btnCtF2">Normal 2 messen</button><button class="btn" id="btnCtF3">Weiteres Normal messen</button><button class="btn" id="btnCtAll">Alle Normale messen</button><button class="btn" id="btnCtClr">Kalibrierung löschen</button></div>
     <div class="hint">Null auf dem <b>blanken Teil gleicher Charge</b>, dann Normale, die den Sollbereich einschließen. Für leitende Schichten nur Normale mit gleicher Schicht verwenden.</div>
   </div>
   <div class="panel gef-only" data-scn="coat">
@@ -2131,15 +2451,18 @@ function ctHTML(){
 }
 function ctSyncCoat(){
   const c = S.coat, co = CCOATS[c.coat], opts = co.std.map(v => [v, deC(v, v < 10 ? 1 : 0)+' µm']);
+  c.specLo = c.specHi = null; { const sp = ctSp(c); $('ctSpecLo').value = sp[0]; $('ctSpecHi').value = sp[1]; }
+  c.std3 = null; $('ctStd3').innerHTML = selOpts(opts, co.std[Math.floor(co.std.length/2)]);
   if(co.std.indexOf(c.std1) < 0) c.std1 = co.std[0]; if(co.std.indexOf(c.std2) < 0) c.std2 = co.std[Math.min(2, co.std.length-1)];
   $('ctStd1').innerHTML = selOpts(opts, c.std1); $('ctStd2').innerHTML = selOpts(opts, c.std2);
-  const mx = Math.max(co.spec[1]*3, 6), r = $('ctD'); r.max = Math.min(150, Math.round(mx)); if(c.d > +r.max) c.d = Math.round(+r.max/2*2)/2; r.value = c.d; $('v_ctD').textContent = deC(c.d,1)+' µm';
+  const mx = Math.max(ctSp(c)[1]*3, 6), r = $('ctD'); r.max = c.coat === 'lack' ? 300 : Math.min(150, Math.round(mx)); r.step = c.coat === 'lack' ? 5 : 0.5; r.min = c.coat === 'lack' ? 5 : 0.5; if(c.d < +r.min) c.d = +r.min; if(c.d > +r.max) c.d = Math.round(+r.max/2*2)/2; r.value = c.d; $('v_ctD').textContent = deC(c.d,1)+' µm';
   c.stdKind = co.kind === 'cond' ? 'same' : 'foil'; $('ctStdKind').value = c.stdKind; c.pts = []; c.nullOK = false; c.series = [];
 }
+function ctSpecSync(){ const sp = ctSp(S.coat); $('ctSpecLo').value = sp[0]; $('ctSpecHi').value = sp[1]; }
 function ctCalStd(which){
-  const c = S.coat, d = which === 1 ? c.std1 : c.std2, o = {d, Ra:0.2, R:999, edge:99, subT:99, scat:0};
+  const c = S.coat, d = which === 1 ? c.std1 : (which === 2 ? c.std2 : parseFloat($('ctStd3').value)), key = (which === 1 || which === 2) ? which : 'x'+d, o = {d, Ra:0.2, R:999, edge:99, subT:99, scat:0};
   const u = ctSignal(c, o, c.stdKind === 'foil' ? 'iso' : null);          // Folie wirkt immer als Abhebung
-  c.pts = c.pts.filter(p => p.which !== which).concat([{which, d, u}]); c.series = [];
+  c.pts = c.pts.filter(p => p.which !== key).concat([{which:key, d, u}]); c.series = [];
 }
 function initCoat(){
   const h = ctHTML(); $('moreSide').insertAdjacentHTML('beforeend', h.side); $('moreMain').insertAdjacentHTML('beforeend', h.main);
@@ -2154,18 +2477,22 @@ function initCoat(){
   $('ctStd1').addEventListener('change', () => { c.std1 = parseFloat($('ctStd1').value); c.pts = c.pts.filter(p => p.which !== 1); render(); });
   $('ctStd2').addEventListener('change', () => { c.std2 = parseFloat($('ctStd2').value); c.pts = c.pts.filter(p => p.which !== 2); render(); });
   $('btnCtNull').addEventListener('click', () => { c.nullOK = true; clr(); render(); });
+  $('btnCtF3').addEventListener('click', () => { ctCalStd(3); render(); });
+  $('btnCtAll').addEventListener('click', () => { const keep = $('ctStd3').value; CCOATS[c.coat].std.forEach(v => { $('ctStd3').value = v; ctCalStd(3); }); $('ctStd3').value = keep; render(); });
+  $('ctSpecLo').addEventListener('change', () => { const v = clamp(parseFloat($('ctSpecLo').value), 0, 300); c.specLo = isNaN(v) ? null : v; if(c.specHi != null && c.specLo > c.specHi) c.specHi = c.specLo; clr(); ctSpecSync(); render(); });
+  $('ctSpecHi').addEventListener('change', () => { const v = clamp(parseFloat($('ctSpecHi').value), 0, 300); c.specHi = isNaN(v) ? null : v; if(c.specLo != null && c.specHi < c.specLo) c.specLo = c.specHi; clr(); ctSpecSync(); render(); });
   $('btnCtF1').addEventListener('click', () => { ctCalStd(1); render(); }); $('btnCtF2').addEventListener('click', () => { ctCalStd(2); render(); });
   $('btnCtClr').addEventListener('click', () => { c.pts = []; c.nullOK = false; clr(); render(); });
   const add = n => { for(let i=0;i<n;i++) c.series.push(ctRead(c, ctNow(c), true)); if(c.series.length > 15) c.series = c.series.slice(-15); render(); };
   $('btnCtMeas').addEventListener('click', () => add(1)); $('btnCtSer').addEventListener('click', () => add(5)); $('btnCtClrS').addEventListener('click', () => { clr(); render(); });
 }
 function renderCoat(){
-  const c = S.coat, co = CCOATS[c.coat], sub = matById(c.sub), v = c.series, n = v.length, m = n ? v.reduce((a,b)=>a+b,0)/n : 0, sd = n > 1 ? Math.sqrt(v.reduce((a,b)=>a+(b-m)**2,0)/(n-1)) : 0;
-  const bad = ctValid(c), res = ctRes(c), dig = co.spec[1] < 5 ? 2 : (co.spec[1] < 30 ? 1 : 0);
+  const c = S.coat, co = CCOATS[c.coat], SP = ctSp(c), sub = matById(c.sub), v = c.series, n = v.length, m = n ? v.reduce((a,b)=>a+b,0)/n : 0, sd = n > 1 ? Math.sqrt(v.reduce((a,b)=>a+(b-m)**2,0)/(n-1)) : 0;
+  const bad = ctValid(c), res = ctRes(c), dig = SP[1] < 5 ? 2 : (SP[1] < 30 ? 1 : 0);
   const cal = c.pts.length ? 'Null'+(c.nullOK ? '' : ' fehlt')+' + '+c.pts.length+' Normal'+(c.pts.length > 1 ? 'e' : '') : (c.nullOK ? 'nur Null' : 'nicht kalibriert');
   $('ctSubInfo').textContent = sub.name+' · '+co.name+' · Sonde ∅ '+c.coil+' mm · '+c.f+' MHz · '+cal;
   $('ctDisp').innerHTML = `<div style="font-family:var(--mono);font-size:54px;font-weight:700;color:${n?'var(--cyan)':'var(--text-faint)'}">${n?deC(v[n-1],dig):'––'}</div><div style="font-family:var(--mono);font-size:16px;color:var(--text-dim)">µm<br>Schichtdicke</div>`
-    + `<div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);margin-left:auto">Soll ${co.spec[0]}–${co.spec[1]} µm · Auflösung ≈ ${deC(res,res<1?2:1)} µm${n>1?' · Mittel '+deC(m,dig)+' µm · s '+deC(sd,dig)+' · n '+n:''}</div>`;
+    + `<div style="font-family:var(--mono);font-size:12px;color:var(--text-dim);margin-left:auto">Soll ${SP[0]}–${SP[1]} µm · Auflösung ≈ ${deC(res,res<1?2:1)} µm${n>1?' · Mittel '+deC(m,dig)+' µm · s '+deC(sd,dig)+' · n '+n:''}</div>`;
   // Schnittbild
   const W = 900, H = 260, cx = 450, y0 = 160, scl = Math.max(0.35, Math.min(2.2, 40/Math.max(c.d, 2))), th = Math.max(3, c.d*scl), subH = 70; let s = '';
   const coatCol = ({phos:'#6f6a60', brun:'#15181c', dlc:'#050608', lack:'#c0553a', zn:'#9fb4c8', zni:'#7f94a8', cr:'#d9e2ec', elox:'#b08fd0'})[c.coat];
@@ -2173,13 +2500,13 @@ function renderCoat(){
   s += `<rect x="150" y="${(y0-th).toFixed(1)}" width="600" height="${th.toFixed(1)}" fill="${coatCol}" fill-opacity=".9" stroke="var(--text-faint)" stroke-width="1"/>` + txt(756, y0-th/2+4, co.name.split(' (')[0]+' '+deC(c.d,1)+' µm', {size:11, fill:'var(--amber)'});
   const lift = y0-th-Math.max(3, th*0.15);
   s += `<rect x="${cx-c.coil*7}" y="${(lift-46).toFixed(1)}" width="${c.coil*14}" height="40" rx="5" fill="var(--panel-2)" stroke="var(--cyan)" stroke-width="2"/><line x1="${cx}" y1="${(lift-6).toFixed(1)}" x2="${cx}" y2="${lift.toFixed(1)}" stroke="var(--cyan)" stroke-width="2"/>` + txt(cx+c.coil*7+10, lift-24, 'Sonde ∅ '+c.coil+' mm · '+c.f+' MHz', {size:11, fill:'var(--cyan)'});
-  c.pts.forEach((p,i) => { const t2 = Math.max(3, p.d*scl), x = 200+i*110; s += `<rect x="${x}" y="${(y0-t2).toFixed(1)}" width="70" height="${t2.toFixed(1)}" fill="var(--green)" fill-opacity=".6" stroke="var(--green)"/>` + txt(x+35, y0-t2-6, (c.stdKind === 'foil' ? 'Folie ' : 'Normal ')+deC(p.d,1)+' µm', {anchor:'middle', size:9.5, fill:'var(--green)'}); });
+  c.pts.forEach((p,i) => { const t2 = Math.max(3, p.d*scl), x = 60+i*Math.min(110, 760/Math.max(1,c.pts.length)), bw = Math.min(70, 0.7*Math.min(110, 760/Math.max(1,c.pts.length))); s += `<rect x="${x}" y="${(y0-t2).toFixed(1)}" width="${bw}" height="${t2.toFixed(1)}" fill="var(--green)" fill-opacity=".6" stroke="var(--green)"/>` + txt(x+bw/2, y0-t2-6, (c.pts.length > 6 ? '' : (c.stdKind === 'foil' ? 'Folie ' : 'Normal '))+deC(p.d,p.d < 10 ? 1 : 0)+(c.pts.length > 6 ? '' : ' µm'), {anchor:'middle', size:c.pts.length > 6 ? 8.5 : 9.5, fill:'var(--green)'}); });
   s += txt(W/2, H-10, co.kind === 'iso' ? 'Die Sonde wird um die Schichtdicke vom Lagerstahl abgehoben – das Signal sinkt exponentiell' : 'Die leitende Schicht schirmt das magnetische Substrat ab – Phase und Amplitude ändern sich mit der Dicke', {anchor:'middle', size:10, fill:'var(--text-faint)'});
   svgE('ctSection', s);
   // Kennlinie
-  const L = 46, R2 = 14, T = 16, B = 34, CW = 620, CH = 360, dmax = Math.max(co.spec[1]*3.2, 6), X = d => L+d/dmax*(CW-L-R2), Y = u => CH-B-clamp((u-(co.kind === 'iso' ? 0.55 : 0.2))/(1.08-(co.kind === 'iso' ? 0.55 : 0.2)),0,1)*(CH-T-B);
+  const L = 46, R2 = 14, T = 16, B = 34, CW = 620, CH = 360, dmax = Math.max(SP[1]*3.2, 6, c.d*1.08, ...c.pts.map(q => q.d*1.08)), X = d => L+d/dmax*(CW-L-R2), Y = u => CH-B-clamp((u-(co.kind === 'iso' ? 0.55 : 0.2))/(1.08-(co.kind === 'iso' ? 0.55 : 0.2)),0,1)*(CH-T-B);
   s = `<rect x="${L}" y="${T}" width="${CW-L-R2}" height="${CH-T-B}" fill="var(--bg-2)" stroke="var(--border)"/>`;
-  s += `<rect x="${X(co.spec[0]).toFixed(1)}" y="${T}" width="${(X(co.spec[1])-X(co.spec[0])).toFixed(1)}" height="${CH-T-B}" fill="var(--green)" fill-opacity=".10"/>` + txt(X((co.spec[0]+co.spec[1])/2), T+14, 'Soll', {anchor:'middle', size:9.5, fill:'var(--green)'});
+  s += `<rect x="${X(SP[0]).toFixed(1)}" y="${T}" width="${(X(SP[1])-X(SP[0])).toFixed(1)}" height="${CH-T-B}" fill="var(--green)" fill-opacity=".10"/>` + txt(X((SP[0]+SP[1])/2), T+14, 'Soll', {anchor:'middle', size:9.5, fill:'var(--green)'});
   const curve = (fn, col, dash) => { const p = []; for(let i=0;i<=80;i++){ const d = dmax*i/80; p.push(X(d).toFixed(1)+','+Y(fn(d)).toFixed(1)); } return `<polyline fill="none" stroke="${col}" stroke-width="2.2" ${dash?'stroke-dasharray="6,4"':''} points="${p.join(' ')}"/>`; };
   s += curve(d => ctSignal(c, {d, Ra:c.Ra, R:c.R, edge:c.edge, subT:c.subT, scat:c.scat}), 'var(--amber)', false);
   { const pts = [[0,1]].concat(c.pts.map(p => [p.d, p.u])).sort((a,b) => a[0]-b[0]); s += c.pts.length ? curve(d => { let i = 0; while(i < pts.length-2 && d > pts[i+1][0]) i++; const a = pts[i], b = pts[i+1]; return a[1]+(d-a[0])*(b[1]-a[1])/(b[0]-a[0]); }, 'var(--cyan)', true) : curve(d => Math.exp(-d/(ctLam(c)*1.12)), 'var(--cyan)', true); }
@@ -2191,22 +2518,22 @@ function renderCoat(){
   svgE('ctCurve', s);
   $('ctCurveInfo').textContent = co.kind === 'iso' ? 'Abhebeverfahren · Reichweite λ ≈ '+deC(ctLam(c),0)+' µm · Auflösung ≈ '+deC(res,res<1?2:1)+' µm' : 'Phasenverfahren · δ in der Schicht ≈ '+deC(ctDc(c, co),0)+' µm · Auflösung ≈ '+deC(res,res<1?2:1)+' µm';
   // Faktoren, Tabelle, Urteil
-  const eff = ctEffects(c), tot = eff.reduce((a,x) => a + x.d, 0), tl = Math.max(0.4, 0.04*co.spec[1]);
+  const eff = ctEffects(c), tot = eff.reduce((a,x) => a + x.d, 0), tl = Math.max(0.4, 0.04*SP[1]);
   $('ctFactors').innerHTML = '<div class="factors">'+eff.map(x => { const ab = Math.abs(x.d), cls = ab < tl*0.5 ? 'idle' : (ab < tl*2 ? '' : 'warn'); return `<div class="frow ${cls}"><div class="dot"></div><div class="nm">${x.label}<small>${esc(x.note)}</small></div><div class="vv">${ab<0.05?'±0':(x.d>0?'+':'')+deC(x.d,ab<10?2:1)} µm</div></div>`; }).join('')
     + `<div class="frow ${Math.abs(tot)<tl*2?'':'warn'}" style="border-top:2px solid var(--border)"><div class="dot"></div><div class="nm"><b>Erwartete Gesamtabweichung</b><small>systematisch, ohne Streuung</small></div><div class="vv">${tot>0?'+':''}${deC(tot,2)} µm</div></div></div>`;
   $('ctTable').innerHTML = n ? '<table class="res"><thead><tr><th>Nr</th><th>Dicke µm</th></tr></thead><tbody>'+v.map((x,i) => `<tr><td>${i+1}</td><td>${deC(x,dig)}</td></tr>`).join('')+'</tbody></table>' : '<div class="hint">Noch keine Messung.</div>';
   const vd = $('ctVerdict'); let h, cls = 'verdict'; const worst = eff.slice().sort((a,b) => Math.abs(b.d)-Math.abs(a.d))[0];
   if(bad){ cls += ' bad'; h = '<b>Verfahren/Schicht passt nicht.</b> '+bad; }
-  else if(!n){ h = '<b>Noch keine Messung.</b> '+(c.nullOK ? 'Null gesetzt' : 'Zuerst am blanken Teil auf Null setzen')+(c.pts.length ? ' und mit '+c.pts.length+' Normal'+(c.pts.length > 1 ? 'en' : '')+' kalibriert.' : ' und mit Normalen kalibrieren, die den Sollbereich '+co.spec[0]+'–'+co.spec[1]+' µm einschließen.')+(c.d < res*3 ? ' <b>Die Schicht liegt nahe an der Auflösung ('+deC(res,res<1?2:1)+' µm) – kleinere Spule und höhere Frequenz wählen.</b>' : ''); }
+  else if(!n){ h = '<b>Noch keine Messung.</b> '+(c.nullOK ? 'Null gesetzt' : 'Zuerst am blanken Teil auf Null setzen')+(c.pts.length ? ' und mit '+c.pts.length+' Normal'+(c.pts.length > 1 ? 'en' : '')+' kalibriert.' : ' und mit Normalen kalibrieren, die den Sollbereich '+SP[0]+'–'+SP[1]+' µm einschließen.')+(c.d < res*3 ? ' <b>Die Schicht liegt nahe an der Auflösung ('+deC(res,res<1?2:1)+' µm) – kleinere Spule und höhere Frequenz wählen.</b>' : ''); }
   else {
-    const err = m-c.d, inSpec = m >= co.spec[0] && m <= co.spec[1];
-    h = `<b>Mittelwert ${deC(m,dig)} µm</b> (wahr ${deC(c.d,dig)} µm, Abweichung ${err>0?'+':''}${deC(err,2)} µm) – ${inSpec ? 'im Sollbereich' : '<b>außerhalb</b> des Sollbereichs'} ${co.spec[0]}–${co.spec[1]} µm. `;
+    const err = m-c.d, inSpec = m >= SP[0] && m <= SP[1];
+    h = `<b>Mittelwert ${deC(m,dig)} µm</b> (wahr ${deC(c.d,dig)} µm, Abweichung ${err>0?'+':''}${deC(err,2)} µm) – ${inSpec ? 'im Sollbereich' : '<b>außerhalb</b> des Sollbereichs'} ${SP[0]}–${SP[1]} µm. `;
     if(Math.abs(worst.d) >= tl*2) h += `Größter Einfluss: <b>${worst.label}</b> (${worst.d>0?'+':''}${deC(worst.d,2)} µm). `;
     if(!c.nullOK) h += '<b>Kein Nullabgleich durchgeführt.</b> ';
     if(c.d < res*3) h += `<b>Schichtdicke nahe der Auflösung.</b> `;
-    const inTrue = c.d >= co.spec[0] && c.d <= co.spec[1];
+    const inTrue = c.d >= SP[0] && c.d <= SP[1];
     if(inSpec !== inTrue) h += `<b>Fehlentscheidung:</b> Das Teil ist ${inTrue ? 'i. O., wird aber verworfen' : 'n. i. O., würde aber freigegeben'}. `;
-    cls += Math.abs(err) <= Math.max(2*res, 0.06*co.spec[1]) && inSpec === inTrue ? ' ok' : ' bad';
+    cls += Math.abs(err) <= Math.max(2*res, 0.06*SP[1]) && inSpec === inTrue ? ' ok' : ' bad';
   }
   vd.className = cls; vd.innerHTML = h;
   $('bProbe').textContent = co.kind === 'iso' ? 'Abhebesonde' : 'Phasensonde'; $('bProbe').className = 'badge acc'; $('bMat').textContent = sub.short || sub.name.split(' ')[0];
@@ -2258,7 +2585,7 @@ function holeStats(C, dir){
   });
 }
 function holeOverlay(c2, sx, sy, dpr){
-  c2.font = (10*dpr)+'px JetBrains Mono, monospace';
+  c2.font = (13*dpr)+'px JetBrains Mono, monospace';
   HOLE_CR.forEach((c,i) => {
     if(!S.holeOn[i]) return;
     c2.beginPath(); c2.moveTo(holeX(c)*sx, (c.y-c.len/2)*sy); c2.lineTo(holeX(c)*sx, (c.y+c.len/2)*sy); c2.stroke();
@@ -2277,9 +2604,10 @@ function holeSection(){
   s += `<path d="M${cx+(R-24)*Math.cos(pa-0.5)},${cy+(R-24)*Math.sin(pa-0.5)} A${R-24},${R-24} 0 0 1 ${cx+(R-24)*Math.cos(pa)},${cy+(R-24)*Math.sin(pa)}" fill="none" stroke="var(--cyan)" stroke-width="2.2"/>` + txt(cx, cy-R+34, 'Drehrichtung ↻', {anchor:'middle', size:9.5, fill:'var(--cyan)'});
   s += `<line x1="${cx}" y1="${cy}" x2="${(cx+(R-4)*Math.cos(pa)).toFixed(1)}" y2="${(cy+(R-4)*Math.sin(pa)).toFixed(1)}" stroke="var(--amber)" stroke-width="3"/><circle cx="${(cx+(R-4)*Math.cos(pa)).toFixed(1)}" cy="${(cy+(R-4)*Math.sin(pa)).toFixed(1)}" r="${Math.max(4, S.coilDia*2.2).toFixed(1)}" fill="var(--amber)" fill-opacity=".5" stroke="var(--amber)" stroke-width="2"/>`;
   s += `<circle cx="${cx}" cy="${cy}" r="5" fill="var(--amber)"/>` + txt(cx, cy+22, 'rotierende Sonde', {anchor:'middle', size:10, fill:'var(--amber)'});
-  s += txt(430, 60, 'Bolzenloch ∅ '+S.holeD+' mm', {size:12, fill:'var(--text)'}) + txt(430, 82, 'Eckrisse am Lochrand, axial gerichtet', {size:10, fill:'var(--text-dim)'});
-  s += txt(430, 110, 'Die Sonde läuft schraubenförmig durch die Bohrung:', {size:10, fill:'var(--text-faint)'}) + txt(430, 126, 'Umfang = x, Bohrungstiefe = y im C-Bild.', {size:10, fill:'var(--text-faint)'});
-  s += txt(430, 160, 'Ziel: auch den kleinsten Riss (0,5 mm)', {size:10, fill:'var(--text-faint)'}) + txt(430, 176, 'mit kleiner Spule sicher anzeigen.', {size:10, fill:'var(--text-faint)'});
+  { const X = 440, T = (y, t, o) => txt(X, y, t, Object.assign({size:10, fill:'var(--text-faint)'}, o||{}));
+    s += T(54, 'Bolzenloch ∅ '+S.holeD+' mm', {size:12, fill:'var(--text)'}) + T(72, 'Eckrisse am Lochrand,', {fill:'var(--text-dim)'}) + T(86, 'axial gerichtet', {fill:'var(--text-dim)'});
+    s += T(112, 'Die Sonde läuft schrauben-') + T(126, 'förmig durch die Bohrung:') + T(140, 'Umfang = x, Tiefe = y');
+    s += T(166, 'Ziel: auch den kleinsten Riss') + T(180, '(0,5 mm) mit kleiner Spule') + T(194, 'sicher anzeigen.'); }
   return s;
 }
 function holeCards(C, dir){
@@ -2878,14 +3206,16 @@ const gHidden = () => S.gef.riddle && !S.gef.revealed;
 
 /* ══════════ Gefügebild ══════════ */
 function hash2(a, b){ let h = (a*374761393 + b*668265263) | 0; h = (h ^ (h >>> 13))*1274126177 | 0; return ((h ^ (h >>> 16)) >>> 0)/4294967296; }
-function paintStruct(g2, x0, y0, w, h, st, seed){
-  const mp = st.mp, off = document.createElement('canvas'); off.width = w; off.height = h;
-  const o = off.getContext('2d'), img = o.createImageData(w, h), px = img.data;
+function paintStruct(g2, x0, y0, w, h, st, seed, q){
+  q = q || 1; const PW = Math.round(w*q), PH = Math.round(h*q);
+  const mp = st.mp, off = document.createElement('canvas'); off.width = PW; off.height = PH;
+  const o = off.getContext('2d'), img = o.createImageData(PW, PH), px = img.data;
   const rg = rngSeed(seed), seeds = [];
   const NS = mp.k === 'glob' ? 14 : 18;
   for(let i=0;i<NS;i++) seeds.push({x:rg()*w, y:rg()*h, a:rg()*Math.PI});
   const th = (mp.k === 'perl') ? null : null;
-  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+  for(let yy=0;yy<PH;yy++) for(let xx=0;xx<PW;xx++){
+    const x = xx/q, y = yy/q;
     let d1 = 1e9, d2 = 1e9, i1 = 0;
     for(let i=0;i<NS;i++){ const dx = x-seeds[i].x, dy = y-seeds[i].y, d = dx*dx+dy*dy; if(d < d1){ d2 = d1; d1 = d; i1 = i; } else if(d < d2) d2 = d; }
     const gb = Math.sqrt(d2)-Math.sqrt(d1), sd = seeds[i1], tone = 0.04*(hash2(i1, 7)-0.5);
@@ -2910,10 +3240,10 @@ function paintStruct(g2, x0, y0, w, h, st, seed){
     } else if(mp.k === 'glob'){
       v = 0.90+tone; if(gb < 1.3) v -= 0.38;
     }
-    const k = (y*w+x)*4; v = clamp(v, 0, 1);
+    const k = (yy*PW+xx)*4; v = clamp(v, 0, 1);
     px[k] = 252*v; px[k+1] = 245*v; px[k+2] = 228*v; px[k+3] = 255;
   }
-  o.putImageData(img, 0, 0);
+  o.putImageData(img, 0, 0); o.setTransform(q,0,0,q,0,0);
   // Karbidpunkte, Restaustenit, kugeliger Zementit
   const r2 = rngSeed(seed+11);
   if(mp.k === 'glob'){
@@ -2930,21 +3260,28 @@ function paintStruct(g2, x0, y0, w, h, st, seed){
 }
 let microKey = '';
 function drawMicro(){
-  const cv = $('cvMicro'), g2 = cv.getContext('2d'), P = (isLightNow() ? {bg:'#e6ebf0', t:'#1d2f3f'} : {bg:'#0c141b', t:'#d5dde3'});
+  /* Prüfteil und Referenz untereinander, volle Kartenbreite, hochaufgelöst (Auflösung folgt Anzeigebreite und Bildschirmdichte) */
+  const cv = $('cvMicro'), P = (isLightNow() ? {bg:'#e6ebf0', t:'#1d2f3f'} : {bg:'#0c141b', t:'#d5dde3'});
   const view = S.gef.view, st = htState(), ref = gsById(view), hid = gHidden();
-  const key = [S.gef.cool, S.gef.ta, S.gef.tt, view, hid, isLightNow()].join('|');
+  cv.style.width = '100%'; cv.style.maxWidth = '100%';
+  const cssW = Math.max(320, Math.round(cv.getBoundingClientRect().width || (cv.parentNode && cv.parentNode.clientWidth) || 640));
+  const sc = Math.max(2, Math.ceil(window.devicePixelRatio || 1));
+  const key = [S.gef.cool, S.gef.ta, S.gef.tt, view, hid, isLightNow(), cssW, sc].join('|');
   if(key === microKey) return; microKey = key;
-  const dpr = Math.max(1, window.devicePixelRatio || 1); cv.width = 900*dpr; cv.height = 330*dpr; g2.setTransform(dpr,0,0,dpr,0,0);
-  g2.fillStyle = P.bg; g2.fillRect(0,0,900,330);
-  const w = 430, h = 270, y0 = 40;
-  if(hid){ g2.fillStyle = '#d8d3c6'; g2.fillRect(15, y0, w, h); g2.fillStyle = '#6b6354'; g2.font = 'bold 46px JetBrains Mono, monospace'; g2.textAlign = 'center'; g2.fillText('?', 15+w/2, y0+h/2+16); g2.font = '12px JetBrains Mono, monospace'; g2.fillText('Gefüge unbekannt – aus dem Wirbelstromsignal bestimmen', 15+w/2, y0+h/2+44); g2.textAlign = 'left'; }
-  else paintStruct(g2, 15, y0, w, h, st, 101);
-  paintStruct(g2, 455, y0, w, h, ref, 202);
-  g2.fillStyle = P.t; g2.font = 'bold 12px JetBrains Mono, monospace';
-  g2.fillText('Prüfteil'+(hid ? '' : ': '+st.name), 15, 24); g2.fillText('Referenz: '+ref.name, 455, 24);
-  g2.fillStyle = 'rgba(20,16,12,.85)'; [[15],[455]].forEach(q => { g2.fillRect(q[0]+w-90, y0+h-22, 70, 3); g2.font = '10px JetBrains Mono, monospace'; g2.fillText('20 µm', q[0]+w-88, y0+h-28); });
-  g2.fillStyle = P.t; g2.font = '10px JetBrains Mono, monospace'; g2.fillText('Ätzung Nital 3 % · 500× (schematisch)', 15, 323);
+  const w = cssW-30, h = Math.round(clamp(w/1.55, 150, 380)), gap = 34, HT = 14+h+gap+16+h+26;
+  cv.width = cssW*sc; cv.height = HT*sc; cv.style.height = HT+'px';
+  const g2 = cv.getContext('2d'); g2.setTransform(sc,0,0,sc,0,0);
+  g2.fillStyle = P.bg; g2.fillRect(0,0,cssW,HT);
+  const x0 = 15, y1 = 24, y2 = y1+h+gap;
+  g2.fillStyle = P.t; g2.font = 'bold 13px JetBrains Mono, monospace'; g2.textAlign = 'left';
+  g2.fillText('Prüfteil'+(hid ? '' : ': '+st.name), x0, y1-8); g2.fillText('Referenz: '+ref.name, x0, y2-8);
+  if(hid){ g2.fillStyle = '#d8d3c6'; g2.fillRect(x0, y1, w, h); g2.fillStyle = '#6b6354'; g2.font = 'bold 46px JetBrains Mono, monospace'; g2.textAlign = 'center'; g2.fillText('?', x0+w/2, y1+h/2+16); g2.font = '12px JetBrains Mono, monospace'; g2.fillText('Gefüge unbekannt – aus dem Wirbelstromsignal bestimmen', x0+w/2, y1+h/2+40); g2.textAlign = 'left'; }
+  else paintStruct(g2, x0, y1, w, h, st, 101, sc);
+  paintStruct(g2, x0, y2, w, h, ref, 202, sc);
+  g2.fillStyle = 'rgba(20,16,12,.85)'; [y1, y2].forEach(yy => { g2.fillRect(x0+w-90, yy+h-22, 70, 3); g2.font = '10px JetBrains Mono, monospace'; g2.fillText('20 µm', x0+w-88, yy+h-28); });
+  g2.fillStyle = P.t; g2.font = '10px JetBrains Mono, monospace'; g2.fillText('Ätzung Nital 3 % · 500× (schematisch)', x0, HT-8);
 }
+(function(){ try{ let t = null; new ResizeObserver(() => { clearTimeout(t); t = setTimeout(() => { try{ if(typeof drawMicro === 'function') drawMicro(); }catch(e){} }, 120); }).observe($('cvMicro').parentNode); }catch(e){} })();
 
 /* ══════════ Landkarte, Frequenzgang, Bestimmung ══════════ */
 function gefAnalyse(){
@@ -2983,7 +3320,7 @@ function drawGefMap(A){
   s += `<circle cx="${X(A.p.x).toFixed(1)}" cy="${Y(A.p.y).toFixed(1)}" r="8" fill="none" stroke="var(--amber)" stroke-width="2"/>`;
   s += txt(W/2, H-10, 'Realteil Zn →', {anchor:'middle', size:9.5, fill:'var(--text-faint)'}) + txt(12, H/2, 'Im', {size:9.5, fill:'var(--text-faint)'});
   s += txt(L+6, T+14, 'gestrichelt: Anlassreihe (Martensit → Sorbit) und Perlitreihe', {size:9.5, fill:'var(--text-faint)'});
-  el.innerHTML = s;
+  patchSvg(el, s);
   $('gMapInfo').textContent = 'f = '+fmtFreq(A.f)+' · Normierte Frequenz f/f_g = '+deC(A.f/limitFreq(S.partDia/2, A.st.sigma, A.st.mu), 1);
 }
 function drawGefFreq(A){
@@ -3002,7 +3339,7 @@ function drawGefFreq(A){
   s += `<line x1="${X(A.f).toFixed(1)}" y1="${T}" x2="${X(A.f).toFixed(1)}" y2="${H-B}" stroke="var(--cyan)" stroke-width="1.6"/>`;
   if(ds[bi] > 1.2) s += `<circle cx="${X(fs[bi]).toFixed(1)}" cy="${Y(ds[bi]).toFixed(1)}" r="4.5" fill="var(--green)"/>` + txt(X(fs[bi]), Y(ds[bi])-9, 'beste Trennung '+fmtFreqShort(fs[bi]), {anchor:'middle', size:9.5, fill:'var(--green)'});
   s += txt(14, H/2, 'Abstand', {size:9.5, fill:'var(--text-faint)'}) + txt((L+W-R)/2, H-4, 'Frequenz', {anchor:'middle', size:9.5, fill:'var(--text-faint)'});
-  el.innerHTML = s;
+  patchSvg(el, s);
   $('gFreqInfo').textContent = ds[bi] > 1.2 ? 'Abstand des Prüfteils vom Soll-Toleranzfeld · beste Frequenz ≈ '+fmtFreqShort(fs[bi]) : 'Das Prüfteil liegt bei jeder Frequenz im Toleranzfeld des Solls – Gefüge entspricht dem Soll.';
 }
 function renderGef(){
@@ -3010,14 +3347,14 @@ function renderGef(){
   const ptop = top.p, psec = (sec && sec !== top) ? sec.p : 0;
   drawMicro(); drawGefMap(A); drawGefFreq(A);
   // Kennwerte
-  $('vGTa').textContent = S.gef.ta+' °C'; $('vGTt').textContent = S.gef.tt+' °C'; $('vGFreq').textContent = fmtFreq(A.f); $('vGDia').textContent = S.partDia+' mm'; $('vGFill').textContent = deC(S.fill,2);
-  $('gTt').disabled = (S.gef.cool === 'luft' || S.gef.cool === 'ofen');
-  $('gkS').textContent = hid ? '? (Rätsel)' : st.name;
+  $('vGTa').textContent = hid ? '?' : S.gef.ta+' °C'; $('vGTt').textContent = hid ? '?' : S.gef.tt+' °C'; $('gCool').disabled = hid; $('gTa').disabled = hid; $('vGFreq').textContent = fmtFreq(A.f); $('vGDia').textContent = S.partDia+' mm'; $('vGFill').textContent = deC(S.fill,2);
+  $('gTt').disabled = hid || (S.gef.cool === 'luft' || S.gef.cool === 'ofen');
+  $('gkS').textContent = hid ? '? (verdeckt)' : st.name;
   $('gkH').textContent = hid ? '?' : '≈ '+Math.round(st.hv)+' HV';
   $('gkSig').textContent = hid ? '?' : deC(st.sigma,2)+' MS/m';
   $('gkMu').textContent = hid ? '?' : deC(st.mu,0);
-  $('btnGReveal').disabled = !(S.gef.riddle && !S.gef.revealed);
-  $('gMicroInfo').textContent = hid ? 'Rätselteil – Gefüge verdeckt' : st.name;
+  $('gDecide').style.display = hid ? '' : 'none';
+  $('gMicroInfo').textContent = hid ? 'Teil aus dem Los – Gefüge verdeckt' : st.name;
   $('gConstit').innerHTML = hid ? 'Gefügeanteile des Prüfteils unbekannt – bestimmen Sie das Gefüge über Landkarte und Frequenzgang.'
     : '<b>Prüfteil:</b> '+st.comp.map(c => c[0]+' '+c[1]+' %').join(' · ')+' &nbsp;|&nbsp; <b>Referenz:</b> '+gsById(S.gef.view).comp.map(c => c[0]+' '+c[1]+' %').join(' · ');
   // Karten
@@ -3025,21 +3362,23 @@ function renderGef(){
   $('statsGef').innerHTML = [
     ['Prüffrequenz', fmtFreq(A.f), ''], ['Eindringtiefe δ', deC(skinDepth(A.f, st.sigma, st.mu),2)+' <small>mm</small>', ''],
     ['Bestimmtes Gefüge', top.r.name.split(',')[0].split(' (')[0], danger ? 'bad' : 'ok'], ['Sicherheit', conf+' <small>%</small>', conf >= 80 ? 'ok' : 'bad'],
-    ['Härte (geschätzt)', '≈ '+Math.round(A.hvEst/10)*10+' <small>HV</small>', ''], ['Soll-Prüfung', ok ? 'i.O.' : 'n.i.O.', ok ? 'ok' : 'bad'],
+    ['Härte (geschätzt)', '≈ '+Math.round(A.hvEst/10)*10+' <small>HV</small>', ''], ['Soll-Prüfung', hid ? '? <small>Sie entscheiden</small>' : (ok ? 'i.O.' : 'n.i.O.'), hid ? '' : (ok ? 'ok' : 'bad')],
   ].map(c => `<div class="stat ${c[2]}"><div class="k">${c[0]}</div><div class="v">${c[1]}</div></div>`).join('');
   let h = `<b>${esc(top.r.name)}</b> ist das wahrscheinlichste Gefüge (${conf} %). `;
   h += (danger && sec) ? `<b>Verwechslungsgefahr mit „${esc(sec.r.name.split(',')[0])}“ (${Math.round(psec*100)} %)</b> – eine andere Frequenz wählen (beste Trennung im Frequenzgang). ` : (conf >= 85 ? `Das Ergebnis ist eindeutig. ` : `Das Ergebnis ist nur wahrscheinlich – die Messunsicherheit kann ähnliche Gefüge (z. B. Martensit abgeschreckt/angelassen) vertauschen; Frequenz variieren und Gefügebild vergleichen. `);
-  h += ok ? `Das Prüfteil liegt im Toleranzfeld des Solls (${esc(soll.name)}).` : `Das Prüfteil liegt <b>außerhalb</b> des Toleranzfelds des Solls (${esc(soll.name)}) – Wärmebehandlung bzw. Gefüge prüfen.`;
+  if(hid) h += 'Liegt der Messpunkt im Soll-Toleranzfeld (grüne Ellipse in der Landkarte)? Dann <b>i. O.</b>, sonst <b>n. i. O.</b>'; else h += ok ? `Das Prüfteil liegt im Toleranzfeld des Solls (${esc(soll.name)}).` : `Das Prüfteil liegt <b>außerhalb</b> des Toleranzfelds des Solls (${esc(soll.name)}) – Wärmebehandlung bzw. Gefüge prüfen.`;
   { const tid = st.id.split(':')[1]; if(!hid && tid && !gActive(tid)) h += ` <b>Das tatsächliche Gefüge (${esc(st.name)}) ist als Kandidat deaktiviert</b> – das Ergebnis kann nur ein aktiver Zustand sein. `; }
   if(!hid) h += (top.r.id === (st.id.split(':')[1]||st.id)) ? '' : ` <i>(Das Prüfteil ist tatsächlich: ${esc(st.name)}.)</i>`;
-  const v = $('verdictGef'); v.className = 'verdict '+(ok && !danger ? 'ok' : (ok ? '' : 'bad')); v.innerHTML = h;
+  if(S.gef.riddle && S.gef.decision){ const truth = Math.abs(st.hv-soll.hv) <= 40, right = (S.gef.decision === 'io') === truth;
+    h = `<b>Ihre Entscheidung „${S.gef.decision === 'io' ? 'i. O.' : 'n. i. O.'}“ ist ${right ? 'richtig' : 'falsch'}.</b> Das Teil war <b>${truth ? 'i. O.' : 'n. i. O.'}</b> (${esc(st.name)}, ≈ ${Math.round(st.hv)} HV, Soll ${soll.hv} HV). ` + h; }
+  const v = $('verdictGef'); v.className = 'verdict '+(hid ? '' : (ok && !danger ? 'ok' : (ok ? '' : 'bad'))); v.innerHTML = h;
   $('gefCand').innerHTML = '<table class="res"><thead><tr><th>Kandidat</th><th>Härte</th><th>Abstand</th><th>Wahrscheinlichkeit</th></tr></thead><tbody>'+A.rank.slice(0,4).map((x,i) => `<tr class="${i===0?'cur':''}"><td>${esc(x.r.name)}</td><td>${x.r.hv} HV</td><td>${deC(x.dc,2)}</td><td>${Math.round(x.p*100)} %</td></tr>`).join('')+'</tbody></table>';
   // Atlas
   $('gefAtlas').innerHTML = '<table class="res"><thead><tr><th>Gefüge</th><th>Härte HV</th><th>Rm [MPa]</th><th>σ [MS/m]</th><th>µᵣ</th><th>aktiv</th></tr></thead><tbody>'+GS.map(r => `<tr class="${r.id===S.gef.view?'cur':''}" data-g="${r.id}" style="cursor:pointer;${gActive(r.id)?'':'opacity:.45'}"><td>${esc(r.name)}${r.id===S.gef.soll?' <b style="color:var(--green)">(Soll)</b>':''}</td><td>${r.hv}</td><td>${r.rm}</td><td>${deC(r.sigma,2)}</td><td>${r.mu}</td><td>${gActive(r.id)?'✓':'–'}</td></tr>`).join('')+'</tbody></table>';
   const vr = gsById(S.gef.view);
   $('gefInfo').innerHTML = `<b>${esc(vr.name)}:</b> ${esc(vr.text)}<br><b>Verwendung:</b> ${esc(vr.use)}<br><b>Wirbelstrom:</b> ${esc(vr.ect)}<br><b>Typische Fehler:</b> ${esc(vr.defect)}`;
   $('bProbe').textContent = 'Durchlaufspule'; $('bProbe').className = 'badge acc';
-  $('bMat').textContent = hid ? 'Rätselteil' : 'Gefüge: '+st.name.split(',')[0];
+  $('bMat').textContent = hid ? 'Teil aus dem Los' : 'Gefüge: '+st.name.split(',')[0];
 }
 const GS_COL = {mart:'#e0453a', mart200:'#f08a3c', trost:'#e9c23a', sorbit:'#8fd14f', bain:'#3fb6a8', fperlit:'#4a90e2', gperlit:'#8a6fe0', gl:'#c06fcb', rest:'#9aa6b1'};
 function gStatesUI(){
@@ -3065,11 +3404,13 @@ function initGef(){
   $('gDia').addEventListener('input', () => { S.partDia = parseFloat($('gDia').value); render(); });
   $('gFill').addEventListener('input', () => { S.fill = parseFloat($('gFill').value); render(); });
   $('btnGRiddle').addEventListener('click', () => {
-    const cools = ['wasser','oel','luft','ofen','wasser','oel','wasser'], rr = Math.random;
-    S.gef.cool = cools[Math.floor(rr()*cools.length)]; S.gef.ta = 800+10*Math.floor(rr()*14); S.gef.tt = 20+10*Math.floor(rr()*69);
-    S.gef.riddle = true; S.gef.revealed = false; $('gCool').value = S.gef.cool; $('gTa').value = S.gef.ta; $('gTt').value = S.gef.tt; microKey = ''; render();
+    const rr = Math.random;
+    if(rr() < 0.4){ S.gef.cool = rr() < 0.7 ? 'wasser' : 'oel'; S.gef.ta = 830+10*Math.floor(rr()*3); S.gef.tt = 190+10*Math.floor(rr()*3); }   // Gutteil
+    else { const cools = ['wasser','oel','luft','ofen','wasser','oel','wasser']; S.gef.cool = cools[Math.floor(rr()*cools.length)]; S.gef.ta = 800+10*Math.floor(rr()*14); S.gef.tt = 20+10*Math.floor(rr()*69); }
+    S.gef.decision = null; S.gef.riddle = true; S.gef.revealed = false; $('gCool').value = S.gef.cool; $('gTa').value = S.gef.ta; $('gTt').value = S.gef.tt; microKey = ''; render();
   });
-  $('btnGReveal').addEventListener('click', () => { S.gef.revealed = true; microKey = ''; render(); });
+  const gDecide = d => { S.gef.decision = d; S.gef.revealed = true; microKey = ''; render(); };
+  $('btnGOk').addEventListener('click', () => gDecide('io')); $('btnGNok').addEventListener('click', () => gDecide('nio'));
   $('gefAtlas').addEventListener('click', e => { const tr = e.target.closest('tr[data-g]'); if(!tr) return; S.gef.view = tr.dataset.g; microKey = ''; render(); });
 }
 
@@ -3352,7 +3693,7 @@ function drawSortView(){
 
   fs.forEach((f, k) => {
     const ox = (k%2)*cellW, oy = Math.floor(k/2)*cellH;
-    const px = ox+12, py = oy+28, pw = cellW-24, ph = cellH-40;
+    const px = ox+12, py = oy+36, pw = cellW-24, ph = cellH-48;
     const active = (k === S.win);
     const eH = tolEllipse(CLASSES[0], f);
     const eW = tolEllipse(CLASSES[1], f);
@@ -3380,9 +3721,9 @@ function drawSortView(){
     const toY = v => py + ph/2 - (v-cyD)*sc;
 
     svg += `<rect x="${ox+2}" y="${oy+2}" width="${cellW-4}" height="${cellH-4}" fill="none" stroke="var(--border)" stroke-width="1.3"/>`;
-    if(active) svg += `<rect x="${ox+3}" y="${oy+3}" width="${cellW-6}" height="20" fill="var(--amber)" opacity=".9"/>`;
-    svg += txt(ox+11, oy+17, `M256:1   f${k+1} = ${fmtFreq(f)}   v = 2`,
-      {size:11.5, fill: active ? '#1c1200' : 'var(--text-dim)'});
+    if(active) svg += `<rect x="${ox+3}" y="${oy+3}" width="${cellW-6}" height="26" fill="var(--amber)" opacity=".9"/>`;
+    svg += txt(ox+11, oy+22, `M256:1   f${k+1} = ${fmtFreq(f)}   v = 2`,
+      {size:16, fill: active ? '#1c1200' : 'var(--text-dim)'});
     svg += `<clipPath id="clipSort${k}"><rect x="${px}" y="${py}" width="${pw}" height="${ph}"/></clipPath>`;
     svg += `<g clip-path="url(#clipSort${k})">`;
 
@@ -3391,14 +3732,14 @@ function drawSortView(){
       return `<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" `+
         `rx="${Math.max(e.ra*sc,3).toFixed(1)}" ry="${Math.max(e.rb*sc,3).toFixed(1)}" `+
         `transform="rotate(${(-e.ang*180/Math.PI).toFixed(1)} ${cx.toFixed(1)} ${cy.toFixed(1)})" `+
-        `fill="${col}" fill-opacity=".07" stroke="${col}" stroke-width="1.7"/>`
-        + txt(cx, cy - Math.max(e.rb*sc,3) - 6, lab, {anchor:'middle', size:9.5, fill:col});
+        `fill="${col}" fill-opacity=".07" stroke="${col}" stroke-width="2.6"/>`
+        + txt(cx, cy - Math.max(e.rb*sc,3) - 6, lab, {anchor:'middle', size:14, fill:col});
     };
     svg += drawE(eW, CLASSES[1].col, CLASSES[1].kurz);
     svg += drawE(eH, CLASSES[0].col, CLASSES[0].kurz);
 
     const mark = (p, col, big) => {
-      const x = toX(p.x), y = toY(p.y), s = big?5:3.2, w2 = big?2:1.4;
+      const x = toX(p.x), y = toY(p.y), s = big?8:5, w2 = big?3:2;
       return `<line x1="${(x-s).toFixed(1)}" y1="${y.toFixed(1)}" x2="${(x+s).toFixed(1)}" y2="${y.toFixed(1)}" stroke="${col}" stroke-width="${w2}"/>`
            + `<line x1="${x.toFixed(1)}" y1="${(y-s).toFixed(1)}" x2="${x.toFixed(1)}" y2="${(y+s).toFixed(1)}" stroke="${col}" stroke-width="${w2}"/>`;
     };
@@ -3460,7 +3801,7 @@ function drawSeparation(){
   });
   s += txt(l+w/2, H-4, 'Prüffrequenz', {anchor:'middle', size:11, fill:'var(--text-dim)'});
   s += txt(13, t+h/2, 'Abstand in Toleranzradien', {anchor:'middle', size:10.5, fill:'var(--text-dim)', rot:-90});
-  $('sepChart').innerHTML = s;
+  patchSvg($('sepChart'), s);
   const nowSep = separationAt(freqSet()[S.win]);
   $('sepInfo').textContent = nowSep >= 1
     ? `Im Fenster f${S.win+1} liegen ${CLASSES[0].kurz} und ${CLASSES[1].kurz} ${deC(nowSep,2)} Toleranzradien auseinander — sicher trennbar. Bestwert ${deC(best.v,2)} bei ${fmtFreqShort(best.f)}.`
@@ -3605,7 +3946,7 @@ function drawImp(C, dir, live, lim){
      + txt(l+12, t+20, '|Z| '+deC(amp,2)+'   ∠ '+deC(phi,0)+'°', {size:10, fill:alarm?'var(--red)':'var(--text-dim)'})
      + txt(l+12, t+33, 'Maßstab 1 : 1', {size:9, fill:'var(--text-faint)'})
      + (over ? txt(l+12, t+45, 'außerhalb des Bereichs', {size:9, fill:'var(--amber)'}) : '');
-  $('imp').innerHTML = s;
+  patchSvg($('imp'), s);
 }
 
 /* ══════════ C-Bild als geglättetes Rasterbild ══════════ */
@@ -3657,7 +3998,7 @@ function drawCscan(){
   ctx2.stroke();
   /* Millimeter-Skala am oberen und linken Rand */
   ctx2.strokeStyle = 'rgba(255,255,255,.4)'; ctx2.fillStyle = 'rgba(255,255,255,.6)';
-  ctx2.lineWidth = Math.max(1, dpr); ctx2.font = (9*dpr) + 'px JetBrains Mono, monospace';
+  ctx2.lineWidth = Math.max(1, dpr); ctx2.font = (12*dpr) + 'px JetBrains Mono, monospace';
   for(let x=10; x<S.plateLen; x+=10){
     ctx2.beginPath(); ctx2.moveTo(x*sx, 0); ctx2.lineTo(x*sx, 5*dpr); ctx2.stroke();
     if(x%20 === 0) ctx2.fillText(String(x), x*sx + 2*dpr, 14*dpr);
@@ -3670,7 +4011,7 @@ function drawCscan(){
   ctx2.lineWidth = 2*dpr;
   const bx = 12*dpr, by = H - 12*dpr;
   ctx2.beginPath(); ctx2.moveTo(bx, by); ctx2.lineTo(bx + 10*sx, by); ctx2.stroke();
-  ctx2.font = (11*dpr) + 'px JetBrains Mono, monospace';
+  ctx2.font = (13*dpr) + 'px JetBrains Mono, monospace';
   ctx2.fillText('10 mm', bx, by - 6*dpr);
 }
 
@@ -3698,7 +4039,7 @@ function drawStrip(lim){
   }
   s += txt(l+4, t+10, '+'+deC(lim,2), {size:8.5}) + txt(l+4, t+h-4, '−'+deC(lim,2), {size:8.5});
   if(strip.length > 1) s += path('re','var(--cyan)') + path('im','var(--amber)');
-  $('strip').innerHTML = s;
+  patchSvg($('strip'), s);
 }
 
 /* ══════════ Scan ══════════ */
@@ -3854,6 +4195,7 @@ function updateRiss(C, dir, live){
   $('kSigma').textContent = deC(C.m.sigma,2)+' MS/m';
   $('kMu').textContent = C.m.mu;
   $('kDelta').textContent = deC(C.delta,3)+' mm';
+  $('bDelta').textContent = 'δ = '+deC(C.delta,C.delta<1?3:2)+' mm'; $('bDelta').className = 'badge';
   $('kFg').textContent = fmtFreqShort(C.fg);
   $('bProbe').textContent = S.probe==='diff' ? 'Differenzsonde' : 'Absolutsonde';
   $('bProbe').className = 'badge acc';
@@ -4145,7 +4487,7 @@ const MODEDEF = {
   pec:  {eyebrow:'Gepulster Wirbelstrom', sub:'Wandstärke großer Lagerringe unter Beschichtung · Abklingzeit, Kalibrierung, Profil',
          hint:'Wandstärke und Anfressungen an einem Großlagerring unter der Beschichtung finden: an einer intakten Stelle kalibrieren, dann das Profil entlang des Rings scannen. Der Abstand verkleinert die Amplitude, nicht die Abklingzeit.'},
   gef:  {eyebrow:'Wirbelstrom-Gefügeprüfung', sub:'Gefügezustand beurteilen · Vierfrequenz-Sortierdisplay',
-         hint:'Das Gefüge eines Prüfteils bestimmen: Wärmebehandlung einstellen (oder ein Rätselteil ziehen), Frequenz wählen und anhand von Gefügebild, Landkarte und Atlas das Gefüge erkennen.'}
+         hint:'Ablauf in 4 Schritten (von links nach rechts): ① Prüfteil herstellen – Wärmebehandlung einstellen oder 🎲 ein Teil aus dem Los ziehen und am Ende „i. O.“ / „n. i. O.“ entscheiden. ② Prüfen – Frequenz wählen. ③ Auswerten – die Gefügebestimmung nennt das wahrscheinlichste Gefüge. ④ Kontrollieren – Gefügebild mit der Referenz vergleichen. Landkarte, Trennbarkeit und Atlas sind Hintergrundinfos.'}
 };
 function setRange(id, v){ const e = $(id); if(e) e.value = v; }
 function applyScnPanels(){
@@ -4166,8 +4508,10 @@ function initSelectors(){
 }
 function rejudgeAll(){ clearTimeout(serieTimer); serie = []; serieIdx = -1; render(); }
 
+(function(){ const sel = $('modeSel'); document.querySelectorAll('#segMode button').forEach(b => { const o = document.createElement('option'); o.value = b.dataset.mode; o.textContent = b.innerHTML.replace(/<br\s*\/?>/gi,' ').replace(/-\s+/g,'-'); sel.appendChild(o); });
+  sel.addEventListener('change', () => { const b = document.querySelector('#segMode button[data-mode="'+sel.value+'"]'); if(b) b.click(); }); })();
 segPick('segMode','mode', v => {
-  S.mode = v;
+  S.mode = v; $('modeSel').value = v; document.documentElement.dataset.mode = v;
   const sort = (v === 'mix' || v === 'gef'), meas = MEAS_MODES.indexOf(v) >= 0;
   if(v === 'gef') S.gef.view = S.gef.soll;
   document.body.classList.toggle('mode-gef', sort || meas);
@@ -4276,8 +4620,8 @@ function applyTheme(mode){
   $('themeBtn').textContent = isLight ? '☾' : '☀';
   if(started) render();
 }
-themeCtl.onTheme(applyTheme);
-$('themeBtn').addEventListener('click', () => themeCtl.toggleTheme());
+ZfPContext.onTheme(applyTheme);
+$('themeBtn').addEventListener('click', () => ZfPContext.toggleTheme());
 
 $('btnSerie').addEventListener('click', () => {
   clearTimeout(serieTimer);
@@ -4309,32 +4653,79 @@ started = true;
 render();
 })();
 </script>
+<script id="svgtext-fit">
+/* Gerätedarstellungen (SVG): Schrift in Bildschirm-Pixeln lesbar halten, egal wie stark die Grafik skaliert wird. Kein Zoom-Eingriff. */
+(function(){
+  var MINPX=12, MAXGROW=1.7, busy=false;
+  function scaleTexts(svg, root){
+    var vb=svg.viewBox&&svg.viewBox.baseVal; if(!vb||!vb.width) return;
+    var w=svg.getBoundingClientRect().width; if(w<20) return;
+    var k=w/vb.width, ts=root.querySelectorAll('text');
+    for(var i=0;i<ts.length;i++){
+      var t=ts[i], n=t.getAttribute('data-s');
+      if(!n){ n=parseFloat(t.getAttribute('font-size'))||10; t.setAttribute('data-s',n); }
+      n=parseFloat(n);
+      var want=Math.max(n, Math.min(n*MAXGROW, MINPX/k));
+      var ws=want.toFixed(2);
+      if(t.getAttribute('font-size')!==ws) t.setAttribute('font-size', ws);
+    }
+  }
+  function fixOne(svg){ scaleTexts(svg, svg); }
+  /* patchSvg() skaliert neu gezeichnete Texte sofort mit – so entsteht kein Zwischenbild mit kleiner Schrift (Flackern der Achsenbeschriftung) */
+  window.__fitSvgTexts = scaleTexts;
+  function run(){ busy=false; document.querySelectorAll('svg.view').forEach(fixOne); }
+  function sched(){ if(!busy){ busy=true; requestAnimationFrame(run); } }
+  new MutationObserver(function(m){ for(var i=0;i<m.length;i++){ if(m[i].type==='childList' && m[i].target.closest && m[i].target.closest('svg.view')){ run(); return; } } }).observe(document.body,{childList:true,subtree:true});
+  window.addEventListener('resize',sched);
+  if(window.ResizeObserver){ var ro=new ResizeObserver(sched); document.querySelectorAll('svg.view').forEach(function(s){ ro.observe(s); }); }
+  setTimeout(sched,300); setInterval(sched,1500);
+})();
+</script>
 <script id="fit-js">
 window.FIT_CFG={sideW:280,maxCols:3,minCol:440,
   /* Feste Spaltenaufteilung für die Szenarien Gefüge und Korrosion (breite Bildschirme): Bedienfelder links, Grafiken rechts groß */
   planFn:function(all){
     var mb=document.querySelector('button[data-mode].on'), mode=mb?mb.dataset.mode:'';
     var LAYOUTS={
-      gef:{ tpl:'340px 390px minmax(0,1fr) minmax(0,1fr)', cols:[
-        [/^Prüfaufgabe/,/^Wärmebehandlung/,/^Wirbelstromprüfung/],
-        [/^Gefügezustände/,/^Gefügebestimmung/],
-        [/^Gefügebild/,/^Gefüge-Landkarte/],
-        [/^Trennbarkeit/,/^Gefüge-Atlas/]]},
-      corr:{ tpl:'330px 330px minmax(0,1.15fr) minmax(0,1fr)', cols:[
-        [/^Prüfaufgabe/,/^Werkstück/,/^Sonde und Frequenz/],
-        [/^Korrosion zwischen/,/^Prüfgerät und Scan/,/^Alarmschwelle/],
+      gef:{ min:1440, tpl:'330px 360px minmax(0,1.3fr) minmax(0,1fr)', cols:[
+        [/^Prüfaufgabe/,/^① Prüfteil/,/^② Prüfen/,/^③ Kandidaten/],
+        [/^③ Auswerten/,/^Hintergrund · Trennbarkeit/],
+        [/^④ Kontrollieren/],
+        [/^Hintergrund · Gefüge-Landkarte/,/^Hintergrund · Gefüge-Atlas/]]},
+      riss:{ min:1300, tpl:'330px 330px minmax(0,1.2fr) minmax(0,1fr)', cols:[
+        [/^Prüfaufgabe/,/^Sonde und Frequenz/,/^Werkstück/,/^Alarmschwelle/],
+        [/^Riss/,/^Prüfgerät und Scan/],
+        [/^Impedanzebene/],
+        [/^C-Bild/,/^Streifenschreiber/]]},
+      weld:{ min:1300, tpl:'330px 340px minmax(0,1.15fr) minmax(0,1fr)', cols:[
+        [/^Prüfaufgabe/,/^Sonde und Frequenz/,/^Werkstück/,/^Alarmschwelle/],
+        [/^Schweißnaht/,/^Riss/,/^Prüfgerät und Scan/],
         [/^Impedanzebene/],
         [/^Schnittbild/,/^C-Bild/,/^Streifenschreiber/]]},
-      burn:{ tpl:'330px 340px minmax(0,1.15fr) minmax(0,1fr)', cols:[
+      burn:{ min:1300, tpl:'330px 340px minmax(0,1.15fr) minmax(0,1fr)', cols:[
         [/^Prüfaufgabe/,/^Sonde und Frequenz/,/^Werkstück/,/^Alarmschwelle/],
         [/^Schleifbrand/,/^Prüfgerät und Scan/],
         [/^Impedanzebene/],
         [/^Schnittbild/,/^C-Bild/,/^Streifenschreiber/]]},
-      hole:{ tpl:'320px 380px minmax(0,1fr) minmax(0,0.8fr)', cols:[
-        [/^Prüfaufgabe/,/^Sonde und Frequenz/,/^Werkstück/],
-        [/^Bolzenloch/,/^Prüfgerät und Scan/,/^Alarmschwelle/,/^Draufsicht/],
+      tube:{ min:1300, tpl:'330px 340px minmax(0,1.15fr) minmax(0,1fr)', cols:[
+        [/^Prüfaufgabe/,/^Sonde und Frequenz/,/^Werkstück/,/^Wälzlagerrohr/,/^Alarmschwelle/],
+        [/^Vormagnetisierung/,/^Prüfgerät und Scan/],
         [/^Impedanzebene/],
-        [/^C-Bild/,/^Streifenschreiber/]]},
+        [/^Querschnitt/,/^Rohrquerschnitt/,/^Streifenschreiber/]]},
+      mix:{ min:1280, tpl:'280px 290px minmax(0,1.7fr) minmax(0,1fr)', cols:[
+        [/^Prüfaufgabe/,/^Verwechslungsprüfung/],
+        [/^Frequenzsatz/,/^Einzelteil/,/^Serienprüfung/],
+        [/^Sortierdisplay/,/^Serienergebnis/],
+        [/^Trennschärfe/]]},
+      corr:{ tpl:'330px 330px minmax(0,1.15fr) minmax(0,1fr)', cols:[
+        [/^Prüfaufgabe/,/^Werkstück/,/^Sonde und Frequenz/,/^Alarmschwelle/],
+        [/^Korrosion zwischen/,/^Prüfgerät und Scan/],
+        [/^Impedanzebene/],
+        [/^Schnittbild/,/^C-Bild/,/^Streifenschreiber/]]},
+      hole:{ min:1300, dual:0, dualShare:0.5, tpl:'minmax(0,1.9fr) minmax(0,1fr) minmax(0,0.85fr)', cols:[
+        [/^Prüfaufgabe/,/^Sonde und Frequenz/,/^Werkstück/,/^Bolzenloch/,/^Prüfgerät und Scan/,/^Draufsicht/],
+        [/^Impedanzebene/],
+        [/^C-Bild/,/^Streifenschreiber/,/^Alarmschwelle/]]},
       chd:{ tpl:'340px 340px minmax(0,1fr) minmax(0,1fr)', cols:[
         [/^Prüfaufgabe/,/^Einsatzgehärtetes Bauteil/],
         [/^Prüfung & Kalibrierung/],
@@ -4344,7 +4735,7 @@ window.FIT_CFG={sideW:280,maxCols:3,minCol:440,
         [/^Prüfaufgabe/,/^Lagerhülse/],
         [/^Prüflauf/,/^Frequenzen, Mischung/,/^Beurteilung/],
         [/^Mehrfrequenz-Prüfbild/,/^Auswertung der Fehler/]]},
-      pec:{ min:1200, tpl:function(){ var cap=Math.max(520,Math.min(800,Math.floor((window.innerHeight-80)/1.15))); return 'minmax(300px,1fr) minmax(300px,1fr) minmax(0,'+cap+'px)'; }, cols:[
+      pec:{ min:1200, tpl:'330px 340px minmax(0,1fr)', cols:[
         [/^Prüfaufgabe/,/^Messung/],
         [/^Großlagerring/],
         [/^Gepulster Wirbelstrom/,/^Wanddickenprofil/]]}
@@ -4355,7 +4746,7 @@ window.FIT_CFG={sideW:280,maxCols:3,minCol:440,
     var cols=L.cols.map(function(res){ var c=[]; res.forEach(function(re){ var m=vis.filter(function(a){ return used.indexOf(a)<0 && re.test(title(a)); }); if(m.length){ used.push(m[0]); c.push(m[0]); } }); return c; });
     vis.forEach(function(a){ if(used.indexOf(a)<0) cols[cols.length-1].push(a); });
     all.forEach(function(a){ if(vis.indexOf(a)<0) cols[cols.length-1].push(a); });
-    return {cols:cols, tpl:(typeof L.tpl==='function'?L.tpl():L.tpl)};
+    return {cols:cols, tpl:(typeof L.tpl==='function'?L.tpl():L.tpl), dual:(L.dual==null?-1:L.dual), dualShare:L.dualShare||0.4};
   }
 };
 (function(){
@@ -4417,7 +4808,12 @@ window.FIT_CFG={sideW:280,maxCols:3,minCol:440,
     if(CUSTOM){
       K=CUSTOM.cols.length; S=0; ensure(K); plan=CUSTOM.cols; tpl=CUSTOM.tpl;
       var cw=Math.floor((effW-G*(K-1))/K);
-      plan.forEach(function(c){ measure(c,cw); over=Math.max(over,colH(c.map(function(_,j){return j;}),c)-availH); });
+      plan.forEach(function(c,ci){
+        if(CUSTOM.dual===ci && c.length>1){ var dw=Math.floor((effW-G*(K-1))*CUSTOM.dualShare), sp=c[c.length-1], rs=c.slice(0,-1);
+          measure(rs,Math.floor(dw/2)-8); measure([sp],dw-4);
+          var sumH=0; rs.forEach(function(a){sumH+=a.h+G;}); over=Math.max(over,sumH/2+sp.h+G-availH); }
+        else { measure(c,cw); over=Math.max(over,colH(c.map(function(_,j){return j;}),c)-availH); }
+      });
     } else if(MANUAL){
       K=MANUAL.length; S=0; ensure(K);
       plan=MANUAL.map(function(idxs){ return idxs.map(function(i){return all[i];}).filter(Boolean); });
@@ -4457,15 +4853,21 @@ window.FIT_CFG={sideW:280,maxCols:3,minCol:440,
     var sig=plan.map(function(c){return c.map(function(a){return all.indexOf(a);}).join(',');}).join('|')+'@'+curN;
     var inPlan=new Set(); plan.forEach(function(c){c.forEach(function(a){inPlan.add(a);});});
     if(sig!==curSig){ plan.forEach(function(c,i){ cols[i].replaceChildren.apply(cols[i],c.map(function(a){return a.el;})); }); curSig=sig; }
-    else plan.forEach(function(c,i){ c.forEach(function(a){ if(a.el.parentElement!==cols[i]) cols[i].appendChild(a.el); }); });
+    else plan.forEach(function(c,i){ c.forEach(function(a){ if(!cols[i].contains(a.el)) cols[i].appendChild(a.el); }); });
     all.forEach(function(a){ if(!inPlan.has(a)) stash.appendChild(a.el); });
+    cols.forEach(function(c,i){ c.classList.toggle('dual', !!(CUSTOM&&CUSTOM.dual===i&&plan[i]&&plan[i].length>1)); });
+    if(CUSTOM&&CUSTOM.dual>=0&&plan[CUSTOM.dual]&&plan[CUSTOM.dual].length>1){      /* Doppelspalte: Einstellungen in zwei Unterspalten, letzte Karte (Draufsicht) darunter über die volle Breite */
+      var dc=cols[CUSTOM.dual], items=plan[CUSTOM.dual].slice(), sp=items.pop(), parts=partition(items.map(function(a){return a.h||1;}),2);
+      var wrap=parts.map(function(ix){ var d=document.createElement('div'); d.className='sub'; ix.forEach(function(k){d.appendChild(items[k].el);}); return d; });
+      sp.el.classList.add('spanall'); dc.replaceChildren.apply(dc,wrap.concat([sp.el]));
+    }
     mwrap.remove();
     grid.style.gridTemplateColumns=tpl;
     window.__fitDbg={S:S,K:K,tier:TIER,over:Math.round(over),availH:availH};
     return {over:over,S:S,K:K,availH:availH};
   }
   function redraw(){ window.__fitSilent=true; window.dispatchEvent(new Event('resize')); window.__fitSilent=false; }
-  function colNat(c){ var t=0,n=0; [].forEach.call(c.children,function(ch){ var h=ch.getBoundingClientRect().height; if(h>0){ t+=h; n++; } }); return t+Math.max(0,n-1)*GAP(); }
+  function colNat(c){ if(c.classList.contains('dual')) return c.scrollHeight; var t=0,n=0; [].forEach.call(c.children,function(ch){ var h=ch.getBoundingClientRect().height; if(h>0){ t+=h; n++; } }); return t+Math.max(0,n-1)*GAP(); }
   function isGraphicCol(c){
     var els=c.querySelectorAll('canvas,svg'); for(var i=0;i<els.length;i++){ var e=els[i]; if(e.closest('button,.icon,.badge,.toggle,summary')) continue; var r=e.getBoundingClientRect(); if(r.width>150&&r.height>60) return true; } return false;
   }
@@ -4531,6 +4933,6 @@ window.FIT_CFG={sideW:280,maxCols:3,minCol:440,
   if(document.readyState==='complete') setTimeout(fromHash,0); else window.addEventListener('load',function(){ setTimeout(fromHash,0); });
 })();
 </script>
-<script>(function(){try{if(window.top!==window)return}catch(e){return}var a=document.createElement('a');a.href='../index.html';a.className='zfp-back';a.title='Zurück zur Übersicht aller ZfP-Verfahren';a.textContent='← ZfP-Verfahren';a.style.cssText="position:fixed;left:max(12px,env(safe-area-inset-left));bottom:max(12px,env(safe-area-inset-bottom));z-index:9999;display:flex;align-items:center;gap:6px;padding:9px 14px;border-radius:999px;background:rgba(15,25,38,.86);color:#e6eef7;font:600 13px/1 system-ui,-apple-system,'Segoe UI',sans-serif;text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,.25);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14)";document.body.appendChild(a)})();</script>
+<a href="../index.html" class="zfp-back" title="Zurück zur Übersicht aller ZfP-Verfahren" style="position:fixed;left:max(12px,env(safe-area-inset-left));bottom:max(12px,env(safe-area-inset-bottom));z-index:9999;display:flex;align-items:center;gap:6px;padding:9px 14px;border-radius:999px;background:rgba(15,25,38,.86);color:#e6eef7;font:600 13px/1 system-ui,-apple-system,'Segoe UI',sans-serif;text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,.25);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14)">← ZfP-Verfahren</a>
 </body>
 </html>

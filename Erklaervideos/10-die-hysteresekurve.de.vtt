@@ -1,0 +1,54 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:05.150
+Die Hysteresekurve beschreibt das magnetische Verhalten ferromagnetischer Werkstoffe.
+
+2
+00:00:05.200 --> 00:00:11.150
+Trägt man die magnetische Flussdichte B gegen die Feldstärke H auf, entsteht eine Schleife.
+
+3
+00:00:11.200 --> 00:00:16.650
+Beim Erhöhen des Feldes folgt die Magnetisierung einer Kurve, beim Verringern einer anderen.
+
+4
+00:00:16.700 --> 00:00:20.950
+Die eingeschlossene Fläche ist ein Maß für die Ummagnetisierungsverluste.
+
+5
+00:00:21.000 --> 00:00:27.100
+Wichtige Kennwerte sind die Sättigungsinduktion, die Remanenz und die Koerzitivfeldstärke.
+
+6
+00:00:27.150 --> 00:00:32.350
+Weichmagnetische Werkstoffe haben eine schmale Schleife, hartmagnetische eine breite.
+
+7
+00:00:32.400 --> 00:00:39.050
+In der Wirbelstromprüfung spielt die Hysterese vor allem bei Stahl und anderen ferromagnetischen Werkstoffen eine Rolle.
+
+8
+00:00:39.100 --> 00:00:43.450
+Die Permeabilität ist nicht konstant und hängt vom Arbeitspunkt ab.
+
+9
+00:00:43.500 --> 00:00:46.550
+Das führt zu Signalstreuung und erschwert die Prüfung.
+
+10
+00:00:46.600 --> 00:00:49.650
+Deshalb setzt man oft eine Vormagnetisierung ein.
+
+11
+00:00:49.700 --> 00:00:52.700
+Ein starkes Gleichfeld treibt das Material in die Sättigung.
+
+12
+00:00:52.750 --> 00:00:59.750
+Dort nähert sich die relative Permeabilität dem Wert 1 – die Prüfung wird stabiler und besser vergleichbar.
+
+13
+00:00:59.800 --> 00:01:07.550
+Kurz: Die Hysteresekurve erklärt, warum ferromagnetische Prüfteile besondere Maßnahmen wie Vormagnetisierung brauchen.
+

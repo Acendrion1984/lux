@@ -1,0 +1,42 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:06.350
+Der Skineffekt beschreibt, dass Wechselströme und Wechselfelder in Leitern vor allem in einer Randschicht fließen.
+
+2
+00:00:06.400 --> 00:00:09.650
+Die Stromdichte nimmt zum Inneren hin exponentiell ab.
+
+3
+00:00:09.700 --> 00:00:13.550
+Die charakteristische Dicke dieser Schicht heißt Eindringtiefe δ.
+
+4
+00:00:13.600 --> 00:00:19.800
+Sie ist der Abstand, bei dem die Stromdichte auf etwa 37 % des Oberflächenwerts abgefallen ist.
+
+5
+00:00:19.850 --> 00:00:24.400
+Die Eindringtiefe hängt von Frequenz, Leitfähigkeit und Permeabilität ab.
+
+6
+00:00:24.450 --> 00:00:30.350
+Höhere Frequenz, höhere Leitfähigkeit oder höhere Permeabilität machen δ kleiner.
+
+7
+00:00:30.400 --> 00:00:34.850
+Die Formel lautet: δ = 1 / √(π · f · σ · μ).
+
+8
+00:00:34.900 --> 00:00:41.500
+In der Wirbelstromprüfung bestimmt die Eindringtiefe, wie tief man Fehler und Werkstoffänderungen noch erfassen kann.
+
+9
+00:00:41.550 --> 00:00:47.800
+Für Oberflächenrisse wählt man oft höhere Frequenzen, für tiefere Fehler oder Wanddickenmessungen niedrigere.
+
+10
+00:00:47.850 --> 00:00:52.500
+Die Eindringtiefe ist deshalb ein zentrales Kriterium bei der Wahl der Prüffrequenz.
+

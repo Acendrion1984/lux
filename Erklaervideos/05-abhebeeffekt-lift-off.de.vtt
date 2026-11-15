@@ -1,0 +1,42 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:06.050
+Der Abhebeeffekt, auch Lift-off genannt, ist eine der wichtigsten Störgrößen in der Wirbelstromprüfung.
+
+2
+00:00:06.100 --> 00:00:09.950
+Er entsteht, wenn sich der Abstand zwischen Spule und Prüfteil ändert.
+
+3
+00:00:10.000 --> 00:00:13.600
+Schon Zehntelmillimeter können ein deutliches Signal erzeugen.
+
+4
+00:00:13.650 --> 00:00:19.700
+Der Füllfaktor der Spule sinkt, die Kopplung wird schwächer – und der Messpunkt wandert in der Impedanzebene.
+
+5
+00:00:19.750 --> 00:00:30.000
+Typischerweise bewegt sich der Lift-off-Effekt entlang einer charakteristischen Bahn – oft annähernd horizontal oder in einem flachen Winkel, sobald die Phase richtig eingestellt ist.
+
+6
+00:00:30.050 --> 00:00:33.900
+Deshalb nutzt man den Abhebeeffekt bewusst zur Phaseneinstellung.
+
+7
+00:00:33.950 --> 00:00:41.500
+Die Spule leicht anheben und absenken, die Bahn beobachten und den Phasensteller so drehen, dass diese Bahn waagerecht liegt.
+
+8
+00:00:41.550 --> 00:00:49.350
+Danach steht ein Risssignal möglichst senkrecht dazu und kann über die Y-Komponente oder einen Sektor selektiv ausgewertet werden.
+
+9
+00:00:49.400 --> 00:00:53.100
+Ohne diese Trennung würde jede kleine Abstandsschwankung wie ein Fehler aussehen.
+
+10
+00:00:53.150 --> 00:00:59.550
+Der Abhebeeffekt ist also Störgröße – und zugleich wichtiges Hilfsmittel zur richtigen Phaseneinstellung.
+

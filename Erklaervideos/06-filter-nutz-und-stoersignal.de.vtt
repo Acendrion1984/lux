@@ -1,0 +1,42 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:03.850
+Filter verbessern das Verhältnis von Nutz- zu Störsignal.
+
+2
+00:00:03.900 --> 00:00:07.800
+Das Fehlersignal entsteht, wenn die Sonde einen Fehler überfährt.
+
+3
+00:00:07.850 --> 00:00:12.550
+Seine Frequenz hängt von der Prüfgeschwindigkeit und der Wirkbreite der Sonde ab.
+
+4
+00:00:12.600 --> 00:00:19.200
+Langsame Änderungen wie Leitfähigkeitsdrift oder Vibrationen liegen oft in anderen Frequenzbereichen.
+
+5
+00:00:19.250 --> 00:00:22.400
+Mit einem Hochpass unterdrückt man tieffrequente Drift.
+
+6
+00:00:22.450 --> 00:00:24.900
+Ein Tiefpass dämpft hochfrequentes Rauschen.
+
+7
+00:00:24.950 --> 00:00:31.750
+Am häufigsten wird ein Bandpass eingesetzt, der das Nutzsignal durchlässt und beide Störanteile abschwächt.
+
+8
+00:00:31.800 --> 00:00:41.700
+Faustregel: Das Filterfenster sollte etwa von 0,5 × bis 2 × der Signalfrequenz reichen – die sich aus Geschwindigkeit geteilt durch Wirkbreite ergibt.
+
+9
+00:00:41.750 --> 00:00:45.550
+Zu enge Filter können den Fehlerimpuls verformen oder abschwächen.
+
+10
+00:00:45.600 --> 00:00:51.550
+Die Einstellung erfolgt immer an realen oder künstlichen Fehlern bei der vorgesehenen Prüfgeschwindigkeit.
+

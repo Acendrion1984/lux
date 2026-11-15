@@ -1,0 +1,30 @@
+WEBVTT
+
+1
+00:00:04.000 --> 00:00:13.903
+Ein Rohr läuft durch zwei gleiche Spulen, die gegeneinander geschaltet sind. Solange beide dasselbe „sehen“, ist die Differenz null.
+
+2
+00:00:13.953 --> 00:00:22.788
+Der Fehler erreicht die erste Spule: Nur sie wird beeinflusst – die Differenz schlägt aus, erstes Maximum.
+
+3
+00:00:22.838 --> 00:00:29.881
+Zwischen beiden Spulen sehen beide den Fehler gleich stark: Das Signal geht durch null.
+
+4
+00:00:29.931 --> 00:00:40.881
+In der zweiten Spule schlägt die Differenz mit umgekehrtem Vorzeichen aus. In der Impedanzebene entsteht die typische „Acht“.
+
+5
+00:00:40.931 --> 00:00:49.332
+Wackeln, Temperaturdrift und langsame Abstandsänderungen wirken auf beide Spulen gleich – sie heben sich auf.
+
+6
+00:00:49.382 --> 00:00:57.334
+Ein Absolutsystem (gestrichelt) würde diese Störungen voll mitmessen; das Differenzsystem bleibt ruhig.
+
+7
+00:00:57.384 --> 00:01:08.440
+Kehrseite: Bei einem langen, gleichförmigen Fehler zeigt die Differenzspule nur Anfang und Ende. Das Absolutsystem zeigt ein Dauersignal.
+

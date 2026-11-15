@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Erklärvideos · Wirbelstromprüfung</title>
+<style>
+:root{--bg:#f3f4f8;--card:#fff;--ink:#14161c;--mute:#6b7080;--line:#e3e5ec;--acc:#0d9488;--acc2:#0f3d63;--sel:#e6f6f4;--shadow:0 10px 24px -12px rgba(20,24,40,.3)}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1217;--card:#171b22;--ink:#f1f3f8;--mute:#9aa1b2;--line:#262b35;--sel:#12302d;--shadow:0 12px 26px -12px rgba(0,0,0,.7)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{padding:22px 20px 8px;max-width:1280px;margin:0 auto}
+h1{margin:0;font-size:clamp(22px,4vw,30px);letter-spacing:-.01em}
+header p{margin:4px 0 0;color:var(--mute)}
+main{max-width:1280px;margin:0 auto;padding:12px 20px 40px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+@media (max-width:900px){main{grid-template-columns:1fr}}
+.player{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);position:sticky;top:12px}
+@media (max-width:900px){.player{position:static}}
+video{display:block;width:100%;aspect-ratio:16/9;background:#000}
+.meta{display:flex;align-items:center;gap:12px;padding:14px 16px;flex-wrap:wrap}
+.meta h2{margin:0;font-size:18px;flex:1;min-width:200px}
+.meta small{display:block;color:var(--mute);font-weight:500;font-size:13px;margin-top:2px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:600 13px/1 inherit;cursor:pointer;text-decoration:none}
+.btn[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn:focus-visible,.item:focus-visible{outline:3px solid #3f7fcf;outline-offset:2px}
+.list{display:flex;flex-direction:column;gap:14px}
+.ch h3{margin:0 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mute)}
+.item{display:flex;gap:10px;align-items:center;width:100%;padding:8px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:inherit;text-align:left;cursor:pointer;font:inherit;margin-bottom:6px}
+.item img{width:96px;aspect-ratio:16/9;object-fit:cover;border-radius:8px;flex:none;background:#000}
+.item b{display:block;font-size:14px;line-height:1.3}
+.item span{color:var(--mute);font-size:12.5px}
+.item[aria-current="true"]{background:var(--sel);border-color:var(--acc)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Erklärvideos · Wirbelstromprüfung</h1>
+  <p id="sub"></p>
+</header>
+<main>
+  <section class="player" aria-label="Videoplayer">
+    <video id="vid" controls playsinline preload="metadata" crossorigin="anonymous"></video>
+    <div class="meta">
+      <h2><span id="ttl"></span><small id="cap"></small></h2>
+      <button class="btn" id="cc" type="button" aria-pressed="true" title="Untertitel ein/aus (Taste C)">CC Untertitel</button>
+      <a class="btn" id="dl" download>⬇ MP4</a>
+    </div>
+  </section>
+  <nav class="list" id="list" aria-label="Videoliste"></nav>
+</main>
+<script>
+/* Videoliste (zusätzlich als videos.json im Ordner) */
+const VIDEOS=[{"id": "01-induktion-und-selbstinduktion", "titel": "Induktion und Selbstinduktion", "kapitel": 1, "kapitelTitel": "Physikalische Grundlagen", "dauer": 56.7, "mp4": "01-induktion-und-selbstinduktion.mp4", "untertitel": "01-induktion-und-selbstinduktion.de.vtt", "poster": "01-induktion-und-selbstinduktion.jpg"}, {"id": "02-risserkennung-grundprinzip", "titel": "Risserkennung – Grundprinzip", "kapitel": 1, "kapitelTitel": "Physikalische Grundlagen", "dauer": 53.8, "mp4": "02-risserkennung-grundprinzip.mp4", "untertitel": "02-risserkennung-grundprinzip.de.vtt", "poster": "02-risserkennung-grundprinzip.jpg"}, {"id": "03-der-weg-der-wirbelstroeme-am-riss", "titel": "Der Weg der Wirbelströme am Riss", "kapitel": 1, "kapitelTitel": "Physikalische Grundlagen", "dauer": 59.9, "mp4": "03-der-weg-der-wirbelstroeme-am-riss.mp4", "untertitel": "03-der-weg-der-wirbelstroeme-am-riss.de.vtt", "poster": "03-der-weg-der-wirbelstroeme-am-riss.jpg"}, {"id": "04-aehnlichkeitsgesetz-und-normierte-impedanz", "titel": "Ähnlichkeitsgesetz und normierte Impedanz", "kapitel": 1, "kapitelTitel": "Physikalische Grundlagen", "dauer": 55.4, "mp4": "04-aehnlichkeitsgesetz-und-normierte-impedanz.mp4", "untertitel": "04-aehnlichkeitsgesetz-und-normierte-impedanz.de.vtt", "poster": "04-aehnlichkeitsgesetz-und-normierte-impedanz.jpg"}, {"id": "05-abhebeeffekt-lift-off", "titel": "Abhebeeffekt (Lift-off)", "kapitel": 2, "kapitelTitel": "Gerätetechnik, Anwendungsübersicht", "dauer": 59.6, "mp4": "05-abhebeeffekt-lift-off.mp4", "untertitel": "05-abhebeeffekt-lift-off.de.vtt", "poster": "05-abhebeeffekt-lift-off.jpg"}, {"id": "06-filter-nutz-und-stoersignal", "titel": "Filter: Nutz- und Störsignal", "kapitel": 2, "kapitelTitel": "Gerätetechnik, Anwendungsübersicht", "dauer": 51.6, "mp4": "06-filter-nutz-und-stoersignal.mp4", "untertitel": "06-filter-nutz-und-stoersignal.de.vtt", "poster": "06-filter-nutz-und-stoersignal.jpg"}, {"id": "07-phasensteller-und-auswertearten", "titel": "Phasensteller und Auswertearten", "kapitel": 2, "kapitelTitel": "Gerätetechnik, Anwendungsübersicht", "dauer": 62.5, "mp4": "07-phasensteller-und-auswertearten.mp4", "untertitel": "07-phasensteller-und-auswertearten.de.vtt", "poster": "07-phasensteller-und-auswertearten.jpg"}, {"id": "08-absolut-und-differenzsonde", "titel": "Absolut- und Differenzsonde", "kapitel": 2, "kapitelTitel": "Gerätetechnik, Anwendungsübersicht", "dauer": 66.3, "mp4": "08-absolut-und-differenzsonde.mp4", "untertitel": "08-absolut-und-differenzsonde.de.vtt", "poster": "08-absolut-und-differenzsonde.jpg"}, {"id": "09-rohrpruefung-mit-durchlaufspule", "titel": "Rohrprüfung mit Durchlaufspule", "kapitel": 2, "kapitelTitel": "Gerätetechnik, Anwendungsübersicht", "dauer": 51.9, "mp4": "09-rohrpruefung-mit-durchlaufspule.mp4", "untertitel": "09-rohrpruefung-mit-durchlaufspule.de.vtt", "poster": "09-rohrpruefung-mit-durchlaufspule.jpg"}, {"id": "10-die-hysteresekurve", "titel": "Die Hysteresekurve", "kapitel": 3, "kapitelTitel": "Permeabilität", "dauer": 67.6, "mp4": "10-die-hysteresekurve.mp4", "untertitel": "10-die-hysteresekurve.de.vtt", "poster": "10-die-hysteresekurve.jpg"}, {"id": "11-skineffekt-und-eindringtiefe", "titel": "Skineffekt und Eindringtiefe", "kapitel": 4, "kapitelTitel": "Leitfähigkeit", "dauer": 52.5, "mp4": "11-skineffekt-und-eindringtiefe.mp4", "untertitel": "11-skineffekt-und-eindringtiefe.de.vtt", "poster": "11-skineffekt-und-eindringtiefe.jpg"}, {"id": "12-fehlertiefe-und-phasenlage", "titel": "Fehlertiefe und Phasenlage", "kapitel": 4, "kapitelTitel": "Leitfähigkeit", "dauer": 52.5, "mp4": "12-fehlertiefe-und-phasenlage.mp4", "untertitel": "12-fehlertiefe-und-phasenlage.de.vtt", "poster": "12-fehlertiefe-und-phasenlage.jpg"}, {"id": "13-lift-off-und-riss-trennen", "titel": "Lift-off und Riss trennen", "kapitel": 6, "kapitelTitel": "Prüfung von Oberflächen", "dauer": 60.2, "mp4": "13-lift-off-und-riss-trennen.mp4", "untertitel": "13-lift-off-und-riss-trennen.de.vtt", "poster": "13-lift-off-und-riss-trennen.jpg"}, {"id": "14-mehrfrequenz-gefuege-und-verwechslung", "titel": "Mehrfrequenz – Gefüge und Verwechslung", "kapitel": 8, "kapitelTitel": "Gefügeprüfung", "dauer": 49.0, "mp4": "14-mehrfrequenz-gefuege-und-verwechslung.mp4", "untertitel": "14-mehrfrequenz-gefuege-und-verwechslung.de.vtt", "poster": "14-mehrfrequenz-gefuege-und-verwechslung.jpg"}, {"id": "15-toleranzfeld-in-der-impedanzebene-richtig-anpassen", "titel": "Toleranzfeld in der Impedanzebene richtig anpassen", "kapitel": 8, "kapitelTitel": "Gefügeprüfung", "dauer": 42, "mp4": "15-toleranzfeld-in-der-impedanzebene-richtig-anpassen.mp4", "untertitel": "15-toleranzfeld-in-der-impedanzebene-richtig-anpassen.de.vtt", "poster": "15-toleranzfeld-in-der-impedanzebene-richtig-anpassen.jpg"}, {"id": "16-verifizierung-des-pruefsystems-in-drei-stufen", "titel": "Verifizierung des Prüfsystems in drei Stufen", "kapitel": 9, "kapitelTitel": "Technische Vorschriften in der ZfP", "dauer": 37.4, "mp4": "16-verifizierung-des-pruefsystems-in-drei-stufen.mp4", "untertitel": "16-verifizierung-des-pruefsystems-in-drei-stufen.de.vtt", "poster": "16-verifizierung-des-pruefsystems-in-drei-stufen.jpg"}, {"id": "17-von-der-norm-zum-pruefbericht", "titel": "Von der Norm zum Prüfbericht", "kapitel": 10, "kapitelTitel": "Erstellen von Prüfanweisungen", "dauer": 62.8, "mp4": "17-von-der-norm-zum-pruefbericht.mp4", "untertitel": "17-von-der-norm-zum-pruefbericht.de.vtt", "poster": "17-von-der-norm-zum-pruefbericht.jpg"}, {"id": "18-rotierende-tastsensoren-und-ueberdeckung", "titel": "Rotierende Tastsensoren und Überdeckung", "kapitel": 11, "kapitelTitel": "Rohrprüfung in der Fertigung", "dauer": 53.9, "mp4": "18-rotierende-tastsensoren-und-ueberdeckung.mp4", "untertitel": "18-rotierende-tastsensoren-und-ueberdeckung.de.vtt", "poster": "18-rotierende-tastsensoren-und-ueberdeckung.jpg"}, {"id": "19-rohrpruefstrecke-magnetisieren-pruefen-entmagnetisieren", "titel": "Rohrprüfstrecke: Magnetisieren – Prüfen – Entmagnetisieren", "kapitel": 11, "kapitelTitel": "Rohrprüfung in der Fertigung", "dauer": 59.9, "mp4": "19-rohrpruefstrecke-magnetisieren-pruefen-entmagnetisieren.mp4", "untertitel": "19-rohrpruefstrecke-magnetisieren-pruefen-entmagnetisieren.de.vtt", "poster": "19-rohrpruefstrecke-magnetisieren-pruefen-entmagnetisieren.jpg"}, {"id": "20-wie-entsteht-das-signal-der-differenzspule", "titel": "Wie entsteht das Signal der Differenzspule?", "kapitel": 11, "kapitelTitel": "Rohrprüfung in der Fertigung", "dauer": 68.5, "mp4": "20-wie-entsteht-das-signal-der-differenzspule.mp4", "untertitel": "20-wie-entsteht-das-signal-der-differenzspule.de.vtt", "poster": "20-wie-entsteht-das-signal-der-differenzspule.jpg"}, {"id": "21-schichtdickenmessung-mit-dem-abhebeeffekt", "titel": "Schichtdickenmessung mit dem Abhebeeffekt", "kapitel": 12, "kapitelTitel": "Schichtdickenmessung", "dauer": 42.1, "mp4": "21-schichtdickenmessung-mit-dem-abhebeeffekt.mp4", "untertitel": "21-schichtdickenmessung-mit-dem-abhebeeffekt.de.vtt", "poster": "21-schichtdickenmessung-mit-dem-abhebeeffekt.jpg"}, {"id": "22-schweissnahtpruefung-konventioneller-und-optimierter-sensor", "titel": "Schweißnahtprüfung: konventioneller und optimierter Sensor", "kapitel": 13, "kapitelTitel": "Schweißnahtprüfung", "dauer": 40, "mp4": "22-schweissnahtpruefung-konventioneller-und-optimierter-sensor.mp4", "untertitel": "22-schweissnahtpruefung-konventioneller-und-optimierter-sensor.de.vtt", "poster": "22-schweissnahtpruefung-konventioneller-und-optimierter-sensor.jpg"}];
+(function(){
+  const vid=document.getElementById('vid'),list=document.getElementById('list'),cc=document.getElementById('cc');
+  let subsOn=true;try{subsOn=localStorage.getItem('ev-subs')!=='0'}catch(e){}
+  const fmt=s=>Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0');
+  document.getElementById('sub').textContent=VIDEOS.length+' Videos · Untertitel ein- und ausschaltbar · Gesamtdauer '+fmt(VIDEOS.reduce((a,v)=>a+v.dauer,0))+' min';
+  const applySubs=()=>{for(const t of vid.textTracks)t.mode=subsOn?'showing':'disabled';cc.setAttribute('aria-pressed',String(subsOn))};
+  cc.onclick=()=>{subsOn=!subsOn;try{localStorage.setItem('ev-subs',subsOn?'1':'0')}catch(e){}applySubs()};
+  vid.textTracks.addEventListener&&vid.textTracks.addEventListener('change',()=>{const on=[...vid.textTracks].some(t=>t.mode==='showing');if(on!==subsOn){subsOn=on;cc.setAttribute('aria-pressed',String(on))}});
+  const items=[];
+  function play(i,auto){const v=VIDEOS[i];vid.innerHTML='';vid.poster=v.poster;
+    const s=document.createElement('source');s.src=v.mp4;s.type='video/mp4';vid.append(s);
+    const tr=document.createElement('track');tr.kind='subtitles';tr.srclang='de';tr.label='Deutsch';tr.src=v.untertitel;tr.default=true;vid.append(tr);
+    vid.load();setTimeout(applySubs,0);tr.addEventListener('load',applySubs);
+    document.getElementById('ttl').textContent=v.titel;document.title=v.titel+' · Erklärvideos';document.getElementById('cap').textContent='Kapitel '+v.kapitel+' · '+v.kapitelTitel+' · '+fmt(v.dauer)+' min';
+    const dl=document.getElementById('dl');dl.href=v.mp4;dl.setAttribute('download',v.mp4);
+    items.forEach((b,k)=>b.setAttribute('aria-current',String(k===i)));history.replaceState(null,'','#'+v.id);if(auto)vid.play().catch(()=>{})}
+  let cur=null;
+  VIDEOS.forEach((v,i)=>{const key=v.kapitel+' · '+v.kapitelTitel;if(!cur||cur.dataset.k!==key){cur=document.createElement('div');cur.className='ch';cur.dataset.k=key;const h=document.createElement('h3');h.textContent='Kapitel '+key;cur.append(h);list.append(cur)}
+    const b=document.createElement('button');b.type='button';b.className='item';b.innerHTML='<img alt="" loading="lazy"><span><b></b><span></span></span>';b.querySelector('img').src=v.poster;b.querySelector('b').textContent=v.titel;b.querySelector('span span').textContent=fmt(v.dauer)+' min';
+    b.onclick=()=>play(i,true);cur.append(b);items.push(b)});
+  vid.addEventListener('ended',()=>{const i=items.findIndex(b=>b.getAttribute('aria-current')==='true');if(i+1<VIDEOS.length)play(i+1,true)});
+  document.addEventListener('keydown',e=>{if((e.key==='c'||e.key==='C')&&!/input|textarea/i.test(e.target.tagName))cc.click()});
+  const start=Math.max(0,VIDEOS.findIndex(v=>'#'+v.id===location.hash));play(start,false);
+})();
+</script>
+</body>
+</html>

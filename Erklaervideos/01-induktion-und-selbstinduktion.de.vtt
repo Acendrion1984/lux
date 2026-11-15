@@ -1,0 +1,54 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:05.400
+Induktion und Selbstinduktion bilden die physikalische Grundlage der Wirbelstromprüfung.
+
+2
+00:00:05.450 --> 00:00:11.650
+Nach dem Faradayschen Gesetz erzeugt eine zeitliche Änderung des magnetischen Flusses eine elektrische Spannung.
+
+3
+00:00:11.700 --> 00:00:15.950
+In einer Spule gilt: u = −N · dΦ/dt.
+
+4
+00:00:16.000 --> 00:00:21.500
+Die induzierte Spannung ist proportional zur Windungszahl und zur Änderungsgeschwindigkeit des Flusses.
+
+5
+00:00:21.550 --> 00:00:27.250
+Fließt in einer Spule ein sich ändernder Strom, erzeugt sie selbst ein Magnetfeld und damit einen Fluss.
+
+6
+00:00:27.300 --> 00:00:31.200
+Die dadurch induzierte Spannung wirkt der Stromänderung entgegen.
+
+7
+00:00:31.250 --> 00:00:32.700
+Das ist die Selbstinduktion.
+
+8
+00:00:32.750 --> 00:00:38.300
+Die Induktivität L verknüpft Spannung und Stromänderung: u = L · di/dt.
+
+9
+00:00:38.350 --> 00:00:41.900
+In der Wirbelstromprüfung speist man die Prüfspule mit Wechselstrom.
+
+10
+00:00:41.950 --> 00:00:45.750
+Das Wechselfeld induziert im leitfähigen Prüfteil Wirbelströme.
+
+11
+00:00:45.800 --> 00:00:50.200
+Diese erzeugen ihrerseits ein Gegenfeld, das die Impedanz der Spule beeinflusst.
+
+12
+00:00:50.250 --> 00:00:52.400
+Genau diese Rückwirkung wird gemessen.
+
+13
+00:00:52.450 --> 00:00:56.650
+Ohne Induktion und Selbstinduktion gäbe es keine Wirbelstromprüfung.
+

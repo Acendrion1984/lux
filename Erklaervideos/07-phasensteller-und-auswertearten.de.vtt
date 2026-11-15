@@ -1,0 +1,66 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:06.550
+Nachdem Lift-off und Riss unterschiedliche Richtungen in der Impedanzebene haben, kommt der Phasensteller ins Spiel.
+
+2
+00:00:06.600 --> 00:00:09.650
+Mit dem Phasensteller dreht man das gesamte Signalbild.
+
+3
+00:00:09.700 --> 00:00:14.350
+Ziel ist es, die Störgröße – meist den Lift-off – waagerecht zu legen.
+
+4
+00:00:14.400 --> 00:00:16.900
+Der Riss steht dann möglichst senkrecht dazu.
+
+5
+00:00:16.950 --> 00:00:19.700
+Für die Auswertung gibt es drei gängige Verfahren.
+
+6
+00:00:19.750 --> 00:00:24.550
+Erstens die Amplitudenauswertung: Es wird nur der Betrag des Signals betrachtet.
+
+7
+00:00:24.600 --> 00:00:31.150
+Sie ist einfach und phasenunabhängig, trennt aber nicht zwischen Fehler und Störungen, wenn beide ähnlich groß sind.
+
+8
+00:00:31.200 --> 00:00:33.850
+Zweitens die Y-Komponenten-Auswertung.
+
+9
+00:00:33.900 --> 00:00:36.650
+Nur die vertikale Komponente wird ausgewertet.
+
+10
+00:00:36.700 --> 00:00:40.650
+Liegt der Lift-off horizontal, erzeugt er kein Y-Signal.
+
+11
+00:00:40.700 --> 00:00:41.650
+Der Riss schon.
+
+12
+00:00:41.700 --> 00:00:43.550
+Drittens die Sektorauswertung.
+
+13
+00:00:43.600 --> 00:00:46.250
+Ein Winkelfenster wird um die Rissrichtung gelegt.
+
+14
+00:00:46.300 --> 00:00:51.500
+Nur Signale innerhalb dieses Sektors und oberhalb einer Amplitudenschwelle lösen Alarm aus.
+
+15
+00:00:51.550 --> 00:00:57.600
+In der Praxis kombiniert man oft Phasensteller, Y-Komponente oder Sektor und eine geeignete Schwelle.
+
+16
+00:00:57.650 --> 00:01:02.400
+So wird das Fehlersignal zuverlässig erkannt, und Störsignale werden unterdrückt.
+

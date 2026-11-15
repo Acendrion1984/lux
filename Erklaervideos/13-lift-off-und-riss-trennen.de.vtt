@@ -1,0 +1,54 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:09.000
+Ein häufiges Problem in der Wirbelstromprüfung: Der Abstand der Spule zum Prüfteil – der sogenannte Lift-off – erzeugt ebenfalls ein Signal.
+
+2
+00:00:09.050 --> 00:00:11.500
+Wie unterscheidet man es vom eigentlichen Riss?
+
+3
+00:00:11.550 --> 00:00:15.950
+In der Impedanzebene bewegen sich beide Effekte in unterschiedliche Richtungen.
+
+4
+00:00:16.000 --> 00:00:23.700
+Der Lift-off verschiebt den Messpunkt typischerweise entlang einer bestimmten Bahn – oft annähernd horizontal oder in einem flachen Winkel.
+
+5
+00:00:23.750 --> 00:00:30.200
+Ein Riss dagegen erzeugt eine Verschiebung mit klarer Phasenlage – meist steiler und in eine andere Richtung.
+
+6
+00:00:30.250 --> 00:00:31.900
+Praktisch geht man so vor:
+
+7
+00:00:31.950 --> 00:00:37.150
+Zuerst den Lift-off-Effekt beobachten, indem man die Spule leicht anhebt und absenkt.
+
+8
+00:00:37.200 --> 00:00:41.250
+Dann die Phase so drehen, dass die Lift-off-Richtung waagerecht liegt.
+
+9
+00:00:41.300 --> 00:00:44.000
+Der Riss steht danach annähernd senkrecht dazu.
+
+10
+00:00:44.050 --> 00:00:49.600
+Mit der Y-Komponente oder einer Sektorauswertung kann man den Riss nun selektiv auswerten.
+
+11
+00:00:49.650 --> 00:00:51.500
+Der Lift-off bleibt unterdrückt.
+
+12
+00:00:51.550 --> 00:00:57.050
+Wichtig: Die Trennung funktioniert nur, wenn der Phasenwinkel zwischen beiden Effekten groß genug ist.
+
+13
+00:00:57.100 --> 00:01:00.200
+Deshalb muss die Prüffrequenz passend gewählt werden.
+

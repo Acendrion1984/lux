@@ -1,0 +1,222 @@
+[
+ {
+  "id": "01-induktion-und-selbstinduktion",
+  "titel": "Induktion und Selbstinduktion",
+  "kapitel": 1,
+  "kapitelTitel": "Physikalische Grundlagen",
+  "dauer": 56.7,
+  "mp4": "01-induktion-und-selbstinduktion.mp4",
+  "untertitel": "01-induktion-und-selbstinduktion.de.vtt",
+  "poster": "01-induktion-und-selbstinduktion.jpg"
+ },
+ {
+  "id": "02-risserkennung-grundprinzip",
+  "titel": "Risserkennung – Grundprinzip",
+  "kapitel": 1,
+  "kapitelTitel": "Physikalische Grundlagen",
+  "dauer": 53.8,
+  "mp4": "02-risserkennung-grundprinzip.mp4",
+  "untertitel": "02-risserkennung-grundprinzip.de.vtt",
+  "poster": "02-risserkennung-grundprinzip.jpg"
+ },
+ {
+  "id": "03-der-weg-der-wirbelstroeme-am-riss",
+  "titel": "Der Weg der Wirbelströme am Riss",
+  "kapitel": 1,
+  "kapitelTitel": "Physikalische Grundlagen",
+  "dauer": 59.9,
+  "mp4": "03-der-weg-der-wirbelstroeme-am-riss.mp4",
+  "untertitel": "03-der-weg-der-wirbelstroeme-am-riss.de.vtt",
+  "poster": "03-der-weg-der-wirbelstroeme-am-riss.jpg"
+ },
+ {
+  "id": "04-aehnlichkeitsgesetz-und-normierte-impedanz",
+  "titel": "Ähnlichkeitsgesetz und normierte Impedanz",
+  "kapitel": 1,
+  "kapitelTitel": "Physikalische Grundlagen",
+  "dauer": 55.4,
+  "mp4": "04-aehnlichkeitsgesetz-und-normierte-impedanz.mp4",
+  "untertitel": "04-aehnlichkeitsgesetz-und-normierte-impedanz.de.vtt",
+  "poster": "04-aehnlichkeitsgesetz-und-normierte-impedanz.jpg"
+ },
+ {
+  "id": "05-abhebeeffekt-lift-off",
+  "titel": "Abhebeeffekt (Lift-off)",
+  "kapitel": 2,
+  "kapitelTitel": "Gerätetechnik, Anwendungsübersicht",
+  "dauer": 59.6,
+  "mp4": "05-abhebeeffekt-lift-off.mp4",
+  "untertitel": "05-abhebeeffekt-lift-off.de.vtt",
+  "poster": "05-abhebeeffekt-lift-off.jpg"
+ },
+ {
+  "id": "06-filter-nutz-und-stoersignal",
+  "titel": "Filter: Nutz- und Störsignal",
+  "kapitel": 2,
+  "kapitelTitel": "Gerätetechnik, Anwendungsübersicht",
+  "dauer": 51.6,
+  "mp4": "06-filter-nutz-und-stoersignal.mp4",
+  "untertitel": "06-filter-nutz-und-stoersignal.de.vtt",
+  "poster": "06-filter-nutz-und-stoersignal.jpg"
+ },
+ {
+  "id": "07-phasensteller-und-auswertearten",
+  "titel": "Phasensteller und Auswertearten",
+  "kapitel": 2,
+  "kapitelTitel": "Gerätetechnik, Anwendungsübersicht",
+  "dauer": 62.5,
+  "mp4": "07-phasensteller-und-auswertearten.mp4",
+  "untertitel": "07-phasensteller-und-auswertearten.de.vtt",
+  "poster": "07-phasensteller-und-auswertearten.jpg"
+ },
+ {
+  "id": "08-absolut-und-differenzsonde",
+  "titel": "Absolut- und Differenzsonde",
+  "kapitel": 2,
+  "kapitelTitel": "Gerätetechnik, Anwendungsübersicht",
+  "dauer": 66.3,
+  "mp4": "08-absolut-und-differenzsonde.mp4",
+  "untertitel": "08-absolut-und-differenzsonde.de.vtt",
+  "poster": "08-absolut-und-differenzsonde.jpg"
+ },
+ {
+  "id": "09-rohrpruefung-mit-durchlaufspule",
+  "titel": "Rohrprüfung mit Durchlaufspule",
+  "kapitel": 2,
+  "kapitelTitel": "Gerätetechnik, Anwendungsübersicht",
+  "dauer": 51.9,
+  "mp4": "09-rohrpruefung-mit-durchlaufspule.mp4",
+  "untertitel": "09-rohrpruefung-mit-durchlaufspule.de.vtt",
+  "poster": "09-rohrpruefung-mit-durchlaufspule.jpg"
+ },
+ {
+  "id": "10-die-hysteresekurve",
+  "titel": "Die Hysteresekurve",
+  "kapitel": 3,
+  "kapitelTitel": "Permeabilität",
+  "dauer": 67.6,
+  "mp4": "10-die-hysteresekurve.mp4",
+  "untertitel": "10-die-hysteresekurve.de.vtt",
+  "poster": "10-die-hysteresekurve.jpg"
+ },
+ {
+  "id": "11-skineffekt-und-eindringtiefe",
+  "titel": "Skineffekt und Eindringtiefe",
+  "kapitel": 4,
+  "kapitelTitel": "Leitfähigkeit",
+  "dauer": 52.5,
+  "mp4": "11-skineffekt-und-eindringtiefe.mp4",
+  "untertitel": "11-skineffekt-und-eindringtiefe.de.vtt",
+  "poster": "11-skineffekt-und-eindringtiefe.jpg"
+ },
+ {
+  "id": "12-fehlertiefe-und-phasenlage",
+  "titel": "Fehlertiefe und Phasenlage",
+  "kapitel": 4,
+  "kapitelTitel": "Leitfähigkeit",
+  "dauer": 52.5,
+  "mp4": "12-fehlertiefe-und-phasenlage.mp4",
+  "untertitel": "12-fehlertiefe-und-phasenlage.de.vtt",
+  "poster": "12-fehlertiefe-und-phasenlage.jpg"
+ },
+ {
+  "id": "13-lift-off-und-riss-trennen",
+  "titel": "Lift-off und Riss trennen",
+  "kapitel": 6,
+  "kapitelTitel": "Prüfung von Oberflächen",
+  "dauer": 60.2,
+  "mp4": "13-lift-off-und-riss-trennen.mp4",
+  "untertitel": "13-lift-off-und-riss-trennen.de.vtt",
+  "poster": "13-lift-off-und-riss-trennen.jpg"
+ },
+ {
+  "id": "14-mehrfrequenz-gefuege-und-verwechslung",
+  "titel": "Mehrfrequenz – Gefüge und Verwechslung",
+  "kapitel": 8,
+  "kapitelTitel": "Gefügeprüfung",
+  "dauer": 49.0,
+  "mp4": "14-mehrfrequenz-gefuege-und-verwechslung.mp4",
+  "untertitel": "14-mehrfrequenz-gefuege-und-verwechslung.de.vtt",
+  "poster": "14-mehrfrequenz-gefuege-und-verwechslung.jpg"
+ },
+ {
+  "id": "15-toleranzfeld-in-der-impedanzebene-richtig-anpassen",
+  "titel": "Toleranzfeld in der Impedanzebene richtig anpassen",
+  "kapitel": 8,
+  "kapitelTitel": "Gefügeprüfung",
+  "dauer": 42,
+  "mp4": "15-toleranzfeld-in-der-impedanzebene-richtig-anpassen.mp4",
+  "untertitel": "15-toleranzfeld-in-der-impedanzebene-richtig-anpassen.de.vtt",
+  "poster": "15-toleranzfeld-in-der-impedanzebene-richtig-anpassen.jpg"
+ },
+ {
+  "id": "16-verifizierung-des-pruefsystems-in-drei-stufen",
+  "titel": "Verifizierung des Prüfsystems in drei Stufen",
+  "kapitel": 9,
+  "kapitelTitel": "Technische Vorschriften in der ZfP",
+  "dauer": 37.4,
+  "mp4": "16-verifizierung-des-pruefsystems-in-drei-stufen.mp4",
+  "untertitel": "16-verifizierung-des-pruefsystems-in-drei-stufen.de.vtt",
+  "poster": "16-verifizierung-des-pruefsystems-in-drei-stufen.jpg"
+ },
+ {
+  "id": "17-von-der-norm-zum-pruefbericht",
+  "titel": "Von der Norm zum Prüfbericht",
+  "kapitel": 10,
+  "kapitelTitel": "Erstellen von Prüfanweisungen",
+  "dauer": 62.8,
+  "mp4": "17-von-der-norm-zum-pruefbericht.mp4",
+  "untertitel": "17-von-der-norm-zum-pruefbericht.de.vtt",
+  "poster": "17-von-der-norm-zum-pruefbericht.jpg"
+ },
+ {
+  "id": "18-rotierende-tastsensoren-und-ueberdeckung",
+  "titel": "Rotierende Tastsensoren und Überdeckung",
+  "kapitel": 11,
+  "kapitelTitel": "Rohrprüfung in der Fertigung",
+  "dauer": 53.9,
+  "mp4": "18-rotierende-tastsensoren-und-ueberdeckung.mp4",
+  "untertitel": "18-rotierende-tastsensoren-und-ueberdeckung.de.vtt",
+  "poster": "18-rotierende-tastsensoren-und-ueberdeckung.jpg"
+ },
+ {
+  "id": "19-rohrpruefstrecke-magnetisieren-pruefen-entmagnetisieren",
+  "titel": "Rohrprüfstrecke: Magnetisieren – Prüfen – Entmagnetisieren",
+  "kapitel": 11,
+  "kapitelTitel": "Rohrprüfung in der Fertigung",
+  "dauer": 59.9,
+  "mp4": "19-rohrpruefstrecke-magnetisieren-pruefen-entmagnetisieren.mp4",
+  "untertitel": "19-rohrpruefstrecke-magnetisieren-pruefen-entmagnetisieren.de.vtt",
+  "poster": "19-rohrpruefstrecke-magnetisieren-pruefen-entmagnetisieren.jpg"
+ },
+ {
+  "id": "20-wie-entsteht-das-signal-der-differenzspule",
+  "titel": "Wie entsteht das Signal der Differenzspule?",
+  "kapitel": 11,
+  "kapitelTitel": "Rohrprüfung in der Fertigung",
+  "dauer": 68.5,
+  "mp4": "20-wie-entsteht-das-signal-der-differenzspule.mp4",
+  "untertitel": "20-wie-entsteht-das-signal-der-differenzspule.de.vtt",
+  "poster": "20-wie-entsteht-das-signal-der-differenzspule.jpg"
+ },
+ {
+  "id": "21-schichtdickenmessung-mit-dem-abhebeeffekt",
+  "titel": "Schichtdickenmessung mit dem Abhebeeffekt",
+  "kapitel": 12,
+  "kapitelTitel": "Schichtdickenmessung",
+  "dauer": 42.1,
+  "mp4": "21-schichtdickenmessung-mit-dem-abhebeeffekt.mp4",
+  "untertitel": "21-schichtdickenmessung-mit-dem-abhebeeffekt.de.vtt",
+  "poster": "21-schichtdickenmessung-mit-dem-abhebeeffekt.jpg"
+ },
+ {
+  "id": "22-schweissnahtpruefung-konventioneller-und-optimierter-sensor",
+  "titel": "Schweißnahtprüfung: konventioneller und optimierter Sensor",
+  "kapitel": 13,
+  "kapitelTitel": "Schweißnahtprüfung",
+  "dauer": 40,
+  "mp4": "22-schweissnahtpruefung-konventioneller-und-optimierter-sensor.mp4",
+  "untertitel": "22-schweissnahtpruefung-konventioneller-und-optimierter-sensor.de.vtt",
+  "poster": "22-schweissnahtpruefung-konventioneller-und-optimierter-sensor.jpg"
+ }
+]

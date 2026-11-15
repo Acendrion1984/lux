@@ -1,0 +1,42 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:06.450
+Die Fehlertiefe beeinflusst nicht nur die Signalhöhe, sondern auch die Phasenlage in der Impedanzebene.
+
+2
+00:00:06.500 --> 00:00:11.550
+Ein flacher Oberflächenriss stört vor allem die oberflächennahen Wirbelströme.
+
+3
+00:00:11.600 --> 00:00:15.300
+Ein tieferer Riss greift in tiefere Stromschichten ein.
+
+4
+00:00:15.350 --> 00:00:19.200
+Dadurch ändert sich der komplexe Widerstand der Spule unterschiedlich.
+
+5
+00:00:19.250 --> 00:00:23.350
+Amplitude und Phase des Fehlersignals hängen von der Tiefe ab.
+
+6
+00:00:23.400 --> 00:00:26.750
+In der Praxis kann man die Phasenlage zur Tiefenabschätzung nutzen.
+
+7
+00:00:26.800 --> 00:00:35.900
+Nach richtiger Phaseneinstellung – zum Beispiel Lift-off horizontal – liegen Signale unterschiedlicher Risstiefe oft in leicht unterschiedlichen Winkeln.
+
+8
+00:00:35.950 --> 00:00:40.400
+Mit Kalibrierfehlern bekannter Tiefe lässt sich eine Zuordnung aufbauen.
+
+9
+00:00:40.450 --> 00:00:47.800
+Voraussetzungen sind eine passende Frequenz, damit die Eindringtiefe zur Fehlertiefe passt, und eine stabile Phaseneinstellung.
+
+10
+00:00:47.850 --> 00:00:52.500
+Die Phaseninformation ist damit ein zusätzliches Merkmal neben der Amplitude.
+

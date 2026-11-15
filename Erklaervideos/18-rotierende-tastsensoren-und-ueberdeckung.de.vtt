@@ -1,0 +1,42 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:08.400
+Rotierende Tastsensoren werden eingesetzt, wenn das Prüfteil nicht durch eine Spule laufen kann oder eine hohe Umfangsauflösung gebraucht wird.
+
+2
+00:00:08.450 --> 00:00:12.800
+Die Sonde tastet die Oberfläche ab und rotiert relativ zum Prüfteil.
+
+3
+00:00:12.850 --> 00:00:18.850
+Entweder rotiert die Sonde um das stillstehende Teil – oder das Teil dreht sich unter einer festen Sonde.
+
+4
+00:00:18.900 --> 00:00:22.200
+Dadurch wird der gesamte Umfang zeilenweise abgedeckt.
+
+5
+00:00:22.250 --> 00:00:24.050
+Entscheidend ist die Überdeckung.
+
+6
+00:00:24.100 --> 00:00:30.950
+Der Vorschub pro Umdrehung muss kleiner sein als die wirksame Breite der Sonde, damit keine ungeprüften Streifen bleiben.
+
+7
+00:00:31.000 --> 00:00:34.100
+Man spricht von Überlappung oder Überdeckungsgrad.
+
+8
+00:00:34.150 --> 00:00:38.500
+Zu großer Vorschub erzeugt Lücken, zu kleiner Vorschub kostet Zeit.
+
+9
+00:00:38.550 --> 00:00:46.650
+Die richtige Überdeckung wird aus Sondenwirkbreite und geforderter Fehlerauffindwahrscheinlichkeit abgeleitet und in der Prüfanweisung festgelegt.
+
+10
+00:00:46.700 --> 00:00:53.800
+Rotierende Systeme sind typisch für Stangen, Rohre und zylindrische Bauteile mit hohen Anforderungen an die Oberflächenprüfung.
+

@@ -1,0 +1,18 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:09.950
+Gutteile und Schlechtteile bilden zwei Gruppen. Ein elliptisches Toleranzfeld trennt sie eindeutig.
+
+2
+00:00:10.000 --> 00:00:19.950
+Die Laboruntersuchung findet weitere Gutteile außerhalb der Ellipse – das Feld muss angepasst werden.
+
+3
+00:00:20.000 --> 00:00:29.950
+Falsch: Das Feld einfach vergrößern. Dann werden auch Schlechtteile als Gutteile sortiert.
+
+4
+00:00:30.000 --> 00:00:41.950
+Richtig: das Toleranzfeld drehen. Gut- und Schlechtteile sind wieder getrennt – am sichersten bei chargenreiner Prüfung.
+

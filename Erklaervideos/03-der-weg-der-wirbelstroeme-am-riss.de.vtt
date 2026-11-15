@@ -1,0 +1,58 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:02.950
+Schauen wir uns den Weg der Wirbelströme genau an.
+
+2
+00:00:03.000 --> 00:00:09.800
+Ohne Fehler fließen die Wirbelströme im Werkstoff in geschlossenen, nahezu kreisförmigen Bahnen unter der Spule.
+
+3
+00:00:09.850 --> 00:00:15.300
+Sie erzeugen ein Gegenfeld, das der Spule entgegenwirkt und ihre Impedanz beeinflusst.
+
+4
+00:00:15.350 --> 00:00:20.750
+Liegt ein Riss im Stromweg, können die Wirbelströme den Riss nicht ohne Weiteres durchqueren.
+
+5
+00:00:20.800 --> 00:00:22.250
+Sie müssen ausweichen.
+
+6
+00:00:22.300 --> 00:00:25.750
+Sie fließen um die Rissspitzen herum – oder tiefer in das Material.
+
+7
+00:00:25.800 --> 00:00:30.450
+Dadurch wird der Strompfad länger und der wirksame Querschnitt kleiner.
+
+8
+00:00:30.500 --> 00:00:33.850
+Das Gegenfeld wird schwächer oder ändert seine Phasenlage.
+
+9
+00:00:33.900 --> 00:00:39.000
+Genau diese Änderung spürt die Spule als Verschiebung des Messpunkts in der Impedanzebene.
+
+10
+00:00:39.050 --> 00:00:44.100
+Je nach Rissorientierung, Tiefe und Frequenz ist die Störung unterschiedlich stark.
+
+11
+00:00:44.150 --> 00:00:48.050
+Quer zur Hauptstromrichtung liegende Risse stören besonders wirksam.
+
+12
+00:00:48.100 --> 00:00:51.650
+Zusammengefasst: Der Riss zwingt die Wirbelströme auf einen Umweg.
+
+13
+00:00:51.700 --> 00:00:54.150
+Der Umweg ändert das Gegenfeld.
+
+14
+00:00:54.200 --> 00:00:59.850
+Das geänderte Gegenfeld ändert die Spulenimpedanz – und genau das wird als Fehlersignal angezeigt.
+

@@ -1,0 +1,54 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:07.310
+In der Wirbelstromprüfung unterscheidet man zwei grundlegende Sondentypen: die Absolutsonde und die Differenzsonde.
+
+2
+00:00:07.360 --> 00:00:11.250
+Die Absolutsonde vergleicht das Signal mit einem festen Bezug.
+
+3
+00:00:11.300 --> 00:00:18.210
+Sie sieht sowohl örtliche Fehler als auch langsame Änderungen wie Lift-off, Temperaturgang oder Werkstoffschwankungen.
+
+4
+00:00:18.260 --> 00:00:25.150
+Die Anzeige ist oft leichter zu deuten, erfordert aber eine gute Unterdrückung der Störgrößen über Phase und Filter.
+
+5
+00:00:25.200 --> 00:00:28.850
+Die Differenzsonde besteht aus zwei gegeneinander geschalteten Spulen.
+
+6
+00:00:28.900 --> 00:00:33.510
+Gleichmäßige Einflüsse, die beide Spulen gleich treffen, heben sich auf.
+
+7
+00:00:33.560 --> 00:00:36.410
+Nur örtliche Unterschiede erzeugen ein Signal.
+
+8
+00:00:36.460 --> 00:00:41.250
+Typisch ist die charakteristische achtförmige Signatur beim Überfahren eines Risses.
+
+9
+00:00:41.300 --> 00:00:44.750
+Lift-off und langsame Drift werden weitgehend unterdrückt.
+
+10
+00:00:44.800 --> 00:00:46.070
+Wann welche Sonde?
+
+11
+00:00:46.120 --> 00:00:51.270
+Für flächige Eigenschaften – Leitfähigkeit oder Schichtdicke – eignet sich die Absolutsonde.
+
+12
+00:00:51.320 --> 00:01:00.270
+Für Rissprüfung an Oberflächen, Schweißnähten oder in Bohrungen ist die Differenzsonde meist die bessere Wahl – weil sie Störgrößen von vornherein unterdrückt.
+
+13
+00:01:00.320 --> 00:01:06.250
+In der Praxis kombiniert man oft beide Prinzipien oder nutzt Mehrspulensysteme – je nach Prüfaufgabe.
+

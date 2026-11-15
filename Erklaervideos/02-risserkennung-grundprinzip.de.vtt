@@ -1,0 +1,62 @@
+WEBVTT
+
+1
+00:00:00.000 --> 00:00:04.800
+Willkommen! Wir schauen uns an, wie die Wirbelstromprüfung einen Riss erkennt.
+
+2
+00:00:04.850 --> 00:00:09.650
+Eine Spule wird mit Wechselstrom gespeist und erzeugt ein magnetisches Wechselfeld.
+
+3
+00:00:09.700 --> 00:00:14.950
+Dieses Primärfeld induziert im leitfähigen Prüfteil kreisförmige Wirbelströme.
+
+4
+00:00:15.000 --> 00:00:18.200
+Die Wirbelströme erzeugen ihrerseits ein Gegenfeld.
+
+5
+00:00:18.250 --> 00:00:21.000
+Dieses beeinflusst die Impedanz der Spule.
+
+6
+00:00:21.050 --> 00:00:25.000
+Liegt unter der Spule ein Riss, werden die Wirbelströme gestört.
+
+7
+00:00:25.050 --> 00:00:26.450
+Sie müssen einen Umweg nehmen.
+
+8
+00:00:26.500 --> 00:00:31.050
+Dadurch ändert sich das Gegenfeld – und die Impedanz der Spule verschiebt sich.
+
+9
+00:00:31.100 --> 00:00:33.750
+In der Impedanzebene wandert der Messpunkt.
+
+10
+00:00:33.800 --> 00:00:36.150
+Diese Verschiebung ist das Fehlersignal.
+
+11
+00:00:36.200 --> 00:00:43.450
+Über Amplitude und Phase können wir den Riss von Störeinflüssen wie dem Abstand der Spule – dem sogenannten Lift-off – trennen.
+
+12
+00:00:43.500 --> 00:00:46.850
+Zusammengefasst: Das Primärfeld erzeugt Wirbelströme.
+
+13
+00:00:46.900 --> 00:00:48.800
+Ein Riss stört diese Ströme.
+
+14
+00:00:48.850 --> 00:00:50.900
+Die Spulenimpedanz ändert sich.
+
+15
+00:00:50.950 --> 00:00:53.750
+Und genau diese Änderung macht den Fehler sichtbar.
+
